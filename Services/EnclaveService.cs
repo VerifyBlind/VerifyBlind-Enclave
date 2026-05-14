@@ -447,7 +447,7 @@ string? partnerId = null;
         if (qrReqEl.TryGetProperty("partner_id", out var pid)) partnerId = pid.GetString();
         if (qrReqEl.TryGetProperty("public_key", out var pk)) reqPublicKey = pk.GetString();
         if (qrReqEl.TryGetProperty("nonce", out var n)) reqNonce = n.GetString();
-        if (qrReqEl.TryGetProperty("special_data", out var sd)) specialData = JsonSerializer.Deserialize<object>(sd.GetRawText());
+        if (qrReqEl.TryGetProperty("additional_data", out var sd)) specialData = JsonSerializer.Deserialize<object>(sd.GetRawText());
 
         // This is redundancy for validation usage later, but good for local extraction
         if (qrReqEl.TryGetProperty("validations", out var valProp))

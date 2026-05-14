@@ -150,7 +150,7 @@ public class PartnerRequestData
     [JsonPropertyName("callback_url")]
     public string? CallbackUrl { get; set; }
 
-    [JsonPropertyName("special_data")]
+    [JsonPropertyName("additional_data")]
     public object? SpecialData { get; set; }
 
     [JsonPropertyName("validations")]
@@ -201,7 +201,7 @@ public class LoginResponse
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, object>? Validations { get; set; }
 
-    [JsonPropertyName("special_data")]
+    [JsonPropertyName("additional_data")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public object? SpecialData { get; set; }
 }
