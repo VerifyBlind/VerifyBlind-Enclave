@@ -57,8 +57,10 @@ jobs:
           IMAGE_ID=$(docker image inspect localhost/verifyblind-enclave:latest --format '{{.Id}}')
           echo "DOCKER_IMAGE_ID=$IMAGE_ID"
           echo "DOCKER_IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
-          # Log layer digests for finer-grained comparison between runs
+          echo "=== Layer digests ==="
           docker image inspect localhost/verifyblind-enclave:latest --format '{{range .RootFS.Layers}}{{println .}}{{end}}'
+          echo "=== Layer history (command → layer hash) ==="
+          docker history localhost/verifyblind-enclave:latest --no-trunc --format "{{.CreatedBy}} ||| {{.ID}}"
 
       - name: 🏗️ Build EIF (AWS Nitro Image - ARM64)
         run: |

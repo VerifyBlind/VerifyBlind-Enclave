@@ -30,11 +30,15 @@ ENV KMS__Region=eu-central-1
 # Install socat and iproute2 (for loopback setup) — exact versions pinned for reproducibility.
 # If a security update bumps these versions the build will fail loudly; update pins consciously.
 # Fallback to snapshot.debian.org for long-term archive: https://snapshot.debian.org/archive/debian/
+# Normalize dpkg/alternatives timestamps after install: dpkg writes /var/lib/dpkg/info/*.list
+# and /var/lib/dpkg/status with the install-time timestamp — strip these for layer determinism.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       socat=1.7.4.4-2 \
       iproute2=6.1.0-3 \
       libgomp1=12.2.0-14+deb12u1 \
-    && rm -rf /var/lib/apt/lists/* /var/log/apt/* /var/log/dpkg.log /var/log/alternatives.log /var/cache/apt/*
+    && rm -rf /var/lib/apt/lists/* /var/log/apt/* /var/log/dpkg.log /var/log/alternatives.log /var/cache/apt/* \
+    && find /var/lib/dpkg /etc/alternatives /var/lib/update-alternatives \
+       -exec touch -t 202601010000 {} + 2>/dev/null || true
 
 COPY --from=build /app/publish .
 COPY VerifyBlind.Enclave/Models/w600k_mbf.onnx /app/Models/w600k_mbf.onnx
