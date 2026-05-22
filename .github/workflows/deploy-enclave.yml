@@ -52,6 +52,14 @@ jobs:
             -f _ctx/VerifyBlind.Enclave/Dockerfile.enclave \
             _ctx/
 
+      - name: 🔍 Log Docker Image Digest (Reproducibility Diagnostic)
+        run: |
+          IMAGE_ID=$(docker image inspect localhost/verifyblind-enclave:latest --format '{{.Id}}')
+          echo "DOCKER_IMAGE_ID=$IMAGE_ID"
+          echo "DOCKER_IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
+          # Log layer digests for finer-grained comparison between runs
+          docker image inspect localhost/verifyblind-enclave:latest --format '{{range .RootFS.Layers}}{{println .}}{{end}}'
+
       - name: 🏗️ Build EIF (AWS Nitro Image - ARM64)
         run: |
           # amazonlinux:2 pinned by manifest-list digest (2026-05-23)
