@@ -57,7 +57,9 @@ RUN echo 'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/2
 # same way it does RUN layers). Bind-mount + cp puts files into a RUN layer that respects
 # rewrite-timestamp=true and gets re-normalized by the final touch step.
 RUN --mount=type=bind,from=build,source=/app/publish,target=/build-publish \
-    cp -a /build-publish/. /app/
+    tar --owner=0 --group=0 --numeric-owner --sort=name \
+        --mtime='2026-01-01 00:00:00 UTC' \
+        -C /build-publish -cf - . | tar -xf - -C /app
 
 COPY VerifyBlind.Enclave/Models/w600k_mbf.onnx /app/Models/w600k_mbf.onnx
 COPY VerifyBlind.Enclave/Certificates/ /app/Certificates/
