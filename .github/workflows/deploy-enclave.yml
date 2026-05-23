@@ -60,11 +60,11 @@ jobs:
           echo "=== Layer digests ==="
           docker image inspect localhost/verifyblind-enclave:latest --format '{{range .RootFS.Layers}}{{println .}}{{end}}'
           echo "=== File hashes inside image /app ==="
-          docker run --rm localhost/verifyblind-enclave:latest \
-            find /app -type f -exec sha256sum {} + | sort
+          docker run --rm --entrypoint="" localhost/verifyblind-enclave:latest \
+            sh -c 'find /app -type f -exec sha256sum {} + | sort'
           echo "=== dpkg status Installed-Time entries ==="
-          docker run --rm localhost/verifyblind-enclave:latest \
-            grep -A1 "^Installed-Time:" /var/lib/dpkg/status | head -20 || echo "(none found)"
+          docker run --rm --entrypoint="" localhost/verifyblind-enclave:latest \
+            sh -c 'grep -A1 "^Installed-Time:" /var/lib/dpkg/status | head -20 || echo "(none found)"'
 
       - name: 🏗️ Build EIF (AWS Nitro Image - ARM64)
         run: |
