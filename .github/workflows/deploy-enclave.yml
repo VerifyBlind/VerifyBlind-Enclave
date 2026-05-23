@@ -85,23 +85,33 @@ jobs:
           docker cp "$CID:/var/lib/dpkg/status" /tmp/dpkg-status
           grep "Installed-Time:" /tmp/dpkg-status | head -20 || echo "(none found)"
 
-          # Inspect Layer 5 raw tar content
-          echo "=== Layer 5 raw tar listing (first 50 + size summary) ==="
+          # Inspect EACH layer's tar content
+          echo "=== Layer-by-layer per-file SHA inventory ==="
           docker save localhost/verifyblind-enclave:latest -o /tmp/img.tar
           mkdir -p /tmp/img-extract && tar -xf /tmp/img.tar -C /tmp/img-extract
-          # Layer 5 = 5th non-empty layer in manifest order
           MANIFEST=/tmp/img-extract/manifest.json
           if [ -f "$MANIFEST" ]; then
-            LAYER5=$(jq -r '.[0].Layers[4]' "$MANIFEST")
-            echo "Layer 5 path: $LAYER5"
-            ls -la "/tmp/img-extract/$LAYER5"
-            tar -tvf "/tmp/img-extract/$LAYER5" | head -50
-            echo "--- Layer 5 file count ---"
-            tar -tvf "/tmp/img-extract/$LAYER5" | wc -l
-            echo "--- Layer 5 mtime samples ---"
-            tar -tvf "/tmp/img-extract/$LAYER5" | awk '{print $4, $5}' | sort -u | head -10
-            echo "--- Layer 5 sha256 ---"
-            sha256sum "/tmp/img-extract/$LAYER5"
+            jq -r '.[0].Layers[]' "$MANIFEST" | nl -ba | while read idx layerpath; do
+              full="/tmp/img-extract/$layerpath"
+              if [ -f "$full" ]; then
+                bytes=$(wc -c <"$full")
+                cnt=$(tar -tf "$full" 2>/dev/null | wc -l)
+                sha=$(sha256sum "$full" | awk '{print $1}')
+                echo "Layer[$idx] $layerpath  bytes=$bytes  files=$cnt  sha=$sha"
+                # Per-file content hash WITHIN this layer (mtime-independent)
+                mkdir -p "/tmp/layer-$idx-content"
+                tar -xf "$full" -C "/tmp/layer-$idx-content" 2>/dev/null || true
+                find "/tmp/layer-$idx-content" -type f -exec sha256sum {} + | sed "s|/tmp/layer-$idx-content/||" | sort > "/tmp/layer-$idx-files.txt"
+                echo "  per-file-content-hash: $(sha256sum /tmp/layer-$idx-files.txt | awk '{print $1}')"
+              fi
+            done
+            # Dump the suspicious layer (the one with 4072 files = apt-install layer) full listing
+            APT_LAYER=$(jq -r '.[0].Layers[4]' "$MANIFEST")
+            echo "=== Full tar -tv of apt-install layer ($APT_LAYER) ==="
+            tar -tvf "/tmp/img-extract/$APT_LAYER" | sort > /tmp/apt-layer-listing.txt
+            wc -l /tmp/apt-layer-listing.txt
+            # Capture for artifact upload
+            cp /tmp/apt-layer-listing.txt /tmp/layer-*-files.txt . 2>/dev/null || true
           fi
 
           docker rm "$CID"
@@ -165,3 +175,5 @@ jobs:
             expected_pcr.json
             nitro_cli_version.txt
             docker-image.tar
+            apt-layer-listing.txt
+            layer-*-files.txt
