@@ -44,11 +44,16 @@ jobs:
 
       - name: 🐳 Build Enclave Docker Image (ARM64)
         run: |
-          # SOURCE_DATE_EPOCH=0 makes BuildKit embed epoch-0 in the image config timestamp,
-          # ensuring the image ID (and downstream PCR0) is deterministic across runs.
-          SOURCE_DATE_EPOCH=0 docker build \
+          # SOURCE_DATE_EPOCH=0 + rewrite-timestamp=true: BuildKit rewrites ALL mtimes inside
+          # layer tars to epoch 0, making layer digests byte-identical across runs regardless
+          # of build-time metadata non-determinism (dpkg processing order, ldconfig cache, etc.)
+          # Requires buildx (BuildKit 0.13+). --load loads result into local docker images so
+          # nitro-cli can find it.
+          docker buildx create --use --name reproducible-builder 2>/dev/null || docker buildx use reproducible-builder
+          SOURCE_DATE_EPOCH=0 docker buildx build \
             --platform linux/arm64 \
             -t localhost/verifyblind-enclave:latest \
+            --output type=docker,rewrite-timestamp=true \
             -f _ctx/VerifyBlind.Enclave/Dockerfile.enclave \
             _ctx/
 
@@ -114,6 +119,11 @@ jobs:
           echo "> **Pin nitro-cli version:** Once \`$NITRO_VER\` is confirmed stable, replace the" >> $GITHUB_STEP_SUMMARY
           echo "> \`amazon-linux-extras install\` line with \`yum install -y aws-nitro-enclaves-cli-<VER>\`." >> $GITHUB_STEP_SUMMARY
 
+      - name: 💾 Save Docker Image for Offline Layer Diff
+        run: |
+          docker save localhost/verifyblind-enclave:latest -o docker-image.tar
+          ls -lh docker-image.tar
+
       - name: 📤 Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -123,3 +133,4 @@ jobs:
             pcr0.txt
             expected_pcr.json
             nitro_cli_version.txt
+            docker-image.tar
