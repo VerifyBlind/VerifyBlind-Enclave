@@ -14,6 +14,8 @@ public class EnclaveKeyService : IEnclaveKeyService
     private readonly string _enclavePubKey;
     private readonly INsmProvider _nsm;
     private string? _cachedAttestationDoc;
+    private DateTime _attestationCachedAt = DateTime.MinValue;
+    private static readonly TimeSpan AttestationCacheTtl = TimeSpan.FromMinutes(150); // 2.5 saat — sertifika ~3 saat geçerli
 
     public EnclaveKeyService(INsmProvider nsm)
     {
@@ -33,11 +35,15 @@ public class EnclaveKeyService : IEnclaveKeyService
 
     public string GetAttestationDocument()
     {
-        if (_cachedAttestationDoc != null) return _cachedAttestationDoc;
+        if (_cachedAttestationDoc != null && DateTime.UtcNow - _attestationCachedAt < AttestationCacheTtl)
+            return _cachedAttestationDoc;
+
+        bool isRefresh = _cachedAttestationDoc != null;
         var pubKeyBytes = Encoding.UTF8.GetBytes(_enclavePubKey);
         var docBytes = _nsm.GetAttestationDocument(userData: pubKeyBytes);
         _cachedAttestationDoc = Convert.ToBase64String(docBytes);
-        Console.WriteLine("[EnclaveKeyService] Attestation belgesi oluşturuldu ve önbelleğe alındı.");
+        _attestationCachedAt = DateTime.UtcNow;
+        Console.WriteLine($"[EnclaveKeyService] Attestation belgesi {(isRefresh ? "yenilendi" : "oluşturuldu")} ve önbelleğe alındı.");
         return _cachedAttestationDoc;
     }
 }
