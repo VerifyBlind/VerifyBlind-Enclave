@@ -109,7 +109,7 @@ public class EnclaveService
         {
             diag.Fail("RSA Decrypt", ex.Message);
             Console.WriteLine($"[Enclave] RSA şifre çözme başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.RsaDecrypt, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.RsaDecrypt, "ERR_RSA_DECRYPT", ex.Message);
         }
 
         // --- Step 2: AES Decrypt ---
@@ -127,13 +127,13 @@ public class EnclaveService
             Console.WriteLine($"[Enclave] [{RegistrationStep.AesDecrypt}] adımında başarısız: {ex}");
             if (ex.Message.Contains("0xc100000d") || ex.Message.Contains("Auth tag mismatch"))
             {
-                throw new RegistrationException(RegistrationStep.AesDecrypt, "AES GCM etiketi uyuşmuyor — Anahtar veya veri bozulmuş.", ex);
+                throw new RegistrationException(RegistrationStep.AesDecrypt, "ERR_AES_GCM_TAG", ex.Message);
             }
-            throw new RegistrationException(RegistrationStep.AesDecrypt, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.AesDecrypt, "ERR_AES_DECRYPT", ex.Message);
         }
 
         var payload = JsonSerializer.Deserialize<SecurePayload>(payloadJson);
-        if (payload == null) throw new RegistrationException(RegistrationStep.AesDecrypt, "Geçersiz yük verisi.");
+        if (payload == null) throw new RegistrationException(RegistrationStep.AesDecrypt, "ERR_INVALID_PAYLOAD");
 
         // --- Step 3: Nonce Verification ---
         try
@@ -146,7 +146,7 @@ public class EnclaveService
         {
             diag.Fail("Nonce Verify", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.NonceVerification}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.NonceVerification, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.NonceVerification, "ERR_NONCE_VERIFICATION", ex.Message);
         }
 
         // --- Step 4: Active Authentication ---
@@ -160,7 +160,7 @@ public class EnclaveService
         {
             diag.Fail("Active Auth", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.ActiveAuthentication}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.ActiveAuthentication, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.ActiveAuthentication, "ERR_ACTIVE_AUTH", ex.Message);
         }
 
         // --- Step 5: Passive Authentication (SOD/CSCA) ---
@@ -174,7 +174,7 @@ public class EnclaveService
         {
             diag.Fail("Passive Auth", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.PassiveAuthentication}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.PassiveAuthentication, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.PassiveAuthentication, "ERR_PASSIVE_AUTH", ex.Message);
         }
 
         // --- Step 6: Biometric Verification (parallel embedding) ---
@@ -189,7 +189,8 @@ public class EnclaveService
         {
             diag.Fail("Biometric", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.BiometricVerification}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.BiometricVerification, ex.Message, ex);
+            var bioCode = !_biometricService.IsModelLoaded ? "ERR_BIOMETRIC_MODEL_MISSING" : "ERR_BIOMETRIC_MISMATCH";
+            throw new RegistrationException(RegistrationStep.BiometricVerification, bioCode, ex.Message);
         }
 
         // --- Step 7: DG1 Parsing ---
@@ -209,14 +210,14 @@ public class EnclaveService
         {
             diag.Fail("DG1 Parse", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.Dg1Parsing}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.Dg1Parsing, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.Dg1Parsing, "ERR_DG1_PARSE", ex.Message);
         }
 
         // --- Step 7b: Card Expiry Check ---
         if (ticketPayload.GecerlilikTarihi < DateTime.UtcNow.Date)
         {
             Console.WriteLine($"[Enclave] Kimlik kartı süresi dolmuş: {ticketPayload.GecerlilikTarihi:yyyy-MM-dd}");
-            throw new RegistrationException(RegistrationStep.Dg1Parsing, $"Kimlik kartının geçerlilik süresi dolmuş ({ticketPayload.GecerlilikTarihi:dd.MM.yyyy}). Kayıt yapılamaz.");
+            throw new RegistrationException(RegistrationStep.Dg1Parsing, "ERR_CARD_EXPIRED", $"Expired: {ticketPayload.GecerlilikTarihi:yyyy-MM-dd}");
         }
         Console.WriteLine($"[Enclave] Kart geçerlilik tarihi DOĞRULANDI ✓ ({ticketPayload.GecerlilikTarihi:yyyy-MM-dd})");
 
@@ -268,7 +269,7 @@ public class EnclaveService
         {
             diag.Fail("ID Generation", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.IdGeneration}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.IdGeneration, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.IdGeneration, "ERR_ID_GENERATION", ex.Message);
         }
 
         // --- [TEST-LOG] Full identity dump for pre-prod testing ---
@@ -317,7 +318,7 @@ public class EnclaveService
         {
             diag.Fail("Ticket Sign", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.TicketSigning}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.TicketSigning, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.TicketSigning, "ERR_TICKET_SIGNING", ex.Message);
         }
 
         // --- Step 10: Response Encryption ---
@@ -348,7 +349,7 @@ public class EnclaveService
         {
             diag.Fail("Response Encrypt", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.ResponseEncryption}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.ResponseEncryption, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.ResponseEncryption, "ERR_RESPONSE_ENCRYPTION", ex.Message);
         }
     }
 
@@ -363,7 +364,7 @@ public class EnclaveService
         Console.WriteLine($"[Enclave] DEMO kayıt isteği alındı. UserPubKey uzunluğu: {userPubKey.Length}");
 
         if (string.IsNullOrEmpty(userPubKey))
-            throw new RegistrationException(RegistrationStep.RsaDecrypt, "Demo kayıt için kullanıcı public key gereklidir.");
+            throw new RegistrationException(RegistrationStep.RsaDecrypt, "ERR_DEMO_MISSING_PUBKEY");
 
         // Hardcoded demo identity (gerçek bir kart yok — TCKN/SOD hash sabit)
         const string demoTckn = "00000000000";
@@ -410,7 +411,7 @@ public class EnclaveService
         catch (Exception ex)
         {
             diag.Fail("Demo ID Generation", ex.Message);
-            throw new RegistrationException(RegistrationStep.IdGeneration, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.IdGeneration, "ERR_ID_GENERATION", ex.Message);
         }
 
         // --- Ticket Signing (real HSM signature) ---
@@ -429,7 +430,7 @@ public class EnclaveService
         catch (Exception ex)
         {
             diag.Fail("Demo Ticket Sign", ex.Message);
-            throw new RegistrationException(RegistrationStep.TicketSigning, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.TicketSigning, "ERR_TICKET_SIGNING", ex.Message);
         }
 
         // --- Response Encryption (hybrid: AES blob + RSA-wrapped key with user's pub key) ---
@@ -458,7 +459,7 @@ public class EnclaveService
         catch (Exception ex)
         {
             diag.Fail("Demo Response Encrypt", ex.Message);
-            throw new RegistrationException(RegistrationStep.ResponseEncryption, ex.Message, ex);
+            throw new RegistrationException(RegistrationStep.ResponseEncryption, "ERR_RESPONSE_ENCRYPTION", ex.Message);
         }
     }
 
