@@ -96,6 +96,9 @@ public class DemoRegisterRequest
 {
     [JsonPropertyName("user_pub_key")]
     public string UserPubKey { get; set; } = string.Empty;
+
+    [JsonPropertyName("app_version")]
+    public string AppVersion { get; set; } = string.Empty;
 }
 
 // Ticket
