@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+<head>
+  <meta charset="utf-8" />
+  <title>EU Laissez-Passer Country Signing Certificate Authority</title>
+  <meta content="width=device-width,initial-scale=1" name="viewport" />
+  <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+  <script>
+    var cl = document.querySelector("html").classList;
+    cl.remove("no-js");
+    cl.add("has-js");
+  </script>
+  <link rel="stylesheet" href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/styles/optional/ecl-reset.css"
+    media="screen" />
+  <link rel="stylesheet" href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/styles/ecl-ec.css" media="screen" />
+  <link rel="stylesheet" href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/styles/optional/ecl-ec-utilities.css"
+    media="screen" />
+  <link rel="stylesheet" href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/styles/ecl-ec-print.css"
+    media="print" />
+  <script defer src="https://webtools.europa.eu/load.js?globan=1110" type="text/javascript"></script>
+  <script src="js/svg4everybody-2.1.9.min.js" type="text/javascript"></script>
+</head>
+
+<body>
+  <div id="globan-here"></div>
+  <header class="ecl-site-header ecl-site-header-with-logo-l" data-ecl-auto-init="SiteHeader">
+    <div class="ecl-site-header__background">
+      <div class="ecl-site-header__header">
+        <div class="ecl-site-header__container ecl-container">
+          <div class="ecl-site-header__top" data-ecl-site-header-top>
+            <a href="https://ec.europa.eu" class="ecl-link ecl-link--standalone ecl-site-header__logo-link">
+              <picture class="ecl-picture ecl-site-header__picture">
+                <source srcset="
+                      https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/logo/positive/logo-ec--en.svg
+                    " media="(min-width: 996px)" />
+                <img class="ecl-site-header__logo-image ecl-site-header__logo-image--l"
+                  src="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/logo/positive/logo-ec--en.svg"
+                  alt="European Commission" />
+              </picture>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <div class="ecl-u-mb-2xl" id="block-ewcms-theme-page-header">
+    <div class="ecl-page-header">
+      <div class="ecl-container">
+        <nav class="ecl-breadcrumb ecl-page-header__breadcrumb" aria-label="You&#x20;are&#x20;here&#x3A;" aria-label=""
+          data-ecl-breadcrumb="true" data-ecl-auto-init="Breadcrumb">
+          <ol class="ecl-breadcrumb__container">
+            <li class="ecl-breadcrumb__segment" data-ecl-breadcrumb-item="static"><a href="https://commission.europa.eu"
+                class="ecl-link ecl-link--standalone ecl-link--no-visited ecl-breadcrumb__link">Home</a><svg
+                class="ecl-icon ecl-icon--fluid ecl-breadcrumb__icon" focusable="false" aria-hidden="true"
+                role="presentation">
+                <use
+                  xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#corner-arrow">
+                </use>
+              </svg></li>
+            <li class="ecl-breadcrumb__segment ecl-breadcrumb__segment--ellipsis" data-ecl-breadcrumb-ellipsis><button
+                class="ecl-button ecl-button--ghost ecl-breadcrumb__ellipsis" type="button"
+                data-ecl-breadcrumb-ellipsis-button aria-label="">…</button><svg
+                class="ecl-icon ecl-icon--fluid ecl-breadcrumb__icon" focusable="false" aria-hidden="true"
+                role="presentation">
+                <use
+                  xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#corner-arrow">
+                </use>
+              </svg></li>
+            <li class="ecl-breadcrumb__segment" data-ecl-breadcrumb-item="expandable"><a
+                href="https://commission.europa.eu/about-european-commission"
+                class="ecl-link ecl-link--standalone ecl-link--no-visited ecl-breadcrumb__link">About
+                the European Commission</a><svg class="ecl-icon ecl-icon--fluid ecl-breadcrumb__icon" focusable="false"
+                aria-hidden="true" role="presentation">
+                <use
+                  xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#corner-arrow">
+                </use>
+              </svg></li>
+            <li class="ecl-breadcrumb__segment ecl-breadcrumb__current-page" data-ecl-breadcrumb-item="static"
+              aria-current="page"><span>EU laissez passer CSCA</span>
+            </li>
+          </ol>
+        </nav>
+        <div class="ecl-page-header__info">
+          <h1 class="ecl-page-header__title"><span>EU laissez passer</span>
+          </h1>
+          <h1 class="ecl-page-header__title"><span>Country Signing Certificate Authority (CSCA)</span>
+          </h1>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ecl-container">
+    <div class="ecl-row ecl-u-mt-l" data-ecl-inpage-navigation-container>
+      <div class="ecl-col-l-3">
+        <nav class="ecl-inpage-navigation" data-ecl-auto-init="InpageNavigation" data-ecl-inpage-navigation="true"
+          aria-labelledby="ecl-inpage-navigation-default">
+          <div class="ecl-inpage-navigation__title" id="ecl-inpage-navigation-default">
+            Page contents
+          </div>
+          <div class="ecl-inpage-navigation__body">
+            <div class="ecl-inpage-navigation__trigger-wrapper">
+              <button type="button" class="ecl-inpage-navigation__trigger" id="ecl-inpage-navigation-default-trigger"
+                data-ecl-inpage-navigation-trigger="true" aria-controls="ecl-inpage-navigation-list"
+                aria-expanded="false">
+                <span class="ecl-inpage-navigation__trigger-current"
+                  data-ecl-inpage-navigation-trigger-current="true">Page contents</span><svg
+                  class="ecl-icon ecl-icon--xs ecl-icon--rotate-180 ecl-inpage-navigation__trigger-icon"
+                  focusable="false" aria-hidden="false" role="img">
+                  <title>Show full page table of contents</title>
+                  <use
+                    xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#corner-arrow">
+                  </use>
+                </svg>
+              </button>
+            </div>
+            <ul class="ecl-inpage-navigation__list" data-ecl-inpage-navigation-list="true"
+              id="ecl-inpage-navigation-default-list">
+              <li class="ecl-inpage-navigation__item">
+                <a href="#inline-nav-1" class="ecl-link ecl-inpage-navigation__link"
+                  data-ecl-inpage-navigation-link>Introduction</a>
+              </li>
+              <li class="ecl-inpage-navigation__item">
+                <a href="#inline-nav-2" class="ecl-link ecl-inpage-navigation__link"
+                  data-ecl-inpage-navigation-link>Distinguished Name</a>
+              </li>
+              <li class="ecl-inpage-navigation__item">
+                <a href="#inline-nav-3" class="ecl-link ecl-inpage-navigation__link"
+                  data-ecl-inpage-navigation-link>Certificates and CRL</a>
+              </li>
+              <li class="ecl-inpage-navigation__item">
+                <a href="#inline-nav-4" class="ecl-link ecl-inpage-navigation__link"
+                  data-ecl-inpage-navigation-link>Deviation List</a>
+              </li>
+              <li class="ecl-inpage-navigation__item">
+                <a href="#inline-nav-5" class="ecl-link ecl-inpage-navigation__link"
+                  data-ecl-inpage-navigation-link>Contact Information</a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="ecl-col-l-9">
+
+
+        <h2 class="ecl-u-type-heading-2" id="inline-nav-1">Introduction</h2>
+        <p class="ecl-u-type-paragraph-m">
+          This website contains information on the Country Signing Certificate
+          Authority operated by the European Commission for the issuance of
+          the European Union Laissez-Passer according to Council Regulation
+          (EU) No 1417/2013 of 17 December 2013 laying down the form of the
+          laissez-passer issued by the European Union.
+        </p>
+        <p class="ecl-u-type-paragraph-m">
+          More specifically, it provides the PEM encoded self-signed
+          certificates of the EU Laissez-Passer CSCA, their SHA-1 fingerprints
+          and information about naming structure (DN), validity dates and
+          serial numbers.
+        </p>
+        <p class="ecl-u-type-paragraph-m">
+          This website is also the primary source for the Certificate
+          Revocation Lists.
+        </p>
+        <p class="ecl-u-type-paragraph-m">
+          Contact information provided below can be used to request a printed
+          copy of the information required to verify the authenticity of the
+          certificates.
+        </p>
+
+        <h2 class="ecl-u-type-heading-2" id="inline-nav-2">
+          Distinguished Name
+        </h2>
+        <p class="ecl-u-type-paragraph-m">
+          The distinguished name of the EU Laissez-Passer CSCA is:
+        </p>
+        <p class="ecl-u-type-paragraph-m">
+          <strong>C=EU; O=European Union; OU=European Commission; CN=EU Laissez
+            Passer CSCA</strong>
+        </p>
+
+        <h2 class="ecl-u-type-heading-2" id="inline-nav-3">
+          Certificates and CRL
+        </h2>
+
+        <p class="ecl-u-type-paragraph-m">
+          <div>
+            <article class="ecl-card">
+              <div class="ecl-card__body">
+                <div class="ecl-content-block ecl-card__content-block" data-ecl-auto-init="ContentBlock"
+                  data-ecl-content-block>
+                  <a href="./EU-LP-CSCA-2025.crt">
+                    <button class="ecl-button ecl-button--primary" type="button">
+                      <span class="ecl-button__container"><span class="ecl-button__label" data-ecl-label="true">New EU
+                          LP CSCA Self-Signed Certificate</span><svg class="ecl-icon ecl-icon--s ecl-button__icon"
+                          focusable="false" aria-hidden="true" data-ecl-icon>
+                          <use
+                            xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#download">
+                          </use>
+                        </svg></span>
+                    </button>
+                  </a>
+
+                  <p class="ecl-u-type-paragraph-m">
+                    Release date: 10 April 2025<br />
+                    Valid until: 10 July 2036<br />
+                    Serial Number: 1744274802<br />
+                    SHA256: b9fecb7591de9ba14254ce0f586e4882c413345987c71742bc2a53be209d53b6<br />
+                    SHA1: bdc77d9498a60fb7204d5f744e7cf51e5d3b4b63
+                  </p>
+
+                  <p class="ecl-u-type-paragraph-m">
+                    This certificate will be in effective use by July 2025.
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </p>
+
+        <p class="ecl-u-type-paragraph-m">
+          <div>
+            <article class="ecl-card">
+              <div class="ecl-card__body">
+                <div class="ecl-content-block ecl-card__content-block" data-ecl-auto-init="ContentBlock"
+                  data-ecl-content-block>
+                  <a href="./EU-LP-CSCA-link-2025.crt">
+                    <button class="ecl-button ecl-button--primary" type="button">
+                      <span class="ecl-button__container"><span class="ecl-button__label" data-ecl-label="true">New EU
+                          LP CSCA Link Certificate</span><svg class="ecl-icon ecl-icon--s ecl-button__icon"
+                          focusable="false" aria-hidden="true" data-ecl-icon>
+                          <use
+                            xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#download">
+                          </use>
+                        </svg></span>
+                    </button>
+                  </a>
+
+                  <p class="ecl-u-type-paragraph-m">
+                    Release date: 10 April 2025<br />
+                    Valid until: 27 October 2031<br />
+                    Serial Number: 1744279840<br />
+                    SHA256: 2dc7f102f678571f7340bbca8f3794c3014d8b616d124204921e0e0edcba093b<br />
+                    SHA1: 08cc5cd1fc31d8148acd43c8e6e27909265a8f44
+                  </p>
+
+                  <p class="ecl-u-type-paragraph-m">
+                    This link certificate will be in effective use by July 2025.
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </p>
+        
+        <p class="ecl-u-type-paragraph-m">
+          <div>
+            <article class="ecl-card">
+              <div class="ecl-card__body">
+                <div class="ecl-content-block ecl-card__content-block" data-ecl-auto-init="ContentBlock"
+                  data-ecl-content-block>
+                  <a href="./EU-LP-CSCA02_self_signed.pem">
+                    <button class="ecl-button ecl-button--primary" type="button">
+                      <span class="ecl-button__container"><span class="ecl-button__label" data-ecl-label="true">Current EU
+                          LP CSCA Self-Signed Certificate</span><svg class="ecl-icon ecl-icon--s ecl-button__icon"
+                          focusable="false" aria-hidden="true" data-ecl-icon>
+                          <use
+                            xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#download">
+                          </use>
+                        </svg></span>
+                    </button>
+                  </a>
+
+                  <p class="ecl-u-type-paragraph-m">
+                    Release date: 27 July 2020<br />
+                    Valid until: 27 October 2031<br />
+                    Serial Number: 1595843107<br />
+                    SHA256: 269f28027f321ae19c603bd8e3c5b8124fcb5074e1eb900dfbe41bf20cee99c2<br />
+                    SHA1: 565a13c5df76c284241a2cea0cdb2b4888044e03
+                  </p>
+
+                  <p class="ecl-u-type-paragraph-m">
+                    EU Laissez-Passer signed with this certificate are in circulation from November 2020 on.
+                  </p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </p>
+
+        <p class="ecl-u-type-paragraph-m">
+        <div>
+          <article class="ecl-card">
+            <div class="ecl-card__body">
+              <div class="ecl-content-block ecl-card__content-block" data-ecl-auto-init="ContentBlock"
+                data-ecl-content-block>
+
+                <a href="./EU-LP-CSCA_link.pem">
+                  <button class="ecl-button ecl-button--primary" type="button">
+                    <span class="ecl-button__container"><span class="ecl-button__label" data-ecl-label="true">Current EP
+                        LP CSCA Link Certificate</span><svg class="ecl-icon ecl-icon--s ecl-button__icon"
+                        focusable="false" aria-hidden="true" data-ecl-icon>
+                        <use
+                          xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#download">
+                        </use>
+                      </svg></span>
+                  </button>
+                </a>
+                <p class="ecl-u-type-paragraph-m">
+                  Release date: 27 July 2020<br />
+                  Valid until: 27 October 2031<br />
+                  Serial Number: 1596007994<br />
+                  SHA256: faa8d41a9811d14fa72c4f0c84295d4ea61d18fd7ca1b0cd67974ef2bce82a58<br />
+                  SHA1: 85a7c92a2010dcaaa1929dcfadcd9cf4bf8105db
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+        </p>
+
+        <p class="ecl-u-type-paragraph-m">
+
+        <div>
+          <article class="ecl-card">
+            <div class="ecl-card__body">
+              <div class="ecl-content-block ecl-card__content-block" data-ecl-auto-init="ContentBlock"
+                data-ecl-content-block>
+                <a href="./eu-lp-csca-self_signed_crt.zip">
+                  <button class="ecl-button ecl-button--primary" type="button">
+                    <span class="ecl-button__container"><span class="ecl-button__label" data-ecl-label="true">Previous
+                        EU LP CSCA Certificate</span><svg class="ecl-icon ecl-icon--s ecl-button__icon"
+                        focusable="false" aria-hidden="true" data-ecl-icon>
+                        <use
+                          xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#download">
+                        </use>
+                      </svg></span>
+                  </button>
+                </a>
+                <p class="ecl-u-type-paragraph-m">
+                  Release date: 4 November 2015<br />
+                  Valid until: 4 February 2027<br />
+                  Serial Number: 1446657155<br />
+                  SHA-1 fingerprint: 43cb1bac78fb2d63eaaed7fa51b9e70b4db4b57a
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+        </p>
+
+        <p class="ecl-u-type-paragraph-m">
+        <div>
+          <article class="ecl-card">
+            <div class="ecl-card__body">
+              <div class="ecl-content-block ecl-card__content-block" data-ecl-auto-init="ContentBlock"
+                data-ecl-content-block>
+                <a href="./current.crl">
+                  <button class="ecl-button ecl-button--primary" type="button">
+                    <span class="ecl-button__container"><span class="ecl-button__label" data-ecl-label="true">EU LP
+                        Certificate Revocation List (CRL)</span><svg class="ecl-icon ecl-icon--s ecl-button__icon"
+                        focusable="false" aria-hidden="true" data-ecl-icon>
+                        <use
+                          xlink:href="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/icons/sprites/icons.svg#download">
+                        </use>
+                      </svg></span>
+                  </button>
+                </a>
+                <p class="ecl-u-type-paragraph-m">
+                  Release date: 27 January 2026<br />
+                  Valid until: 27 April 2026<br />
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+        </p>
+
+        <h2 class="ecl-u-type-heading-2" id="inline-nav-4">
+          Deviation List
+        </h2>
+        <p class="ecl-u-type-paragraph-m">
+          EU Laissez-Passer issued to EU officials of German nationality may
+          contain “wrong data in MRZ field”, depending on the date of
+          issuance. The Nationality field contains the string “DEU”, as listed
+          in the official ISO 3166 country code list maintained by ISO
+          3166/MA, for all EU Laissez-Passer issued prior to 05/05/2022. Since
+          then, all new EU Laissez-Passer issued to German nationals have the
+          value “D&lt;&lt;” for the Nationality field, to make it consistent
+          with the specification in ICAO Doc 9303 Part3.
+        </p>
+
+        <h2 class="ecl-u-type-heading-2" id="inline-nav-5">
+          Contact Information
+        </h2>
+        <p class="ecl-u-type-paragraph-m">
+          The main communication channel for the EU Laissez-Passer CSCA is
+          email. Please use this email address only for issues related to the CSCA and not to the EU Laissez-Passer in
+          general.
+        </p>
+        <p class="ecl-u-type-paragraph-m">
+          The email address is:
+          <a href="mailto:eu-csca@ec.europa.eu">eu-csca AT ec.europa.eu</a>.
+          <br/>
+          <br/>
+          <br/>
+          <br/>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="ecl-site-footer" data-logo-area-label-en="Home - European Commission">
+    <div class="ecl-container ecl-site-footer__container">
+      <div class="ecl-site-footer__row">
+        <div class="ecl-site-footer__column">
+          <div class="ecl-site-footer__section ecl-site-footer__section--site-info">
+            <div class="ecl-site-footer__title">
+              <a href="." class="ecl-link ecl-link--standalone ecl-site-footer__title-link">EU Laissez-Passer CSCA</a>
+            </div>
+            <div class="ecl-site-footer__description">
+              This site is managed by:<br />Joint Research Centre
+            </div>
+            <ul class="ecl-site-footer__list">
+              <li class="ecl-site-footer__list-item">
+                <a href="accessibility.html"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-is-accessibility-link="true" data-once="footer-accessibility-link-click">Accessibility</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="ecl-site-footer__column">
+          <div class="ecl-site-footer__section">
+            <div class="ecl-site-footer__title">Contact us</div>
+            <ul class="ecl-site-footer__list">
+              <li class="ecl-site-footer__list-item">
+                <a href="https://european-union.europa.eu/contact-eu_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="Contact us" data-footer-link-label="Get in touch with us"
+                  data-once="footer-other-links-click">Get in touch with us</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="ecl-site-footer__column"></div>
+      </div>
+      <div class="ecl-site-footer__row">
+        <div class="ecl-site-footer__column">
+          <div class="ecl-site-footer__section">
+            <a href="https://commission.europa.eu/index_en"
+              class="ecl-link ecl-link--standalone ecl-site-footer__logo-link" aria-label="Home - European Commission"
+              data-once="footer-logo-click">
+              <picture class="ecl-picture ecl-site-footer__picture" title="European Commission">
+                <source srcset="
+                      https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/logo/negative/logo-ec--en.svg
+                    " media="(min-width: 996px)" />
+                <img class="ecl-site-footer__logo-image"
+                  src="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/images/logo/negative/logo-ec--en.svg"
+                  alt="European Commission logo" />
+              </picture>
+            </a>
+          </div>
+        </div>
+        <div class="ecl-site-footer__column">
+          <div class="ecl-site-footer__section">
+            <ul class="ecl-site-footer__list">
+              <li class="ecl-site-footer__list-item">
+                <a href="https://commission.europa.eu/about-european-commission/contact_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="service_navigation"
+                  data-footer-link-label="Contact the European Commission" data-once="footer-other-links-click">Contact
+                  the European Commission</a>
+              </li>
+              <li class="ecl-site-footer__list-item">
+                <a href="https://european-union.europa.eu/contact-eu/social-media-channels_en#/search?page=0&amp;institutions=european_commission"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="service_navigation"
+                  data-footer-link-label="Follow the European Commission on social media"
+                  data-once="footer-other-links-click">Follow the European Commission on social media</a>
+              </li>
+              <li class="ecl-site-footer__list-item">
+                <a href="https://commission.europa.eu/resources-partners_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="service_navigation" data-footer-link-label="Resources for partners"
+                  data-once="footer-other-links-click">Resources for partners</a>
+              </li>
+              <li class="ecl-site-footer__list-item">
+                <a href="https://commission.europa.eu/legal-notice/vulnerability-disclosure-policy_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="service_navigation"
+                  data-footer-link-label="Report an IT vulnerability" data-once="footer-other-links-click">Report an IT
+                  vulnerability</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="ecl-site-footer__column">
+          <div class="ecl-site-footer__section">
+            <ul class="ecl-site-footer__list">
+              <li class="ecl-site-footer__list-item">
+                <a href="https://commission.europa.eu/languages-our-websites_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="legal_navigation" data-footer-link-label="Languages on our websites"
+                  data-once="footer-other-links-click">Languages on our websites</a>
+              </li>
+              <li class="ecl-site-footer__list-item">
+                <a href="https://commission.europa.eu/cookies_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="legal_navigation" data-footer-link-label="Cookies"
+                  data-once="footer-other-links-click">Cookies</a>
+              </li>
+              <li class="ecl-site-footer__list-item">
+                <a href="https://commission.europa.eu/privacy-policy_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="legal_navigation" data-footer-link-label="Privacy policy"
+                  data-once="footer-other-links-click">Privacy policy</a>
+              </li>
+              <li class="ecl-site-footer__list-item">
+                <a href="https://commission.europa.eu/legal-notice_en"
+                  class="ecl-link ecl-link--standalone ecl-link--inverted ecl-site-footer__link"
+                  data-section-label-untranslated="legal_navigation" data-footer-link-label="Legal notice"
+                  data-once="footer-other-links-click">Legal notice</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script src="https://cdn2.fpfis.tech.ec.europa.eu/ecl/v4.11.0/ec/scripts/ecl-ec.js"></script>
+  <script>
+    ECL.autoInit();
+    svg4everybody({ polyfill: true });
+  </script>
+  <script type="application/json">{"utility": "cck", "url": "https://commission.europa.eu/cookies_{lang}"}</script>
+</body>
+</html>

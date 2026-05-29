@@ -1,0 +1,89 @@
+# syntax=docker/dockerfile:1.7
+# Microsoft Runtime-Deps Enclave Dockerfile (Reproducible — pinned digests)
+# sdk digest: mcr.microsoft.com/dotnet/sdk:9.0 @ 2026-05-23
+FROM mcr.microsoft.com/dotnet/sdk:9.0@sha256:c6a1f83156998790d89bfaf51f891aeab539bfa0792f7ddc19b63ba49b2ed8f2 AS build
+WORKDIR /src
+
+# Copy projects
+COPY ["VerifyBlind.Enclave/VerifyBlind.Enclave.csproj", "VerifyBlind.Enclave/"]
+COPY ["VerifyBlind.Enclave/VerifyBlind.Core/VerifyBlind.Core.csproj", "VerifyBlind.Enclave/VerifyBlind.Core/"]
+COPY ["VerifyBlind.Enclave/packages.lock.json", "VerifyBlind.Enclave/"]
+COPY ["VerifyBlind.Enclave/VerifyBlind.Core/packages.lock.json", "VerifyBlind.Enclave/VerifyBlind.Core/"]
+RUN dotnet restore "VerifyBlind.Enclave/VerifyBlind.Enclave.csproj" -r linux-arm64
+
+# Copy only the necessary source code for Enclave (Core is a subdirectory of Enclave)
+COPY VerifyBlind.Enclave/ VerifyBlind.Enclave/
+COPY scripts/enclave-entrypoint.sh scripts/enclave-entrypoint.sh
+WORKDIR "/src/VerifyBlind.Enclave"
+
+# Publish self-contained (--no-restore: restore already done above with locked deps)
+RUN dotnet publish -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true --no-restore -o /app/publish \
+    # Normalize output file timestamps: MSBuild sets output mtimes to the current time even
+    # with Deterministic=true. The COPY --from=build layer includes those mtimes, so we must
+    # normalize them HERE (before the copy) for the final layer to be deterministic.
+    && find /app/publish -exec touch -t 202601010000 {} +
+
+# runtime-deps digest: mcr.microsoft.com/dotnet/runtime-deps:9.0-bookworm-slim @ 2026-05-23
+FROM mcr.microsoft.com/dotnet/runtime-deps:9.0-bookworm-slim@sha256:7bfab88c5e62c7bd5c94e51cc6657d82942d0e4629845249f3560730baa398e0 AS final
+WORKDIR /app
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV KMS_MODE=aws
+ENV AWS_EC2_METADATA_SERVICE_ENDPOINT=http://127.0.0.1:8001
+ENV KMS__Endpoint=https://127.0.0.1:8000
+ENV KMS__Region=eu-central-1
+
+# Install socat and iproute2 (for loopback setup) — exact versions pinned for reproducibility.
+# snapshot.debian.org freezes the package index at a specific timestamp so transitive
+# dependencies (libelf1, libcap2, libmnl0, etc.) are byte-identical across all CI runs.
+# check-valid-until=no: snapshot archives have expired Valid-Until headers by design.
+# Nuclear timestamp normalization after install: apt/dpkg writes current-time mtimes to ALL
+# touched paths (/var/lib/dpkg, /usr/share/doc/pkg/, /etc/iproute2/, /usr/lib/..., etc).
+# We touch the entire non-virtual FS so no install-time timestamp leaks into the layer.
+RUN echo 'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/20260101T000000Z/ bookworm main' > /etc/apt/sources.list \
+    && echo 'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/20260101T000000Z/ bookworm-security main' >> /etc/apt/sources.list \
+    && apt-get -o Acquire::Check-Valid-Until=false update \
+    && apt-get install -y --no-install-recommends \
+      socat=1.7.4.4-2 \
+      iproute2=6.1.0-3 \
+      libgomp1=12.2.0-14+deb12u1 \
+    && rm -rf /var/lib/apt/lists/* /var/lib/apt/periodic/* /var/log/apt/* /var/log/dpkg.log /var/log/alternatives.log /var/cache/apt/* \
+    && sed -i '/^Installed-Time:/d' /var/lib/dpkg/status \
+    # Delete regenerable / non-deterministic caches that vary between runs:
+    # - ld.so.cache: binary cache; ldconfig rebuilds at first dynamic-link use
+    # - ldconfig aux-cache: secondary cache, rebuilt automatically
+    # - dpkg .md5sums: content-addressed, but order-dependent regeneration
+    # - dpkg triggers stamps: contain run-time pointers
+    # - systemd random IDs and resolv.conf machine-id leftovers
+    && rm -f /etc/ld.so.cache \
+             /var/cache/ldconfig/aux-cache \
+             /etc/machine-id \
+             /var/lib/dbus/machine-id \
+             /var/lib/systemd/random-seed \
+    && rm -rf /var/lib/dpkg/triggers/Lock /var/lib/dpkg/triggers/Unincorp /var/lib/dpkg/updates/* \
+    && find / \( -path /proc -o -path /sys -o -path /dev \) -prune -o \
+       -exec touch -t 202601010000 {} + 2>/dev/null; true
+
+# Use bind-mount + cp instead of COPY --from to materialize publish output. COPY --from
+# creates a separate layer whose tar metadata can vary across runs even with identical file
+# content (BuildKit's rewrite-timestamp does not normalize cross-stage COPY tar streams the
+# same way it does RUN layers). Bind-mount + cp puts files into a RUN layer that respects
+# rewrite-timestamp=true and gets re-normalized by the final touch step.
+RUN --mount=type=bind,from=build,source=/app/publish,target=/build-publish \
+    tar --owner=0 --group=0 --numeric-owner --sort=name \
+        --mtime='2026-01-01 00:00:00 UTC' \
+        -C /build-publish -cf - . | tar -xf - -C /app
+
+COPY VerifyBlind.Enclave/Models/w600k_mbf.onnx /app/Models/w600k_mbf.onnx
+COPY VerifyBlind.Enclave/Certificates/ /app/Certificates/
+COPY scripts/enclave-entrypoint.sh /app/entrypoint.sh
+
+# Verify canonical model hash (SHA256) — fails loudly if model bytes differ
+RUN echo "9cc6e4a75f0e2bf0b1aed94578f144d15175f357bdc05e815e5c4a02b319eb4f  /app/Models/w600k_mbf.onnx" | sha256sum -c -
+
+# NORMALIZE TIMESTAMPS for deterministic PCR0 — must run after all COPY steps
+RUN find /app -exec touch -t 202601010000 {} + && \
+    chmod +x /app/entrypoint.sh && \
+    chmod +x /app/VerifyBlind.Enclave
+
+EXPOSE 5101
+ENTRYPOINT ["/app/entrypoint.sh"]
