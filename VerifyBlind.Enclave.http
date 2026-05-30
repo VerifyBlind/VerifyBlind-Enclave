@@ -1,0 +1,6 @@
+@VerifyBlind.Enclave_HostAddress = http://localhost:5114
+
+GET {{VerifyBlind.Enclave_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

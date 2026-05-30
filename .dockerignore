@@ -1,0 +1,38 @@
+# Git kirliliğini engelle
+.git
+.gitignore
+.vscode
+
+# Gereksiz belgeleri engelle
+*.md
+PROD_CHECKLIST.md
+Başlıca faydalar.md
+
+# Deploy scriptlerini engelle (Bunlar değişse de PCR0 değişmesin)
+deploy.bat
+deploy_old.bat
+deploy_to_aws.bat
+Run ALL.bat
+Terminate ALL.bat
+upload_static_assets.bat
+scripts/upload_static_assets.bat
+
+# Build kalıntılarını engelle
+bin/
+obj/
+publish/
+deploy_temp/
+*.zip
+
+# Test projeleri prod imajına girmemeli
+# (VerifyBlind.Enclave.csproj default Compile globs ile alt-klasör testlerini yutuyor → xUnit Fact hatası)
+**/VerifyBlind.Core.Tests/
+**/VerifyBlind.Enclave.Tests/
+**/VerifyBlind.API.Tests/
+
+# Gizli anahtarlar imaja girmemeli!
+*.key
+*.pem
+.env
+pcr0_signature.txt
+

@@ -1,0 +1,25 @@
+# .NET build outputs
+bin/
+obj/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.rsuser
+
+# Local debug artifacts
+build_err.txt
+compile_output.txt
+*.log
+
+# Environment / secrets
+.env
+.env.*
+appsettings.local.json
+appsettings.*.local.json
+
+# OS
+.DS_Store
+Thumbs.db

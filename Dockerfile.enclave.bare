@@ -1,0 +1,17 @@
+# Bare-bones Enclave Dockerfile
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
+WORKDIR /src
+COPY ["VerifyBlind.Enclave/VerifyBlind.Enclave.csproj", "VerifyBlind.Enclave/"]
+COPY ["VerifyBlind.Enclave/VerifyBlind.Core/VerifyBlind.Core.csproj", "VerifyBlind.Enclave/VerifyBlind.Core/"]
+RUN dotnet restore "VerifyBlind.Enclave/VerifyBlind.Enclave.csproj"
+COPY . .
+WORKDIR "/src/VerifyBlind.Enclave"
+RUN dotnet publish -c Release -r linux-musl-arm64 --self-contained true -p:PublishSingleFile=true -o /app/publish
+
+FROM alpine:latest AS final
+WORKDIR /app
+RUN apk add --no-cache libstdc++ gcompat icu-libs
+COPY --from=build /app/publish/VerifyBlind.Enclave .
+EXPOSE 5101
+# Directly execute the binary, no shell script
+ENTRYPOINT ["./VerifyBlind.Enclave", "--urls", "http://0.0.0.0:5101"]

@@ -1,0 +1,23 @@
+TR Kimlik
+http://depo.tckk.gov.tr/
+
+
+EU ülkeleri Kimlik
+https://eidas.ec.europa.eu/efda/trust-services/browse/eidas/tls/search/type?step=1&searchCriteria=eyJzZXJ2aWNlU2NvcGUiOiJFWENMVURFX0lOQUNUSVZFIiwiY291bnRyeUNvZGVzIjpbIkFUIiwiQkUiLCJCRyIsIkhSIiwiQ1kiLCJDWiIsIkRLIiwiRUUiLCJGSSIsIkZSIiwiREUiLCJFTCIsIkhVIiwiSVMiLCJJRSIsIklUIiwiTFYiLCJMSSIsIkxUIiwiTFUiLCJNVCIsIk5MIiwiTk8iLCJQTCIsIlBUIiwiUk8iLCJTSyIsIlNJIiwiRVMiLCJTRSIsIlVLIl0sInNlcnZpY2VMZWdhbFR5cGVzIjpbIlFfQ0VSVF9FU0lHIiwiTk9OX1JFR1VMQVRPUlkiXX0%3D
+
+Ana sayfa : https://eidas.ec.europa.eu/efda/trust-services/browse/eidas/tls
+
+
+Qualified certificate for electronic signature
+ve
+Non-regulatory, nationally defined trust service
+olanları indir, crt ye çevir.
+
+
+PASAPORTLAR İÇİN
+Alman
+https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/ElekAusweise/CSCA/GermanMasterList.html
+
+ICAO
+https://www.icao.int/icao-pkd/icao-master-list
+Buradan en güncel ml dosyasını ve ML Explorer ı indirip, ML2crt ile ülke ülke çıkarabilirsin. 
