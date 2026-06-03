@@ -5,8 +5,6 @@ namespace VerifyBlind.Enclave.Services;
 public interface IKmsService
 {
     Task<string> ComputeHmacAsync(string data);
-    Task<string> SignTicketAsync(TicketPayload ticket);
-    Task<bool> VerifyTicketSignatureAsync(SignedTicket signedTicket);
 
     /// <summary>
     /// Attestation-bound KMS Decrypt (Nitro Recipient). <paramref name="ciphertext"/> wrapping CMK ile

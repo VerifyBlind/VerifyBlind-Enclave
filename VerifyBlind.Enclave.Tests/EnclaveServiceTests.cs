@@ -12,6 +12,7 @@ public class EnclaveServiceTests
     private readonly Mock<IEnclaveKeyService> _enclaveKeys = new();
     private readonly Mock<IKmsService> _kms = new();
     private readonly Mock<IBiometricService> _biometrics = new();
+    private readonly Mock<ITicketMacService> _ticketMac = new();
     private readonly EnclaveService _service;
 
     public EnclaveServiceTests()
@@ -21,8 +22,10 @@ public class EnclaveServiceTests
         _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("fake-sig");
         _enclaveKeys.Setup(k => k.GetAttestationDocument()).Returns("fake-attestation");
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object,
-            Mock.Of<ITicketMacService>(), Mock.Of<Microsoft.Extensions.Configuration.IConfiguration>());
+        _ticketMac.Setup(m => m.ComputeMac(It.IsAny<TicketPayload>())).Returns("fake-mac");
+        _ticketMac.Setup(m => m.VerifyMac(It.IsAny<SignedTicket>())).Returns(true);
+
+        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object);
     }
 
     // ── Handshake ─────────────────────────────────────────────────────────────
@@ -1067,7 +1070,7 @@ public class EnclaveServiceTests
     {
         // With binding + nonce OK the flow advances to ticket signature verification.
         // Mock KMS to reject the signature → proves the binding/nonce gates were passed.
-        _kms.Setup(k => k.VerifyTicketSignatureAsync(It.IsAny<SignedTicket>())).ReturnsAsync(false);
+        _ticketMac.Setup(m => m.VerifyMac(It.IsAny<SignedTicket>())).Returns(false);
         var request = BuildLoginRequest("matching-nonce-1", "matching-nonce-1");
 
         var ex = await Assert.ThrowsAsync<Exception>(() => _service.LoginAsync(request, new DiagLog()));

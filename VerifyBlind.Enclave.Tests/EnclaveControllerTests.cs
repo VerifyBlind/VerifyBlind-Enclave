@@ -13,6 +13,7 @@ public class EnclaveControllerTests
     private readonly Mock<IEnclaveKeyService> _enclaveKeys = new();
     private readonly Mock<IKmsService> _kms = new();
     private readonly Mock<IBiometricService> _biometrics = new();
+    private readonly Mock<ITicketMacService> _ticketMac = new();
     private readonly EnclaveService _service;
     private readonly EnclaveController _controller;
 
@@ -22,8 +23,7 @@ public class EnclaveControllerTests
         _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("fake-sig");
         _enclaveKeys.Setup(k => k.GetAttestationDocument()).Returns("fake-attestation");
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object,
-            Mock.Of<ITicketMacService>(), Mock.Of<Microsoft.Extensions.Configuration.IConfiguration>());
+        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object);
         _controller = new EnclaveController(_service, _enclaveKeys.Object);
         _controller.ControllerContext = new ControllerContext
         {
@@ -125,9 +125,6 @@ public class EnclaveControllerTests
     [Fact]
     public async Task Login_ServiceThrows_ReturnsBadRequest()
     {
-        _kms.Setup(k => k.VerifyTicketSignatureAsync(It.IsAny<SignedTicket>()))
-            .ThrowsAsync(new Exception("Invalid ticket"));
-
         var request = new LoginRequest
         {
             Nonce = Guid.NewGuid().ToString(),

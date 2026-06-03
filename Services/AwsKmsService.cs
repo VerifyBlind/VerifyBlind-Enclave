@@ -15,7 +15,6 @@ public class AwsKmsService : IKmsService, IDisposable
 {
     private readonly AmazonKeyManagementServiceClient _client;
     private readonly IConfiguration _configuration;
-    private readonly ConcurrentDictionary<string, string> _countryKeyCache = new();
 
     public AwsKmsService(IConfiguration configuration)
     {
@@ -102,56 +101,6 @@ public class AwsKmsService : IKmsService, IDisposable
         return Convert.ToBase64String(response.Mac.ToArray());
     }
 
-    public async Task<string> SignTicketAsync(TicketPayload ticket)
-    {
-        var countryCode = ticket.CountryIsoCode ?? "DEFAULT";
-        var keyArn = await ResolveOrCreateCountryKeyAsync(countryCode);
-
-        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(ticket);
-        var digest = SHA256.HashData(jsonBytes);
-
-        var request = new SignRequest
-        {
-            KeyId = keyArn,
-            SigningAlgorithm = SigningAlgorithmSpec.RSASSA_PSS_SHA_256,
-            MessageType = MessageType.DIGEST,
-            Message = new MemoryStream(digest)
-        };
-
-        var response = await _client.SignAsync(request);
-        return Convert.ToBase64String(response.Signature.ToArray());
-    }
-
-    public async Task<bool> VerifyTicketSignatureAsync(SignedTicket signedTicket)
-    {
-        var countryCode = signedTicket.Payload.CountryIsoCode ?? "DEFAULT";
-        var keyArn = await ResolveOrCreateCountryKeyAsync(countryCode);
-
-        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(signedTicket.Payload);
-        var digest = SHA256.HashData(jsonBytes);
-
-        var signatureBytes = Convert.FromBase64String(signedTicket.Signature);
-
-        var request = new VerifyRequest
-        {
-            KeyId = keyArn,
-            SigningAlgorithm = SigningAlgorithmSpec.RSASSA_PSS_SHA_256,
-            MessageType = MessageType.DIGEST,
-            Message = new MemoryStream(digest),
-            Signature = new MemoryStream(signatureBytes)
-        };
-
-        try
-        {
-            var response = await _client.VerifyAsync(request);
-            return response.SignatureValid;
-        }
-        catch (KMSInvalidSignatureException)
-        {
-            return false;
-        }
-    }
-
     public async Task<byte[]> DecryptWithAttestationAsync(byte[] ciphertext, byte[] attestationDocument)
     {
         // EncryptionContext (AAD) — bootstrap'taki kms:Encrypt ile BİREBİR aynı olmalı (§4.1 bütünlük).
@@ -175,43 +124,6 @@ public class AwsKmsService : IKmsService, IDisposable
         if (response.CiphertextForRecipient == null)
             throw new InvalidOperationException("KMS Decrypt CiphertextForRecipient döndürmedi (Recipient/attestation desteği?).");
         return response.CiphertextForRecipient.ToArray();
-    }
-
-    private async Task<string> ResolveOrCreateCountryKeyAsync(string countryCode)
-    {
-        if (_countryKeyCache.TryGetValue(countryCode, out var cachedArn))
-            return cachedArn;
-
-        var aliasPattern = _configuration["KMS:TicketKeyAliasPattern"] ?? "alias/verifyblind-ticket-{0}";
-        var alias = string.Format(aliasPattern, countryCode);
-
-        try
-        {
-            var describeResponse = await _client.DescribeKeyAsync(new DescribeKeyRequest { KeyId = alias });
-            var arn = describeResponse.KeyMetadata.Arn;
-            _countryKeyCache[countryCode] = arn;
-            return arn;
-        }
-        catch (NotFoundException)
-        {
-            var createResponse = await _client.CreateKeyAsync(new CreateKeyRequest
-            {
-                KeySpec = KeySpec.RSA_2048,
-                KeyUsage = KeyUsageType.SIGN_VERIFY,
-                Description = $"VerifyBlind ticket signing - {countryCode}"
-            });
-
-            var newArn = createResponse.KeyMetadata.Arn;
-
-            await _client.CreateAliasAsync(new CreateAliasRequest
-            {
-                AliasName = alias,
-                TargetKeyId = newArn
-            });
-
-            _countryKeyCache[countryCode] = newArn;
-            return newArn;
-        }
     }
 
     public void Dispose() => _client.Dispose();

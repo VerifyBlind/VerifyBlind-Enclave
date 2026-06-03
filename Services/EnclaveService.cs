@@ -14,10 +14,8 @@ public class EnclaveService
     private readonly IEnclaveKeyService _enclaveKeys;
     private readonly IKmsService _kms;
     private readonly IBiometricService _biometricService;
+    // Ticket'lar enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
     private readonly ITicketMacService _ticketMac;
-    // TICKET_AUTH_MODE=mac → ticket enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
-    // Aksi halde eski KMS Sign/Verify yolu (rollback için cutover boyunca korunur).
-    private readonly bool _useMac;
 
 // Cache for Trusted Certificates by Country (e.g., "TUR" -> Collection)
     private static readonly ConcurrentDictionary<string, System.Security.Cryptography.X509Certificates.X509Certificate2Collection> _countryCertsCache
@@ -27,13 +25,12 @@ public class EnclaveService
     private static readonly ConcurrentDictionary<string, HashSet<string>> _countryCrlCache = new();
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
-        ITicketMacService ticketMac, IConfiguration config)
+        ITicketMacService ticketMac)
     {
         _enclaveKeys = enclaveKeys;
         _kms = kms;
         _biometricService = biometricService;
         _ticketMac = ticketMac;
-        _useMac = string.Equals(config["TICKET_AUTH_MODE"], "mac", StringComparison.OrdinalIgnoreCase);
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
@@ -284,16 +281,8 @@ public class EnclaveService
         try
         {
             diag.Begin("Ticket Sign");
-            string signature;
-            if (_useMac)
-            {
-                await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
-                signature = _ticketMac.ComputeMac(ticketPayload);
-            }
-            else
-            {
-                signature = await _kms.SignTicketAsync(ticketPayload);
-            }
+            await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
+            var signature = _ticketMac.ComputeMac(ticketPayload);
             signedTicket = new SignedTicket
             {
                 Payload = ticketPayload,
@@ -406,16 +395,8 @@ public class EnclaveService
         try
         {
             diag.Begin("Demo Ticket Sign");
-            string signature;
-            if (_useMac)
-            {
-                await _ticketMac.EnsureSecretLoadedAsync(ticketSecretWrapped);
-                signature = _ticketMac.ComputeMac(ticketPayload);
-            }
-            else
-            {
-                signature = await _kms.SignTicketAsync(ticketPayload);
-            }
+            await _ticketMac.EnsureSecretLoadedAsync(ticketSecretWrapped);
+            var signature = _ticketMac.ComputeMac(ticketPayload);
             signedTicket = new SignedTicket
             {
                 Payload = ticketPayload,
@@ -623,11 +604,8 @@ string? partnerId = null;
         string personId;
 
         diag.Begin("Ticket Sig Verify");
-        if (_useMac)
-            await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
-        Task<bool> sigVerifyTask = _useMac
-            ? Task.FromResult(_ticketMac.VerifyMac(signedTicket))
-            : _kms.VerifyTicketSignatureAsync(signedTicket);
+        await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
+        Task<bool> sigVerifyTask = Task.FromResult(_ticketMac.VerifyMac(signedTicket));
 
         // UserId HMAC'ı imza doğrulamasından bağımsız — paralel başlat
         Task<string>? userIdHmacTask = null;
