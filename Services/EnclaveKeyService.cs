@@ -1,6 +1,8 @@
 using VerifyBlind.Core.Crypto;
 using System.Security.Cryptography;
 using System.Text;
+using Org.BouncyCastle.Cms;
+using Org.BouncyCastle.Security;
 
 namespace VerifyBlind.Enclave.Services;
 
@@ -45,5 +47,27 @@ public class EnclaveKeyService : IEnclaveKeyService
         _attestationCachedAt = DateTime.UtcNow;
         Console.WriteLine($"[EnclaveKeyService] Attestation belgesi {(isRefresh ? "yenilendi" : "oluşturuldu")} ve önbelleğe alındı.");
         return _cachedAttestationDoc;
+    }
+
+    public byte[] GetAttestationDocumentForRecipient()
+    {
+        // public_key = ephemeral RSA pubkey'in DER SubjectPublicKeyInfo'su → KMS bu alana şifreler.
+        // userData = aynı pubkey (handshake davranışıyla tutarlı, PCR0 yine belgede).
+        var pubKeyDer = Convert.FromBase64String(_enclavePubKey);
+        var userData = Encoding.UTF8.GetBytes(_enclavePubKey);
+        return _nsm.GetAttestationDocument(userData: userData, nonce: null, publicKey: pubKeyDer);
+    }
+
+    public byte[] DecryptCmsForRecipient(byte[] cmsForRecipient)
+    {
+        // CiphertextForRecipient = CMS/PKCS7 EnvelopedData (KEK: RSAES_OAEP_SHA_256).
+        // BouncyCastle ile ephemeral RSA private key kullanarak aç.
+        var privKey = PrivateKeyFactory.CreateKey(Convert.FromBase64String(_enclavePrivKey));
+        var enveloped = new CmsEnvelopedData(cmsForRecipient);
+        foreach (RecipientInformation recipient in enveloped.GetRecipientInfos().GetRecipients())
+        {
+            return recipient.GetContent(privKey);
+        }
+        throw new InvalidOperationException("CiphertextForRecipient (CMS) içinde recipient bulunamadı.");
     }
 }

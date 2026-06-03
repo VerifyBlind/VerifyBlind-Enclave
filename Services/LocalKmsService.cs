@@ -59,6 +59,15 @@ public class LocalKmsService : IKmsService
         return Task.FromResult(CryptoUtils.VerifySignature(json, signedTicket.Signature, keys.Pub));
     }
 
+    public Task<byte[]> DecryptWithAttestationAsync(byte[] ciphertext, byte[] attestationDocument)
+    {
+        // Dev modunda gerçek KMS/Nitro yok → attestation-bound decrypt anlamsız.
+        // TicketMacService local modda bu yolu ÇAĞIRMAZ (sabit dev secret kullanır).
+        throw new NotSupportedException(
+            "DecryptWithAttestationAsync local KMS modunda desteklenmez. " +
+            "TicketMacService local modda sabit dev secret kullanmalı (KMS_MODE=aws gerekir).");
+    }
+
     private (string Priv, string Pub) GetOrCreateCountryKeys(string countryCode)
     {
         if (_countryKeys.TryGetValue(countryCode, out var known))

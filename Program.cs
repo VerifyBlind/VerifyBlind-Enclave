@@ -44,6 +44,9 @@ else
     builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IKmsService, VerifyBlind.Enclave.Services.LocalKmsService>();
 }
 builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IBiometricService, VerifyBlind.Enclave.Services.BiometricService>();
+// Ticket Forgery fix: ticket'ı enclave-içi MAC ile imzala/doğrula. Singleton — secret boot başına
+// 1 kez attestation-bound Decrypt ile yüklenip RAM'de cache'lenir (TICKET_FORGERY_FIX_PLAN.md).
+builder.Services.AddSingleton<VerifyBlind.Enclave.Services.ITicketMacService, VerifyBlind.Enclave.Services.TicketMacService>();
 builder.Services.AddScoped<VerifyBlind.Enclave.Services.EnclaveService>();
 
 // Metrik toplama servisi (Admin portal için)

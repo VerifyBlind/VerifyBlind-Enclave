@@ -88,6 +88,15 @@ public class RegistrationRequest
 
     [JsonPropertyName("country_iso_code")]
     public string CountryIsoCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Relay API tarafından set edilir. KMS wrapping CMK ile sarılmış ticket-MAC secret'ı
+    /// (base64 ciphertext, system_settings'ten okunur). Enclave boot'ta bir kez
+    /// attestation-bound Decrypt ile açar; gizli değildir. TICKET_AUTH_MODE=mac iken kullanılır.
+    /// </summary>
+    [JsonPropertyName("ticket_secret_wrapped")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TicketSecretWrapped { get; set; }
 }
 
 // Demo Registration Request (Phone -> Relay -> Enclave)
@@ -99,6 +108,11 @@ public class DemoRegisterRequest
 
     [JsonPropertyName("app_version")]
     public string AppVersion { get; set; } = string.Empty;
+
+    /// <summary>Relay API tarafından set edilir. Bkz. <see cref="RegistrationRequest.TicketSecretWrapped"/>.</summary>
+    [JsonPropertyName("ticket_secret_wrapped")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TicketSecretWrapped { get; set; }
 }
 
 // Ticket
@@ -197,6 +211,10 @@ public class LoginRequest
     /// <summary>Relay API tarafından set edilir. Mobil istemcinin IPv6 adresi (ip6 validation için).</summary>
     [JsonPropertyName("client_ipv6")]
     public string? ClientIpV6 { get; set; }
+
+    /// <summary>Relay API tarafından set edilir. Bkz. <see cref="RegistrationRequest.TicketSecretWrapped"/>.</summary>
+    [JsonPropertyName("ticket_secret_wrapped")]
+    public string? TicketSecretWrapped { get; set; }
 
     // --- Internal API-only fields (not sent to Enclave) ---
     [JsonIgnore]

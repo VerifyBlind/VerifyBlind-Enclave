@@ -21,7 +21,8 @@ public class EnclaveServiceTests
         _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("fake-sig");
         _enclaveKeys.Setup(k => k.GetAttestationDocument()).Returns("fake-attestation");
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object);
+        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object,
+            Mock.Of<ITicketMacService>(), Mock.Of<Microsoft.Extensions.Configuration.IConfiguration>());
     }
 
     // ── Handshake ─────────────────────────────────────────────────────────────

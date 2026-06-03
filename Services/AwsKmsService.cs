@@ -152,6 +152,31 @@ public class AwsKmsService : IKmsService, IDisposable
         }
     }
 
+    public async Task<byte[]> DecryptWithAttestationAsync(byte[] ciphertext, byte[] attestationDocument)
+    {
+        // EncryptionContext (AAD) — bootstrap'taki kms:Encrypt ile BİREBİR aynı olmalı (§4.1 bütünlük).
+        var request = new DecryptRequest
+        {
+            CiphertextBlob = new MemoryStream(ciphertext),
+            EncryptionContext = new Dictionary<string, string>
+            {
+                ["purpose"] = "ticket-mac",
+                ["app"] = "verifyblind"
+            },
+            Recipient = new RecipientInfo
+            {
+                KeyEncryptionAlgorithm = KeyEncryptionMechanism.RSAES_OAEP_SHA_256,
+                AttestationDocument = new MemoryStream(attestationDocument)
+            }
+        };
+
+        var response = await _client.DecryptAsync(request);
+        // Recipient set olduğunda Plaintext BOŞ döner; sır CiphertextForRecipient (CMS) içindedir.
+        if (response.CiphertextForRecipient == null)
+            throw new InvalidOperationException("KMS Decrypt CiphertextForRecipient döndürmedi (Recipient/attestation desteği?).");
+        return response.CiphertextForRecipient.ToArray();
+    }
+
     private async Task<string> ResolveOrCreateCountryKeyAsync(string countryCode)
     {
         if (_countryKeyCache.TryGetValue(countryCode, out var cachedArn))

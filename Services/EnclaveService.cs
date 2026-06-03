@@ -14,6 +14,10 @@ public class EnclaveService
     private readonly IEnclaveKeyService _enclaveKeys;
     private readonly IKmsService _kms;
     private readonly IBiometricService _biometricService;
+    private readonly ITicketMacService _ticketMac;
+    // TICKET_AUTH_MODE=mac → ticket enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
+    // Aksi halde eski KMS Sign/Verify yolu (rollback için cutover boyunca korunur).
+    private readonly bool _useMac;
 
 // Cache for Trusted Certificates by Country (e.g., "TUR" -> Collection)
     private static readonly ConcurrentDictionary<string, System.Security.Cryptography.X509Certificates.X509Certificate2Collection> _countryCertsCache
@@ -22,11 +26,14 @@ public class EnclaveService
     // Cache for CRL entries by Country (e.g., "TUR" -> list of revoked serial numbers)
     private static readonly ConcurrentDictionary<string, HashSet<string>> _countryCrlCache = new();
 
-    public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService)
+    public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
+        ITicketMacService ticketMac, IConfiguration config)
     {
         _enclaveKeys = enclaveKeys;
         _kms = kms;
         _biometricService = biometricService;
+        _ticketMac = ticketMac;
+        _useMac = string.Equals(config["TICKET_AUTH_MODE"], "mac", StringComparison.OrdinalIgnoreCase);
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
@@ -277,7 +284,16 @@ public class EnclaveService
         try
         {
             diag.Begin("Ticket Sign");
-            var signature = await _kms.SignTicketAsync(ticketPayload);
+            string signature;
+            if (_useMac)
+            {
+                await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
+                signature = _ticketMac.ComputeMac(ticketPayload);
+            }
+            else
+            {
+                signature = await _kms.SignTicketAsync(ticketPayload);
+            }
             signedTicket = new SignedTicket
             {
                 Payload = ticketPayload,
@@ -329,7 +345,7 @@ public class EnclaveService
     /// NFC/biometrik adımları atlanır; ID üretimi, imza ve şifreleme normal akıştaki gibi gerçek HSM ile yapılır.
     /// Tek farkı: SecurePayload yok, kimlik verisi enklavın içine gömülü.
     /// </summary>
-    public async Task<(string ticket, float faceScore, string cardId)> DemoRegisterAsync(string userPubKey, DiagLog diag)
+    public async Task<(string ticket, float faceScore, string cardId)> DemoRegisterAsync(string userPubKey, string? ticketSecretWrapped, DiagLog diag)
     {
         diag.Info($"[DEMO] Kayıt başladı. UserPubKey={userPubKey.Length}ch");
         Console.WriteLine($"[Enclave] DEMO kayıt isteği alındı. UserPubKey uzunluğu: {userPubKey.Length}");
@@ -390,7 +406,16 @@ public class EnclaveService
         try
         {
             diag.Begin("Demo Ticket Sign");
-            var signature = await _kms.SignTicketAsync(ticketPayload);
+            string signature;
+            if (_useMac)
+            {
+                await _ticketMac.EnsureSecretLoadedAsync(ticketSecretWrapped);
+                signature = _ticketMac.ComputeMac(ticketPayload);
+            }
+            else
+            {
+                signature = await _kms.SignTicketAsync(ticketPayload);
+            }
             signedTicket = new SignedTicket
             {
                 Payload = ticketPayload,
@@ -598,7 +623,11 @@ string? partnerId = null;
         string personId;
 
         diag.Begin("Ticket Sig Verify");
-        var sigVerifyTask = _kms.VerifyTicketSignatureAsync(signedTicket);
+        if (_useMac)
+            await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
+        Task<bool> sigVerifyTask = _useMac
+            ? Task.FromResult(_ticketMac.VerifyMac(signedTicket))
+            : _kms.VerifyTicketSignatureAsync(signedTicket);
 
         // UserId HMAC'ı imza doğrulamasından bağımsız — paralel başlat
         Task<string>? userIdHmacTask = null;
