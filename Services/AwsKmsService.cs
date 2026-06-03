@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using System.Net.Security;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Amazon;
 using Amazon.KeyManagementService;
@@ -28,34 +30,48 @@ public class AwsKmsService : IKmsService, IDisposable
         var endpoint = configuration["KMS:Endpoint"];
         if (!string.IsNullOrEmpty(endpoint))
         {
+            var region = configuration["KMS:Region"] ?? "eu-central-1";
             kmsConfig.ServiceURL = endpoint;
             // When ServiceURL is set, SDK loses region context for request signing
-            kmsConfig.AuthenticationRegion = configuration["KMS:Region"] ?? "eu-central-1";
-            // vsock-proxy: TLS cert is for kms.eu-central-1.amazonaws.com, not 127.0.0.1
-            // Bypass certificate hostname validation for the vsock tunnel
-            kmsConfig.HttpClientFactory = new VsockProxyHttpClientFactory();
+            kmsConfig.AuthenticationRegion = region;
+            // vsock-proxy: bağlantı 127.0.0.1'e gider ama TLS uçtan uca enclave↔KMS'tir
+            // (proxy yalnızca şifreli byte taşır). Sertifikayı gerçek KMS host'una karşı
+            // doğrula → parent ele geçirilip proxy kötü endpoint'e yönlendirilse bile MITM olmaz.
+            kmsConfig.HttpClientFactory = new VsockProxyHttpClientFactory($"kms.{region}.amazonaws.com");
         }
 
         _client = new AmazonKeyManagementServiceClient(kmsConfig);
     }
 
     /// <summary>
-    /// vsock-proxy üzerinden KMS'e bağlanırken TLS hostname doğrulamasını atlar.
-    /// Tek bir SocketsHttpHandler ile connection pooling sağlar — her çağrıda yeni TCP bağlantısı açılmaz.
+    /// vsock-proxy üzerinden KMS'e bağlanırken TLS doğrulamasını DOĞRU yapar:
+    /// bağlantı 127.0.0.1'e gittiği için hostname uyuşmazlığı BEKLENİR ve tolere edilir,
+    /// ancak (1) sertifika zinciri güvenilir bir köke çıkmalı, (2) sertifika gerçekten
+    /// kms.&lt;region&gt;.amazonaws.com için olmalıdır. Böylece parent ele geçirilip vsock-proxy
+    /// kötü bir endpoint'e yönlendirilse dahi, sahte sunucu geçerli KMS sertifikası sunamaz
+    /// → TLS handshake başarısız → TCKN/ticket sızmaz (yalnızca DoS mümkün).
+    /// Tek bir SocketsHttpHandler ile connection pooling sağlar.
     /// </summary>
     private sealed class VsockProxyHttpClientFactory : Amazon.Runtime.HttpClientFactory
     {
         private readonly HttpClient _cached;
 
-        public VsockProxyHttpClientFactory()
+        public VsockProxyHttpClientFactory(string expectedKmsHost)
         {
             var handler = new SocketsHttpHandler
             {
-                SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+                SslOptions = new SslClientAuthenticationOptions
                 {
-#pragma warning disable CA5359 // vsock tüneli: bağlantı 127.0.0.1'e gider, KMS sertifikası hostname mismatch verir — MITM riski yok
-                    RemoteCertificateValidationCallback = (_, _, _, _) => true
-#pragma warning restore CA5359
+                    RemoteCertificateValidationCallback = (_, certificate, _, sslPolicyErrors) =>
+                    {
+                        // 127.0.0.1'e bağlandığımız için YALNIZCA hostname-mismatch beklenir; onu tolere et.
+                        // Zincir hatası (güvenilmeyen kök) veya sertifika yokluğu = olası MITM → REDDET.
+                        const SslPolicyErrors tolerated = SslPolicyErrors.RemoteCertificateNameMismatch;
+                        if ((sslPolicyErrors & ~tolerated) != SslPolicyErrors.None)
+                            return false;
+                        // Sunulan sertifika gerçekten KMS host'u için mi? (RFC 6125 SAN eşleşmesi)
+                        return certificate is X509Certificate2 cert2 && cert2.MatchesHostname(expectedKmsHost);
+                    }
                 },
                 PooledConnectionLifetime = TimeSpan.FromMinutes(10),
                 MaxConnectionsPerServer = 20,
