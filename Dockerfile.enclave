@@ -28,6 +28,9 @@ FROM mcr.microsoft.com/dotnet/runtime-deps:9.0-bookworm-slim@sha256:7bfab88c5e62
 WORKDIR /app
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV KMS_MODE=aws
+# Ticket Forgery fix: ticket'i enclave-ici HMAC ile imzala/dogrula (KMS Sign yerine).
+# Geri donmek istersen bu satiri sil veya "kms" yap + enclave'i yeniden deploy et.
+ENV TICKET_AUTH_MODE=mac
 ENV AWS_EC2_METADATA_SERVICE_ENDPOINT=http://127.0.0.1:8001
 ENV KMS__Endpoint=https://127.0.0.1:8000
 ENV KMS__Region=eu-central-1
