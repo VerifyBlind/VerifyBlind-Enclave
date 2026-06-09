@@ -808,11 +808,14 @@ string? partnerId = null;
     {
         Console.WriteLine("[Enclave] Aktif Kimlik Doğrulama kontrol ediliyor (ISO 9796-2)...");
         
-        // Skip if DG15 or ActiveSig is missing (some cards don't support AA)
-        if (string.IsNullOrEmpty(payload.DG15) && string.IsNullOrEmpty(payload.ActiveSig))
+        // AA ZORUNLU: VerifyBlind yalnızca çip-doğrulamalı (Active Authentication destekli)
+        // belgeleri kabul eder. DG15 (public key) VEYA Aktif İmza eksikse → REDDET.
+        // Eski "desteklemeyen kart için atla" davranışı bir downgrade açığıydı: saldırgan
+        // DG15'i hiç göndermeyerek klon-korumasını atlayabiliyordu (2026-06-09 kapatıldı).
+        if (string.IsNullOrEmpty(payload.DG15) || string.IsNullOrEmpty(payload.ActiveSig))
         {
-            Console.WriteLine("[Enclave] UYARI: AA verisi eksik (DG15 ve İmza). Kartın AA desteklemediği varsayılıyor.");
-            return; // Allow for cards that don't support AA (No Public Key exposed)
+            Console.WriteLine("[Enclave] AA verisi eksik (DG15 ve/veya Aktif İmza). Çip doğrulaması yapılamıyor — RED.");
+            throw new Exception("Aktif Kimlik Doğrulama Başarısız: Bu belge çip doğrulamasını (Active Authentication) desteklemiyor ya da NFC okuması eksik.");
         }
         
         // Anti-Downgrade: If DG15 exists, AA MUST be performed
@@ -1044,15 +1047,9 @@ string? partnerId = null;
                      return;
                 }
                 
-                // Variant B: Simulation Hack (Base64 String Bytes)
-                signer.Reset();
-                var challengeBase64Bytes = Encoding.UTF8.GetBytes(Convert.ToBase64String(actualChallenge));
-                signer.BlockUpdate(challengeBase64Bytes, 0, challengeBase64Bytes.Length);
-                if (signer.VerifySignature(activeSigBytes))
-                {
-                     Console.WriteLine($"[Enclave] Aktif Kimlik Doğrulama DOĞRULANDI (PKCS#1 v1.5, Simülasyon Modu) ✓");
-                     return;
-                }
+                // (KALDIRILDI) Variant B "Simülasyon Modu" — challenge'ın base64 string'i üzerinden
+                // PKCS#1 doğrulaması yalnızca yazılım simülatörü içindi ve üretimde sahte-kart
+                // kabul yolu oluşturuyordu (2026-06-09 silindi). Gerçek kartlar buna ihtiyaç duymaz.
             }
             catch { /* Ignore fallback errors */ }
             
@@ -1112,39 +1109,6 @@ string? partnerId = null;
     }
     
     // --- BIOMETRIC VERIFICATION ---
-
-    internal float VerifyBiometricMatch(SecurePayload payload)
-    {
-        Console.WriteLine("[Enclave] Biyometrik Kimlik Eşleşmesi başlatılıyor...");
-
-        if (string.IsNullOrEmpty(payload.DG2_Photo)) throw new Exception("Biyometrik Hata: Kimlik fotoğrafı (DG2) eksik.");
-        if (string.IsNullOrEmpty(payload.UserSelfie)) throw new Exception("Biyometrik Hata: Kullanıcı selfie'si eksik.");
-
-        byte[] idPhotoBytes = Convert.FromBase64String(payload.DG2_Photo);
-        byte[] probePhotoBytes = Convert.FromBase64String(payload.UserSelfie);
-
-        // Use Real AI
-        Console.WriteLine($"[Enclave] Kimlik Fotoğrafı Boyutu: {idPhotoBytes.Length} bayt");
-        Console.WriteLine($"[Enclave] Selfie Fotoğrafı Boyutu: {probePhotoBytes.Length} bayt");
-
-        // DEBUG image saving removed — biometric data must never persist to disk.
-
-        float similarity = _biometricService.VerifyFace(idPhotoBytes, probePhotoBytes);
-
-        // Threshold for ArcFace (Cosine Similarity)
-        // Reverted to standard 0.40 per user request for quality check.
-        const float THRESHOLD = 0.40f;
-
-        Console.WriteLine($" > [AI] Benzerlik Puanı: {similarity * 100:0.0}%");
-
-        if (similarity < THRESHOLD)
-        {
-            throw new Exception($"Kimlik Doğrulama Başarısız: Yüz kimlik kartıyla eşleşmiyor. Puan: {similarity:0.00}");
-        }
-
-        Console.WriteLine("[Enclave] Biyometrik Kimlik EŞLEŞMESİ ONAYLANDI ✓");
-        return similarity;
-    }
 
     internal float VerifyBiometricMatchParallel(SecurePayload payload)
     {

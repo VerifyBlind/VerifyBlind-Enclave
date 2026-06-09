@@ -217,13 +217,14 @@ public class EnclaveServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_NoDg15AndNoActiveSig_PassesActiveAuthAndFailsPassiveAuth()
+    public async Task RegisterAsync_NoDg15AndNoActiveSig_ThrowsActiveAuth()
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         _enclaveKeys.Setup(k => k.VerifyEnclaveSignature(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(true);
 
-        // AA skipped (no DG15), but SOD is invalid → PassiveAuth fails
+        // AA artık ZORUNLU (2026-06-09): DG15/ActiveSig eksik kart artık ATLANMAZ,
+        // ActiveAuthentication aşamasında reddedilir (eski downgrade açığı kapatıldı).
         var request = BuildRequest(
             nonce: "test-nonce",
             timestamp: now,
@@ -236,7 +237,7 @@ public class EnclaveServiceTests
         var ex = await Assert.ThrowsAsync<RegistrationException>(() =>
             _service.RegisterAsync(request, new DiagLog()));
 
-        Assert.Equal(RegistrationStep.PassiveAuthentication, ex.Step);
+        Assert.Equal(RegistrationStep.ActiveAuthentication, ex.Step);
     }
 
     // ── LoginAsync — error paths ──────────────────────────────────────────────
@@ -607,11 +608,12 @@ public class EnclaveServiceTests
     // ── VerifyActiveAuth ──────────────────────────────────────────────────────
 
     [Fact]
-    public void VerifyActiveAuth_BothDg15AndActiveSigMissing_ReturnsWithoutThrow()
+    public void VerifyActiveAuth_BothDg15AndActiveSigMissing_Throws()
     {
-        // Cards that don't support Active Authentication — code allows this
+        // AA artık ZORUNLU (2026-06-09): çip doğrulaması desteklemeyen/eksik kart REDDEDİLİR.
+        // Eski "desteklemiyorsa atla" davranışı bir downgrade açığıydı.
         var payload = new SecurePayload { DG15 = "", ActiveSig = "", Nonce = "n" };
-        _service.VerifyActiveAuth(payload); // must not throw
+        Assert.Throws<Exception>(() => _service.VerifyActiveAuth(payload));
     }
 
     [Fact]
