@@ -12,5 +12,6 @@
 *.der binary
 *.key binary
 
-# LFS
-Models/w600k_mbf.onnx filter=lfs diff=lfs merge=lfs -text
+# LFS — ONNX models must live in the repo (LFS) because CI bakes them into the EIF;
+# the enclave is isolated and cannot fetch models at runtime.
+Models/*.onnx filter=lfs diff=lfs merge=lfs -text

@@ -20,9 +20,6 @@ compile_output.txt
 appsettings.local.json
 appsettings.*.local.json
 
-# ML models — NOT committed (GitHub 100MB limit); served from server static dir, see Models/README.txt
-Models/*.onnx
-
 # OS
 .DS_Store
 Thumbs.db

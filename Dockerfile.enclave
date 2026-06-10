@@ -73,12 +73,14 @@ RUN --mount=type=bind,from=build,source=/app/publish,target=/build-publish \
         --mtime='2026-01-01 00:00:00 UTC' \
         -C /build-publish -cf - . | tar -xf - -C /app
 
-COPY VerifyBlind.Enclave/Models/w600k_mbf.onnx /app/Models/w600k_mbf.onnx
+COPY VerifyBlind.Enclave/Models/w600k_r50.onnx /app/Models/w600k_r50.onnx
+COPY VerifyBlind.Enclave/Models/minifasnet_v2.onnx /app/Models/minifasnet_v2.onnx
 COPY VerifyBlind.Enclave/Certificates/ /app/Certificates/
 COPY scripts/enclave-entrypoint.sh /app/entrypoint.sh
 
-# Verify canonical model hash (SHA256) — fails loudly if model bytes differ
-RUN echo "9cc6e4a75f0e2bf0b1aed94578f144d15175f357bdc05e815e5c4a02b319eb4f  /app/Models/w600k_mbf.onnx" | sha256sum -c -
+# Verify canonical model hashes (SHA256) — fails loudly if model bytes differ
+RUN echo "4c06341c33c2ca1f86781dab0e829f88ad5b64be9fba56e56bc9ebdefc619e43  /app/Models/w600k_r50.onnx" | sha256sum -c - \
+    && echo "d7b3cd9ba8a7ceb13baa8c4720902e27ca3112eff52f926c08804af6b6eecc7b  /app/Models/minifasnet_v2.onnx" | sha256sum -c -
 
 # NORMALIZE TIMESTAMPS for deterministic PCR0 — must run after all COPY steps
 RUN find /app -exec touch -t 202601010000 {} + && \
