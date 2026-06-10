@@ -26,9 +26,9 @@ public class EnclaveServiceTests
         _ticketMac.Setup(m => m.ComputeMac(It.IsAny<TicketPayload>())).Returns("fake-mac");
         _ticketMac.Setup(m => m.VerifyMac(It.IsAny<SignedTicket>())).Returns(true);
 
-        // Anti-spoof: model loaded, always returns live (P=1.0) in unit tests
+        // Anti-spoof: model loaded, always returns live (index 0 = 1.0) in unit tests
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
-        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(1.0f);
+        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 1.0f, 0f, 0f });
 
         _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
     }

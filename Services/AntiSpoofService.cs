@@ -14,9 +14,10 @@ namespace VerifyBlind.Enclave.Services
         bool IsModelLoaded { get; }
 
         /// <summary>
-        /// Returns P(live) in [0, 1]. Values below threshold indicate a spoof attempt.
+        /// Returns the 3-class softmax. Model card (garciafido/minifasnet-v2) order: [live, print, replay].
+        /// Index 0 = P(live); values below threshold indicate a spoof attempt.
         /// </summary>
-        float Predict(byte[] cropJpeg);
+        float[] Predict(byte[] cropJpeg);
     }
 
     /// <summary>
@@ -64,7 +65,7 @@ namespace VerifyBlind.Enclave.Services
             }
         }
 
-        public float Predict(byte[] cropJpeg)
+        public float[] Predict(byte[] cropJpeg)
         {
             if (!_isLoaded || _session == null)
                 throw new InvalidOperationException("Anti-spoof modeli yüklenmedi (minifasnet_v2.onnx).");
@@ -78,13 +79,11 @@ namespace VerifyBlind.Enclave.Services
                 var outputTensor = results.First().AsTensor<float>();
                 var scores = outputTensor.ToArray();
 
-                // 3-class softmax output: [fake1, real, fake2]
-                // Apply softmax if model doesn't include it
+                // 3-class softmax. Model card (garciafido/minifasnet-v2) order: [live, print, replay].
+                // Caller reads index 0 as P(live). Apply softmax in case model emits raw logits.
                 var softmax = Softmax(scores);
-                var pLive = softmax.Length >= 2 ? softmax[1] : 0f;
-
-                Console.WriteLine($"[AntiSpoofService] P(live)={pLive:F3} fake1={softmax[0]:F3} fake2={softmax[Math.Min(2, softmax.Length - 1)]:F3}");
-                return pLive;
+                Console.WriteLine($"[AntiSpoofService] softmax=[{string.Join(", ", softmax.Select(s => s.ToString("F3")))}]");
+                return softmax;
             }
             catch (Exception ex)
             {
@@ -100,9 +99,9 @@ namespace VerifyBlind.Enclave.Services
 
             var tensor = new DenseTensor<float>(new[] { 1, 3, 80, 80 });
 
-            // Channel layout: [B=0, G=1, R=2] — OpenCV/BGRconvention for MiniFASNetV2
-            // Normalization: (value - mean) / 255.0
-            //   mean_B = 104, mean_G = 117, mean_R = 123
+            // Channel layout: [B=0, G=1, R=2] — BGR, per model card.
+            // Normalization: pixel / 255 → [0,1] (ToTensor). Mean çıkarma YOK
+            //   (model kartı + orijinal minivision ToTensor; eski 104/117/123 mean çıkarması HATALIYDI).
             image.ProcessPixelRows(accessor =>
             {
                 for (int y = 0; y < 80; y++)
@@ -111,9 +110,9 @@ namespace VerifyBlind.Enclave.Services
                     for (int x = 0; x < 80; x++)
                     {
                         var p = row[x];
-                        tensor[0, 0, y, x] = (p.B - 104f) / 255f;
-                        tensor[0, 1, y, x] = (p.G - 117f) / 255f;
-                        tensor[0, 2, y, x] = (p.R - 123f) / 255f;
+                        tensor[0, 0, y, x] = p.B / 255f;
+                        tensor[0, 1, y, x] = p.G / 255f;
+                        tensor[0, 2, y, x] = p.R / 255f;
                     }
                 }
             });

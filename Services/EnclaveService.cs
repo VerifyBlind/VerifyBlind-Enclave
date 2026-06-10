@@ -206,8 +206,11 @@ public class EnclaveService
             {
                 diag.Begin("AntiSpoof");
                 byte[] cropBytes = Convert.FromBase64String(payload.AntiSpoofCrop);
-                float pLive = _antiSpoof.Predict(cropBytes);
-                diag.Ok("AntiSpoof", $"P(live)={Math.Round(pLive * 100, 1)}%");
+                float[] probs = _antiSpoof.Predict(cropBytes);
+                // Model kartı: [live, print, replay] → indeks 0 = P(live). 3 sınıfı da logla (indeksi ampirik doğrulamak için).
+                float pLive = probs.Length > 0 ? probs[0] : 0f;
+                string breakdown = probs.Length >= 3 ? $" [c0={probs[0]:P1} c1={probs[1]:P1} c2={probs[2]:P1}]" : "";
+                diag.Ok("AntiSpoof", $"P(live)={Math.Round(pLive * 100, 1)}%{breakdown}");
 
                 if (pLive < AntiSpoofService.LiveThreshold)
                     throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
