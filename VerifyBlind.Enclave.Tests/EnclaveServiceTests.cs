@@ -13,6 +13,7 @@ public class EnclaveServiceTests
     private readonly Mock<IKmsService> _kms = new();
     private readonly Mock<IBiometricService> _biometrics = new();
     private readonly Mock<ITicketMacService> _ticketMac = new();
+    private readonly Mock<IAntiSpoofService> _antiSpoof = new();
     private readonly EnclaveService _service;
 
     public EnclaveServiceTests()
@@ -25,7 +26,11 @@ public class EnclaveServiceTests
         _ticketMac.Setup(m => m.ComputeMac(It.IsAny<TicketPayload>())).Returns("fake-mac");
         _ticketMac.Setup(m => m.VerifyMac(It.IsAny<SignedTicket>())).Returns(true);
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object);
+        // Anti-spoof: model loaded, always returns live (P=1.0) in unit tests
+        _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
+        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(1.0f);
+
+        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
     }
 
     // ── Handshake ─────────────────────────────────────────────────────────────

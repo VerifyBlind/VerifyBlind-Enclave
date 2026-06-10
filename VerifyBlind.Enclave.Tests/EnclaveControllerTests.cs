@@ -14,6 +14,7 @@ public class EnclaveControllerTests
     private readonly Mock<IKmsService> _kms = new();
     private readonly Mock<IBiometricService> _biometrics = new();
     private readonly Mock<ITicketMacService> _ticketMac = new();
+    private readonly Mock<IAntiSpoofService> _antiSpoof = new();
     private readonly EnclaveService _service;
     private readonly EnclaveController _controller;
 
@@ -23,7 +24,10 @@ public class EnclaveControllerTests
         _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("fake-sig");
         _enclaveKeys.Setup(k => k.GetAttestationDocument()).Returns("fake-attestation");
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object);
+        _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
+        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(1.0f);
+
+        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
         _controller = new EnclaveController(_service, _enclaveKeys.Object);
         _controller.ControllerContext = new ControllerContext
         {

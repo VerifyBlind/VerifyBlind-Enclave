@@ -42,7 +42,7 @@ public class BiometricServiceTests
     {
         // Real service: IsModelLoaded == true iff the ONNX file exists in Models/
         var service = new BiometricService();
-        var modelPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Models", "w600k_mbf.onnx");
+        var modelPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Models", "w600k_r50.onnx");
 
         // The model is loaded iff the file exists — both outcomes are valid
         Assert.Equal(System.IO.File.Exists(modelPath), service.IsModelLoaded);

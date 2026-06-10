@@ -75,6 +75,9 @@ public class SecurePayload
     
     // Play Integrity API Token
     public string IntegrityToken { get; set; } = string.Empty;
+
+    // Anti-spoof: 2.7x enlarged face crop (80x80 JPEG, Base64) — MiniFASNetV2 input
+    public string AntiSpoofCrop { get; set; } = string.Empty;
 }
 
 // Registration Request (Phone -> Relay -> Enclave)

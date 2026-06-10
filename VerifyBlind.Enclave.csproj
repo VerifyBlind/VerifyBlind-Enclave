@@ -22,7 +22,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Models\w600k_mbf.onnx">
+    <!-- Yuz tanima: w600k_r50 (buffalo_l) — mbf'den guclu; biyometrik YALNIZ register'da calisir.
+         Esik cihazda kalibre edilecek (eski mbf log'lari r50'ye TASINMAZ, farkli olcek). -->
+    <None Update="Models\w600k_r50.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Pasif anti-spoof (tek-kare liveness): Silent-Face MiniFASNetV2 (80x80 BGR, 3-sinif softmax). -->
+    <None Update="Models\minifasnet_v2.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

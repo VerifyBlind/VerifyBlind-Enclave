@@ -14,6 +14,7 @@ public class EnclaveService
     private readonly IEnclaveKeyService _enclaveKeys;
     private readonly IKmsService _kms;
     private readonly IBiometricService _biometricService;
+    private readonly IAntiSpoofService _antiSpoof;
     // Ticket'lar enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
     private readonly ITicketMacService _ticketMac;
 
@@ -25,12 +26,13 @@ public class EnclaveService
     private static readonly ConcurrentDictionary<string, HashSet<string>> _countryCrlCache = new();
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
-        ITicketMacService ticketMac)
+        ITicketMacService ticketMac, IAntiSpoofService antiSpoof)
     {
         _enclaveKeys = enclaveKeys;
         _kms = kms;
         _biometricService = biometricService;
         _ticketMac = ticketMac;
+        _antiSpoof = antiSpoof;
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
@@ -197,7 +199,29 @@ public class EnclaveService
             throw new RegistrationException(RegistrationStep.BiometricVerification, bioCode, ex.Message);
         }
 
-        // --- Step 7: DG1 Parsing ---
+        // --- Step 7: Anti-Spoof (passive liveness) ---
+        if (!string.IsNullOrEmpty(payload.AntiSpoofCrop) && _antiSpoof.IsModelLoaded)
+        {
+            try
+            {
+                diag.Begin("AntiSpoof");
+                byte[] cropBytes = Convert.FromBase64String(payload.AntiSpoofCrop);
+                float pLive = _antiSpoof.Predict(cropBytes);
+                diag.Ok("AntiSpoof", $"P(live)={Math.Round(pLive * 100, 1)}%");
+
+                if (pLive < AntiSpoofService.LiveThreshold)
+                    throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
+                        $"Canlı yüz tespit edilemedi (P={pLive:F3}).");
+            }
+            catch (RegistrationException) { throw; }
+            catch (Exception ex)
+            {
+                diag.Fail("AntiSpoof", ex.Message);
+                Console.WriteLine($"[Enclave] Anti-spoof inference hatası (devam edilecek): {ex.Message}");
+            }
+        }
+
+        // --- Step 8: DG1 Parsing ---
         TicketPayload ticketPayload;
         try
         {

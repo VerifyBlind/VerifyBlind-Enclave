@@ -30,7 +30,7 @@ namespace VerifyBlind.Enclave.Services
         public BiometricService()
         {
             string basePath = AppDomain.CurrentDomain.BaseDirectory;
-            _modelPath = Path.Combine(basePath, "Models", "w600k_mbf.onnx");
+            _modelPath = Path.Combine(basePath, "Models", "w600k_r50.onnx");
 
             LoadModel();
         }
@@ -62,7 +62,7 @@ namespace VerifyBlind.Enclave.Services
         {
             if (!_isLoaded)
             {
-                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_mbf.onnx) bulunamadı. Sistem durduruldu.");
+                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_r50.onnx) bulunamadı. Sistem durduruldu.");
             }
 
             try
@@ -88,7 +88,7 @@ namespace VerifyBlind.Enclave.Services
         {
             if (!_isLoaded)
             {
-                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_mbf.onnx) bulunamadı. Sistem durduruldu.");
+                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_r50.onnx) bulunamadı. Sistem durduruldu.");
             }
 
             try
