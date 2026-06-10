@@ -207,8 +207,8 @@ public class EnclaveService
                 diag.Begin("AntiSpoof");
                 byte[] cropBytes = Convert.FromBase64String(payload.AntiSpoofCrop);
                 float[] probs = _antiSpoof.Predict(cropBytes);
-                // Model kartı: [live, print, replay] → indeks 0 = P(live). 3 sınıfı da logla (indeksi ampirik doğrulamak için).
-                float pLive = probs.Length > 0 ? probs[0] : 0f;
+                // Live = indeks 1 (etiketli referansla doğrulandı: ham-BGR girdide real→idx1≈0.99, fake→≈0.00). 3 sınıfı da logla.
+                float pLive = probs.Length > 1 ? probs[1] : 0f;
                 string breakdown = probs.Length >= 3 ? $" [c0={probs[0]:P1} c1={probs[1]:P1} c2={probs[2]:P1}]" : "";
                 diag.Ok("AntiSpoof", $"P(live)={Math.Round(pLive * 100, 1)}%{breakdown}");
 

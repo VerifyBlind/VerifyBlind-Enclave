@@ -25,7 +25,7 @@ public class EnclaveControllerTests
         _enclaveKeys.Setup(k => k.GetAttestationDocument()).Returns("fake-attestation");
 
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
-        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 1.0f, 0f, 0f });
+        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0f, 1.0f, 0f });
 
         _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
         _controller = new EnclaveController(_service, _enclaveKeys.Object);

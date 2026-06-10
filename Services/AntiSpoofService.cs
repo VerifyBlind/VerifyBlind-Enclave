@@ -14,8 +14,9 @@ namespace VerifyBlind.Enclave.Services
         bool IsModelLoaded { get; }
 
         /// <summary>
-        /// Returns the 3-class softmax. Model card (garciafido/minifasnet-v2) order: [live, print, replay].
-        /// Index 0 = P(live); values below threshold indicate a spoof attempt.
+        /// Returns the 3-class softmax. Live = index 1 (etiketli referansla doğrulandı:
+        /// ham-BGR [0,255] girdide real→idx1≈0.99, fake→idx1≈0.00).
+        /// Values below threshold indicate a spoof attempt.
         /// </summary>
         float[] Predict(byte[] cropJpeg);
     }
@@ -79,8 +80,8 @@ namespace VerifyBlind.Enclave.Services
                 var outputTensor = results.First().AsTensor<float>();
                 var scores = outputTensor.ToArray();
 
-                // 3-class softmax. Model card (garciafido/minifasnet-v2) order: [live, print, replay].
-                // Caller reads index 0 as P(live). Apply softmax in case model emits raw logits.
+                // 3-class softmax. Live = index 1 (etiketli referansla doğrulandı).
+                // Apply softmax in case model emits raw logits.
                 var softmax = Softmax(scores);
                 Console.WriteLine($"[AntiSpoofService] softmax=[{string.Join(", ", softmax.Select(s => s.ToString("F3")))}]");
                 return softmax;
@@ -99,9 +100,11 @@ namespace VerifyBlind.Enclave.Services
 
             var tensor = new DenseTensor<float>(new[] { 1, 3, 80, 80 });
 
-            // Channel layout: [B=0, G=1, R=2] — BGR, per model card.
-            // Normalization: pixel / 255 → [0,1] (ToTensor). Mean çıkarma YOK
-            //   (model kartı + orijinal minivision ToTensor; eski 104/117/123 mean çıkarması HATALIYDI).
+            // Channel layout: [B=0, G=1, R=2] — BGR.
+            // Normalization: HAM [0,255] (bölme YOK, mean YOK). Etiketli referans
+            //   görüntülerle yerelde doğrulandı (minivision sample F1/F2/T1): yalnız ham-BGR
+            //   girdi gerçek/sahte ayrımı veriyor (real idx1≈0.99 / fake idx1≈0.00);
+            //   /255 veya mean çıkarma modeli tek sınıfa saturate ediyor.
             image.ProcessPixelRows(accessor =>
             {
                 for (int y = 0; y < 80; y++)
@@ -110,9 +113,9 @@ namespace VerifyBlind.Enclave.Services
                     for (int x = 0; x < 80; x++)
                     {
                         var p = row[x];
-                        tensor[0, 0, y, x] = p.B / 255f;
-                        tensor[0, 1, y, x] = p.G / 255f;
-                        tensor[0, 2, y, x] = p.R / 255f;
+                        tensor[0, 0, y, x] = p.B;
+                        tensor[0, 1, y, x] = p.G;
+                        tensor[0, 2, y, x] = p.R;
                     }
                 }
             });
