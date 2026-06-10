@@ -146,7 +146,8 @@ jobs:
           echo "- **nitro-cli:** \`$NITRO_VER\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          # echo "> **Model hash (w600k_mbf.onnx):** \`9cc6e4a75f0e2bf0b1aed94578f144d15175f357bdc05e815e5c4a02b319eb4f\`" >> $GITHUB_STEP_SUMMARY
+          # echo "> **Model hash (w600k_r50.onnx):** \`4c06341c33c2ca1f86781dab0e829f88ad5b64be9fba56e56bc9ebdefc619e43\`" >> $GITHUB_STEP_SUMMARY
+          # echo "> **Model hash (minifasnet_v2.onnx):** \`d7b3cd9ba8a7ceb13baa8c4720902e27ca3112eff52f926c08804af6b6eecc7b\`" >> $GITHUB_STEP_SUMMARY
           # echo "> Hash verified inside Docker build (sha256sum -c). Build would fail if model bytes differ." >> $GITHUB_STEP_SUMMARY
 
       - name: 📦 Publish as GitHub Release (fast CDN-backed downloads, persists until deleted)
