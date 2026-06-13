@@ -112,6 +112,13 @@ public class DemoRegisterRequest
     [JsonPropertyName("app_version")]
     public string AppVersion { get; set; } = string.Empty;
 
+    /// <summary>
+    /// "ios" veya "android". Relay, yayındaki sürüm kontrolünü doğru mağazaya (App Store / Play Store)
+    /// yönlendirmek için kullanır. Eski istemciler göndermezse "android" varsayılır (Play Store).
+    /// </summary>
+    [JsonPropertyName("platform")]
+    public string Platform { get; set; } = "android";
+
     /// <summary>Relay API tarafından set edilir. Bkz. <see cref="RegistrationRequest.TicketSecretWrapped"/>.</summary>
     [JsonPropertyName("ticket_secret_wrapped")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
