@@ -18,7 +18,9 @@ public static class PassiveAuth
 
     // Cache for CRL entries by Country (e.g., "TUR" -> list of revoked serial numbers)
     private static readonly ConcurrentDictionary<string, HashSet<string>> _countryCrlCache = new();
-    internal static void Verify(string sodBase64, string dg1Base64, string dg2Base64, string dg15Base64)
+    /// <summary>Verifies passive auth and returns a short DG-hash summary (e.g. "DG1:LDS DG2:LDS DG15:LDS")
+    /// for the relay-visible diag. Throws on any failure.</summary>
+    internal static string Verify(string sodBase64, string dg1Base64, string dg2Base64, string dg15Base64)
     {
         Console.WriteLine("[Enclave] Pasif Kimlik Doğrulama başlatılıyor (CSCA Kontrolü + DG Hash Doğrulaması)...");
         
@@ -222,12 +224,15 @@ Console.WriteLine($"[Enclave] SOD Doğrulaması Başarısız: {ex}");
 
         // 4. Verify DG Hashes against SOD Content
         Console.WriteLine("[Enclave] Veri Grubu Hash'leri doğrulanıyor...");
-        VerifyDGHashes(signedCms.ContentInfo.Content, dg1Base64, dg2Base64, dg15Base64);
+        var dgSummary = VerifyDGHashes(signedCms.ContentInfo.Content, dg1Base64, dg2Base64, dg15Base64);
 
         Console.WriteLine("[Enclave] Pasif Kimlik Doğrulama (SOD İmzası + DG Hash Doğrulaması) TAMAMLANDI ✓");
+        // Returned summary is surfaced in the relay-visible diag (e.g. "DG1:LDS DG2:LDS DG15:LDS"),
+        // so DG2 binding can be confirmed from normal logs without the enclave console.
+        return dgSummary;
     }
-    
-    internal static void VerifyDGHashes(byte[] sodContent, string dg1Base64, string dg2Base64, string dg15Base64)
+
+    internal static string VerifyDGHashes(byte[] sodContent, string dg1Base64, string dg2Base64, string dg15Base64)
     {
         // Parse the ICAO 9303 LDSSecurityObject ONCE: it maps each data-group number to its expected
         // hash. When parsing succeeds we bind each DG to its OWN slot (DG1→[1], DG2→[2], DG15→[15]) —
@@ -238,31 +243,36 @@ Console.WriteLine($"[Enclave] SOD Doğrulaması Başarısız: {ex}");
         if (lds != null)
             Console.WriteLine($"[Enclave] LDSSecurityObject ayrıştırıldı: algo={lds.DigestAlgorithm}, {lds.Hashes.Count} DG hash slotu.");
 
+        var summary = new List<string>();
+
         // DG1 (MRZ) — required.
-        VerifyOneDgHash(sodContent, lds, dgNumber: 1, dgBase64: dg1Base64, required: true);
+        summary.Add("DG1:" + VerifyOneDgHash(sodContent, lds, dgNumber: 1, dgBase64: dg1Base64, required: true));
 
         // DG2 (face) — required. Without this the biometric photo is NOT cryptographically bound to
         // the document: an attacker could pair a genuine SOD/DG1 with a substituted face and still
         // pass the face match. The raw DG2 bytes (not the re-encoded DG2_Photo) must be supplied by
         // the client. (Security review Y-3.)
-        VerifyOneDgHash(sodContent, lds, dgNumber: 2, dgBase64: dg2Base64, required: true);
+        summary.Add("DG2:" + VerifyOneDgHash(sodContent, lds, dgNumber: 2, dgBase64: dg2Base64, required: true));
 
         // DG15 (Active Authentication public key) — only present on chip-auth capable cards.
         if (!string.IsNullOrEmpty(dg15Base64))
-            VerifyOneDgHash(sodContent, lds, dgNumber: 15, dgBase64: dg15Base64, required: true);
+            summary.Add("DG15:" + VerifyOneDgHash(sodContent, lds, dgNumber: 15, dgBase64: dg15Base64, required: true));
+
+        return string.Join(" ", summary); // e.g. "DG1:LDS DG2:LDS DG15:LDS" (LDS=strict slot, scan=fallback)
     }
 
     /// <summary>
     /// Verifies a single data group's hash against the SOD. Strict when the LDSSecurityObject parsed
     /// (compares against that DG's exact slot); otherwise falls back to the legacy multi-algorithm scan.
     /// </summary>
-    private static void VerifyOneDgHash(byte[] sodContent, LdsSecurityObject? lds, int dgNumber, string dgBase64, bool required)
+    // Returns "LDS" (strict slot match), "scan" (fallback scan match) or "absent" (optional DG not sent).
+    private static string VerifyOneDgHash(byte[] sodContent, LdsSecurityObject? lds, int dgNumber, string dgBase64, bool required)
     {
         if (string.IsNullOrEmpty(dgBase64))
         {
             if (required)
                 throw new Exception($"DG{dgNumber} eksik — SOD bağlama doğrulaması yapılamıyor (istemci ham DG{dgNumber} baytlarını göndermeli).");
-            return;
+            return "absent";
         }
 
         byte[] dgBytes;
@@ -288,7 +298,7 @@ Console.WriteLine($"[Enclave] SOD Doğrulaması Başarısız: {ex}");
                     System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(actual, expected))
                 {
                     Console.WriteLine($"[Enclave] DG{dgNumber} Hash DOĞRULANDI ✓ (LDS slotu, {lds.DigestAlgorithm})");
-                    return;
+                    return "LDS";
                 }
             }
             throw new Exception($"DG{dgNumber} Hash Uyuşmazlığı! Hesaplanan hash, SOD'daki DG{dgNumber} slotuyla eşleşmiyor ({lds.DigestAlgorithm}). Belge ile bu veri grubu uyuşmuyor.");
@@ -305,7 +315,7 @@ Console.WriteLine($"[Enclave] SOD Doğrulaması Başarısız: {ex}");
                 if (SearchHashInSOD(sodContent, dgNumber, actual))
                 {
                     Console.WriteLine($"[Enclave] DG{dgNumber} Hash DOĞRULANDI ✓ (yedek tarama, {algo})");
-                    return;
+                    return "scan";
                 }
             }
         }

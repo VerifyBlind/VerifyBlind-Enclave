@@ -166,8 +166,8 @@ public class EnclaveService
         try
         {
             diag.Begin("Passive Auth");
-            PassiveAuth.Verify(payload.SOD, payload.DG1, payload.DG2, payload.DG15);
-            diag.Ok("Passive Auth");
+            var passiveAuthSummary = PassiveAuth.Verify(payload.SOD, payload.DG1, payload.DG2, payload.DG15);
+            diag.Ok("Passive Auth", passiveAuthSummary);
         }
         catch (Exception ex)
         {
