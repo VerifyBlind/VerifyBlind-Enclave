@@ -337,13 +337,15 @@ public class SharedModelsTests
     {
         var original = new SecurePayload
         {
-            SOD = "sod", DG1 = "dg1", DG15 = "dg15", ActiveSig = "asig", AAChallenge = "aac",
+            SOD = "sod", DG1 = "dg1", DG2 = "dg2raw", DG15 = "dg15", ActiveSig = "asig", AAChallenge = "aac",
             UserPubKey = "upk", Nonce = "nonce", Timestamp = 1700000000, NonceSignature = "nsig",
             DG2_Photo = "dg2", LivenessVideo = "lv", ZoomVideo = "zv", UserSelfie = "selfie",
             IntegrityToken = "it"
         };
         var des = JsonSerializer.Deserialize<SecurePayload>(JsonSerializer.Serialize(original));
         Assert.Equal("sod", des!.SOD);
+        Assert.Equal("dg2raw", des.DG2);   // RAW DG2 EF — distinct from DG2_Photo (re-encoded face)
+        Assert.Equal("dg2", des.DG2_Photo);
         Assert.Equal("dg15", des.DG15);
         Assert.Equal(1700000000, des.Timestamp);
         Assert.Equal("selfie", des.UserSelfie);
@@ -358,6 +360,7 @@ public class SharedModelsTests
         var p = new SecurePayload();
         Assert.Equal(string.Empty, p.SOD);
         Assert.Equal(string.Empty, p.DG1);
+        Assert.Equal(string.Empty, p.DG2);
         Assert.Equal(string.Empty, p.ActiveSig);
         Assert.Equal(string.Empty, p.UserSelfie);
         Assert.Equal(0, p.Timestamp);

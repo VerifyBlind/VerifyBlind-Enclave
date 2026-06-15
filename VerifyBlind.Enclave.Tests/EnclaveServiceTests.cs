@@ -350,7 +350,7 @@ public class EnclaveServiceTests
     public void ParseMrzDate_DobOlderThan30_Returns19xxDate()
     {
         // yy=85 > 30 → 1985
-        var result = _service.ParseMrzDate("850615");
+        var result = MrzParser.ParseMrzDate("850615");
         Assert.Equal(new DateTime(1985, 6, 15), result);
     }
 
@@ -358,7 +358,7 @@ public class EnclaveServiceTests
     public void ParseMrzDate_DobYoungerThan30_Returns20xxDate()
     {
         // yy=05 ≤ 30 → 2005
-        var result = _service.ParseMrzDate("050322");
+        var result = MrzParser.ParseMrzDate("050322");
         Assert.Equal(new DateTime(2005, 3, 22), result);
     }
 
@@ -366,14 +366,14 @@ public class EnclaveServiceTests
     public void ParseMrzDate_ExpiryDate_Always20xx()
     {
         // isExpiry=true, yy=30 → always 2030
-        var result = _service.ParseMrzDate("301231", isExpiry: true);
+        var result = MrzParser.ParseMrzDate("301231", isExpiry: true);
         Assert.Equal(new DateTime(2030, 12, 31), result);
     }
 
     [Fact]
     public void ParseMrzDate_WrongLength_ReturnsMinValue()
     {
-        var result = _service.ParseMrzDate("9001");
+        var result = MrzParser.ParseMrzDate("9001");
         Assert.Equal(DateTime.MinValue, result);
     }
 
@@ -381,7 +381,7 @@ public class EnclaveServiceTests
     public void ParseMrzDate_InvalidMonth_ClampsTo1()
     {
         // mm=99 → clamped to 1
-        var result = _service.ParseMrzDate("859901");
+        var result = MrzParser.ParseMrzDate("859901");
         Assert.Equal(new DateTime(1985, 1, 1), result);
     }
 
@@ -426,15 +426,15 @@ public class EnclaveServiceTests
     [Fact]
     public void Mask_NullOrEmpty_ReturnsValue()
     {
-        Assert.Equal("", _service.Mask(""));
-        Assert.Null(_service.Mask(null!));
+        Assert.Equal("", EnclaveService.Mask(""));
+        Assert.Null(EnclaveService.Mask(null!));
     }
 
     [Fact]
     public void Mask_ShortString_ReturnsStarNotation()
     {
         // Length 3 ≤ 4 → "**3**"
-        var result = _service.Mask("ABC");
+        var result = EnclaveService.Mask("ABC");
         Assert.StartsWith("**", result);
     }
 
@@ -442,7 +442,7 @@ public class EnclaveServiceTests
     public void Mask_NormalString_MasksMiddle()
     {
         // "ABCDEF" → "AB**EF"
-        var result = _service.Mask("ABCDEF");
+        var result = EnclaveService.Mask("ABCDEF");
         Assert.StartsWith("AB", result);
         Assert.EndsWith("EF", result);
         Assert.Contains("**", result);
@@ -456,7 +456,7 @@ public class EnclaveServiceTests
         var hash = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
         // SOD content contains this hash somewhere
         var sodContent = new byte[] { 0x01, 0x02, 0xDE, 0xAD, 0xBE, 0xEF, 0x03, 0x04 };
-        Assert.True(_service.SearchHashInSOD(sodContent, 1, hash));
+        Assert.True(PassiveAuth.SearchHashInSOD(sodContent, 1, hash));
     }
 
     [Fact]
@@ -465,7 +465,7 @@ public class EnclaveServiceTests
         // Use SHA256-length hash (32 bytes = 64 hex chars) to avoid Substring(0,16) bug in log line
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes("not-in-content"));
         var sodContent = new byte[64]; // all zeros — hash won't match
-        Assert.False(_service.SearchHashInSOD(sodContent, 1, hash));
+        Assert.False(PassiveAuth.SearchHashInSOD(sodContent, 1, hash));
     }
 
     // ── ExtractMrzFromDG1 ─────────────────────────────────────────────────────
@@ -474,7 +474,7 @@ public class EnclaveServiceTests
     public void ExtractMrzFromDG1_ValidTlvStructure_ReturnsMrz()
     {
         var dg1Bytes = Convert.FromBase64String(BuildDG1Base64(FakeTurkishTD1Mrz));
-        var mrz = _service.ExtractMrzFromDG1(dg1Bytes);
+        var mrz = MrzParser.ExtractMrzFromDG1(dg1Bytes);
         Assert.Equal(FakeTurkishTD1Mrz, mrz);
     }
 
@@ -483,7 +483,7 @@ public class EnclaveServiceTests
     {
         // Raw MRZ bytes without ASN.1 wrapper → fallback regex extracts it
         var mrzBytes = Encoding.ASCII.GetBytes(FakeTurkishTD1Mrz);
-        var mrz = _service.ExtractMrzFromDG1(mrzBytes);
+        var mrz = MrzParser.ExtractMrzFromDG1(mrzBytes);
         Assert.Equal(90, mrz.Length);
     }
 
@@ -493,14 +493,14 @@ public class EnclaveServiceTests
     public void GetIssuingCountryFromDG1_ValidTurkishDG1_ReturnsTUR()
     {
         var dg1Base64 = BuildDG1Base64(FakeTurkishTD1Mrz);
-        var country = _service.GetIssuingCountryFromDG1(dg1Base64);
+        var country = MrzParser.GetIssuingCountryFromDG1(dg1Base64);
         Assert.Equal("TUR", country);
     }
 
     [Fact]
     public void GetIssuingCountryFromDG1_InvalidBase64_ReturnsUnknown()
     {
-        var country = _service.GetIssuingCountryFromDG1("not-valid-base64!!!");
+        var country = MrzParser.GetIssuingCountryFromDG1("not-valid-base64!!!");
         Assert.Equal("UNKNOWN", country);
     }
 
@@ -510,7 +510,7 @@ public class EnclaveServiceTests
     public void ParseDG1ToTicket_TD1_TurkishCard_ExtractsAllFields()
     {
         var dg1Base64 = BuildDG1Base64(FakeTurkishTD1Mrz);
-        var ticket = _service.ParseDG1ToTicket(dg1Base64, "pubkey", "TUR");
+        var ticket = MrzParser.ParseDG1ToTicket(dg1Base64, "pubkey", "TUR");
 
         Assert.Equal("12345678901", ticket.TCKN);
         Assert.Equal("AHMET", ticket.Ad);
@@ -532,7 +532,7 @@ public class EnclaveServiceTests
             "MUSTERMANN<<ERIKA<<<<<<<<<<<<<";
 
         var dg1Base64 = BuildDG1Base64(germanMrz);
-        var ticket = _service.ParseDG1ToTicket(dg1Base64, "pk", "DEU");
+        var ticket = MrzParser.ParseDG1ToTicket(dg1Base64, "pk", "DEU");
 
         Assert.Equal("", ticket.TCKN); // no TCKN for non-TUR
         Assert.Equal("ERIKA", ticket.Ad);
@@ -552,7 +552,7 @@ public class EnclaveServiceTests
         Assert.Equal(88, mrzString.Length);
 
         var dg1Base64 = BuildDG1Base64(mrzString);
-        var ticket = _service.ParseDG1ToTicket(dg1Base64, "pk", "TUR");
+        var ticket = MrzParser.ParseDG1ToTicket(dg1Base64, "pk", "TUR");
 
         // Personal number at mrzString pos 72 (= td3Line2 pos 28): "12345678901 7<<" → TCKN = "12345678901"
         Assert.Equal("12345678901", ticket.TCKN);
@@ -565,7 +565,7 @@ public class EnclaveServiceTests
         var shortMrz = new string('A', 50);
         var dg1Base64 = BuildDG1Base64(shortMrz);
 
-        Assert.Throws<Exception>(() => _service.ParseDG1ToTicket(dg1Base64, "pk", "TUR"));
+        Assert.Throws<Exception>(() => MrzParser.ParseDG1ToTicket(dg1Base64, "pk", "TUR"));
     }
 
     // ── VerifyNonce ───────────────────────────────────────────────────────────
@@ -728,32 +728,55 @@ public class EnclaveServiceTests
         Assert.Throws<Exception>(() => _service.VerifyBiometricMatchParallel(payload));
     }
 
-    // ── VerifyDGHashes ────────────────────────────────────────────────────────
+    // ── VerifyDGHashes (fallback scan path — non-LDS SOD content) ─────────────
 
-    [Fact]
-    public void VerifyDGHashes_HashFoundInSodContent_DoesNotThrow()
+    // A non-LDS byte blob with the given hashes embedded. TryParseLdsSecurityObject fails on this,
+    // so VerifyDGHashes falls back to the legacy multi-algorithm scan (each hash present → OK).
+    private static byte[] ScanSod(params byte[][] hashes)
     {
-        var dg1Bytes = Convert.FromBase64String(BuildDG1Base64(FakeTurkishTD1Mrz));
-        var dg1Hash = SHA256.HashData(dg1Bytes);
-
-        // SOD content that contains the DG1 hash (brute-force search will find it)
-        var sodContent = new byte[] { 0x00, 0x01, 0x02 }
-            .Concat(dg1Hash)
-            .Concat(new byte[] { 0xFF })
-            .ToArray();
-
-        _service.VerifyDGHashes(sodContent, BuildDG1Base64(FakeTurkishTD1Mrz), null!);
+        var acc = new List<byte> { 0x00, 0x01, 0x02 };
+        foreach (var h in hashes) { acc.AddRange(h); acc.Add(0xFF); }
+        return acc.ToArray();
     }
 
     [Fact]
-    public void VerifyDGHashes_HashNotInSodContent_Throws()
+    public void VerifyDGHashes_FallbackScan_Dg1AndDg2Found_DoesNotThrow()
     {
-        var dg1Base64 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg2 = Convert.ToBase64String(new byte[] { 0xD2, 0xD2, 0xD2, 0xD2 });
+        var sod = ScanSod(SHA256.HashData(Convert.FromBase64String(dg1)),
+                          SHA256.HashData(Convert.FromBase64String(dg2)));
 
-        // SOD content with wrong bytes — hash won't match
-        var sodContent = new byte[64]; // all zeros
+        PassiveAuth.VerifyDGHashes(sod, dg1, dg2, null!);
+    }
 
-        Assert.Throws<Exception>(() => _service.VerifyDGHashes(sodContent, dg1Base64, null!));
+    [Fact]
+    public void VerifyDGHashes_Dg1HashNotInSod_Throws()
+    {
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg2 = Convert.ToBase64String(new byte[] { 0xD2 });
+        var sod = new byte[64]; // all zeros — no hash matches
+        Assert.Throws<Exception>(() => PassiveAuth.VerifyDGHashes(sod, dg1, dg2, null!));
+    }
+
+    [Fact]
+    public void VerifyDGHashes_MissingRawDg2_Throws()
+    {
+        // DG2 is mandatory: the biometric must be cryptographically bound to the document. (Y-3.)
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var sod = ScanSod(SHA256.HashData(Convert.FromBase64String(dg1)));
+        var ex = Assert.Throws<Exception>(() => PassiveAuth.VerifyDGHashes(sod, dg1, "", null!));
+        Assert.Contains("DG2", ex.Message);
+    }
+
+    [Fact]
+    public void VerifyDGHashes_Dg2HashNotInSod_Throws()
+    {
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg2 = Convert.ToBase64String(new byte[] { 0xD2, 0xD2 });
+        // SOD carries DG1's hash but NOT DG2's → the DG2 binding must fail.
+        var sod = ScanSod(SHA256.HashData(Convert.FromBase64String(dg1)));
+        Assert.Throws<Exception>(() => PassiveAuth.VerifyDGHashes(sod, dg1, dg2, null!));
     }
 
     // ── DiagLog ───────────────────────────────────────────────────────────────
@@ -808,15 +831,15 @@ public class EnclaveServiceTests
 
     [Fact]
     public void ParseMrzDate_DobYearExactly30_Returns2030()  // yy=30 is NOT > 30 → 2000s
-        => Assert.Equal(new DateTime(2030, 5, 1), _service.ParseMrzDate("300501"));
+        => Assert.Equal(new DateTime(2030, 5, 1), MrzParser.ParseMrzDate("300501"));
 
     [Fact]
     public void ParseMrzDate_DobYearExactly31_Returns1931()  // yy=31 IS > 30 → 1900s
-        => Assert.Equal(new DateTime(1931, 5, 1), _service.ParseMrzDate("310501"));
+        => Assert.Equal(new DateTime(1931, 5, 1), MrzParser.ParseMrzDate("310501"));
 
     [Fact]
     public void ParseMrzDate_InvalidDay_ClampsTo1()
-        => Assert.Equal(new DateTime(1985, 6, 1), _service.ParseMrzDate("850632"));
+        => Assert.Equal(new DateTime(1985, 6, 1), MrzParser.ParseMrzDate("850632"));
 
     [Fact]
     public void ParseMrzDate_NonNumericInput_ThrowsFormatException()
@@ -824,7 +847,7 @@ public class EnclaveServiceTests
         // HARDENING NOTE: ParseMrzDate guards length and clamps month/day, but a non-numeric
         // field still throws FormatException from int.Parse rather than returning MinValue.
         // This test pins current behaviour — making it resilient would be a deliberate change.
-        Assert.Throws<FormatException>(() => _service.ParseMrzDate("ABCDEF"));
+        Assert.Throws<FormatException>(() => MrzParser.ParseMrzDate("ABCDEF"));
     }
 
     // ── CheckAgeConstraint (additional boundaries) ────────────────────────────
@@ -851,17 +874,17 @@ public class EnclaveServiceTests
 
     [Fact]
     public void Mask_ExactlyFourChars_ReturnsStarNotation()
-        => Assert.Equal("**4**", _service.Mask("ABCD"));
+        => Assert.Equal("**4**", EnclaveService.Mask("ABCD"));
 
     [Fact]
     public void Mask_FiveChars_KeepsFirstTwoAndLastTwo()
-        => Assert.Equal("AB*DE", _service.Mask("ABCDE"));
+        => Assert.Equal("AB*DE", EnclaveService.Mask("ABCDE"));
 
     [Fact]
     public void Mask_TcknLengthValue_OnlyExposesFourDigits()
     {
         // An 11-digit TCKN must never have its middle digits exposed in logs.
-        var masked = _service.Mask("12345678901");
+        var masked = EnclaveService.Mask("12345678901");
         Assert.Equal("12*******01", masked);
         Assert.DoesNotContain("345678", masked);
     }
@@ -870,17 +893,17 @@ public class EnclaveServiceTests
 
     [Fact]
     public void ExtractMrzFromDG1_EmptyBytes_Throws()
-        => Assert.ThrowsAny<Exception>(() => _service.ExtractMrzFromDG1(Array.Empty<byte>()));
+        => Assert.ThrowsAny<Exception>(() => MrzParser.ExtractMrzFromDG1(Array.Empty<byte>()));
 
     [Fact]
     public void ExtractMrzFromDG1_GarbageBytes_Throws()
-        => Assert.ThrowsAny<Exception>(() => _service.ExtractMrzFromDG1(new byte[] { 0x01, 0x02, 0x03 }));
+        => Assert.ThrowsAny<Exception>(() => MrzParser.ExtractMrzFromDG1(new byte[] { 0x01, 0x02, 0x03 }));
 
     [Fact]
     public void GetIssuingCountryFromDG1_GermanCard_ReturnsDEU()
     {
         var germanMrz = FakeTurkishTD1Mrz.Replace("TUR", "DEU");
-        Assert.Equal("DEU", _service.GetIssuingCountryFromDG1(BuildDG1Base64(germanMrz)));
+        Assert.Equal("DEU", MrzParser.GetIssuingCountryFromDG1(BuildDG1Base64(germanMrz)));
     }
 
     // ── ParseDG1ToTicket (additional) ─────────────────────────────────────────
@@ -890,7 +913,7 @@ public class EnclaveServiceTests
     {
         // 'V' = visa — only P / I / A / C are accepted document types.
         var visaMrz = "V" + FakeTurkishTD1Mrz.Substring(1);
-        Assert.Throws<Exception>(() => _service.ParseDG1ToTicket(BuildDG1Base64(visaMrz), "pk", "TUR"));
+        Assert.Throws<Exception>(() => MrzParser.ParseDG1ToTicket(BuildDG1Base64(visaMrz), "pk", "TUR"));
     }
 
     [Fact]
@@ -900,14 +923,14 @@ public class EnclaveServiceTests
         var femaleMrz = FakeTurkishTD1Mrz.Substring(0, 30)
             + "9001011F3012311TUR00000000<<<0"
             + FakeTurkishTD1Mrz.Substring(60);
-        var ticket = _service.ParseDG1ToTicket(BuildDG1Base64(femaleMrz), "pk", "TUR");
+        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(femaleMrz), "pk", "TUR");
         Assert.Equal("F", ticket.Cinsiyet);
     }
 
     [Fact]
     public void ParseDG1ToTicket_ExpiryDateParsedFromMrz()
     {
-        var ticket = _service.ParseDG1ToTicket(BuildDG1Base64(FakeTurkishTD1Mrz), "pk", "TUR");
+        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(FakeTurkishTD1Mrz), "pk", "TUR");
         Assert.Equal(new DateTime(2030, 12, 31), ticket.GecerlilikTarihi);
     }
 
@@ -916,43 +939,93 @@ public class EnclaveServiceTests
     {
         // Even though the optional-data field is numeric, a non-TUR/THA card must not yield a TCKN.
         var frenchMrz = FakeTurkishTD1Mrz.Replace("TUR", "FRA");
-        var ticket = _service.ParseDG1ToTicket(BuildDG1Base64(frenchMrz), "pk", "FRA");
+        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(frenchMrz), "pk", "FRA");
         Assert.Equal("", ticket.TCKN);
         Assert.Equal("FRA", ticket.Uyruk);
     }
 
-    // ── VerifyDGHashes — DG15 path ────────────────────────────────────────────
+    // ── VerifyDGHashes — DG15 path (fallback scan) ────────────────────────────
 
     [Fact]
     public void VerifyDGHashes_Dg15PresentAndHashFound_DoesNotThrow()
     {
-        var dg1Base64 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg2 = Convert.ToBase64String(new byte[] { 0xD2, 0xD2 });
         var dg15Bytes = new byte[] { 0xAA, 0xBB, 0xCC, 0xDD };
-        var dg15Base64 = Convert.ToBase64String(dg15Bytes);
+        var dg15 = Convert.ToBase64String(dg15Bytes);
 
-        var dg1Hash = SHA256.HashData(Convert.FromBase64String(dg1Base64));
-        var dg15Hash = SHA256.HashData(dg15Bytes);
+        var sod = ScanSod(
+            SHA256.HashData(Convert.FromBase64String(dg1)),
+            SHA256.HashData(Convert.FromBase64String(dg2)),
+            SHA256.HashData(dg15Bytes));
 
-        // SOD content embeds BOTH hashes (the brute-force scan finds them).
-        var sodContent = new byte[] { 0x00 }
-            .Concat(dg1Hash).Concat(new byte[] { 0xFF })
-            .Concat(dg15Hash).Concat(new byte[] { 0xFF })
-            .ToArray();
-
-        _service.VerifyDGHashes(sodContent, dg1Base64, dg15Base64); // must not throw
+        PassiveAuth.VerifyDGHashes(sod, dg1, dg2, dg15); // must not throw
     }
 
     [Fact]
     public void VerifyDGHashes_Dg15HashMissing_Throws()
     {
-        var dg1Base64 = BuildDG1Base64(FakeTurkishTD1Mrz);
-        var dg1Hash = SHA256.HashData(Convert.FromBase64String(dg1Base64));
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg2 = Convert.ToBase64String(new byte[] { 0xD2, 0xD2 });
 
-        // DG1 hash present, DG15 hash absent → DG15 tampering must be rejected.
-        var sodContent = new byte[] { 0x00 }.Concat(dg1Hash).Concat(new byte[64]).ToArray();
+        // DG1 + DG2 hashes present, DG15 hash absent → DG15 tampering must be rejected.
+        var sod = ScanSod(SHA256.HashData(Convert.FromBase64String(dg1)),
+                          SHA256.HashData(Convert.FromBase64String(dg2)));
 
         Assert.Throws<Exception>(() =>
-            _service.VerifyDGHashes(sodContent, dg1Base64, Convert.ToBase64String(new byte[] { 0x11, 0x22 })));
+            PassiveAuth.VerifyDGHashes(sod, dg1, dg2, Convert.ToBase64String(new byte[] { 0x11, 0x22 })));
+    }
+
+    // ── VerifyDGHashes — LDSSecurityObject strict path (DG-number binding) ─────
+
+    // Builds a real ICAO LDSSecurityObject (SHA-256) mapping data-group numbers to hashes.
+    private static byte[] BuildLds(Dictionary<int, byte[]> hashes)
+    {
+        var w = new System.Formats.Asn1.AsnWriter(System.Formats.Asn1.AsnEncodingRules.DER);
+        using (w.PushSequence())
+        {
+            w.WriteInteger(0); // version
+            using (w.PushSequence()) // hashAlgorithm = AlgorithmIdentifier
+                w.WriteObjectIdentifier("2.16.840.1.101.3.4.2.1"); // SHA-256
+            using (w.PushSequence()) // dataGroupHashValues
+            {
+                foreach (var kv in hashes)
+                    using (w.PushSequence())
+                    {
+                        w.WriteInteger(kv.Key);
+                        w.WriteOctetString(kv.Value);
+                    }
+            }
+        }
+        return w.Encode();
+    }
+
+    [Fact]
+    public void VerifyDGHashes_LdsStrict_CorrectSlots_DoesNotThrow()
+    {
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg2 = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5 });
+        var sod = BuildLds(new Dictionary<int, byte[]>
+        {
+            [1] = SHA256.HashData(Convert.FromBase64String(dg1)),
+            [2] = SHA256.HashData(Convert.FromBase64String(dg2)),
+        });
+        PassiveAuth.VerifyDGHashes(sod, dg1, dg2, null!); // must not throw
+    }
+
+    [Fact]
+    public void VerifyDGHashes_LdsStrict_Dg2InWrongSlot_Throws()
+    {
+        // The DG-number binding must reject a SOD where DG1's and DG2's hashes are swapped between
+        // slots — the legacy "hash present anywhere" scan would have wrongly accepted this.
+        var dg1 = BuildDG1Base64(FakeTurkishTD1Mrz);
+        var dg2 = Convert.ToBase64String(new byte[] { 9, 8, 7, 6, 5 });
+        var sod = BuildLds(new Dictionary<int, byte[]>
+        {
+            [1] = SHA256.HashData(Convert.FromBase64String(dg2)), // swapped
+            [2] = SHA256.HashData(Convert.FromBase64String(dg1)), // swapped
+        });
+        Assert.Throws<Exception>(() => PassiveAuth.VerifyDGHashes(sod, dg1, dg2, null!));
     }
 
     // ── SearchHashInSOD (additional offsets) ──────────────────────────────────
@@ -962,7 +1035,7 @@ public class EnclaveServiceTests
     {
         var hash = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
         var sodContent = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00 };
-        Assert.True(_service.SearchHashInSOD(sodContent, 1, hash));
+        Assert.True(PassiveAuth.SearchHashInSOD(sodContent, 1, hash));
     }
 
     [Fact]
@@ -970,14 +1043,14 @@ public class EnclaveServiceTests
     {
         var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("tail"));
         var sodContent = new byte[16].Concat(hash).ToArray();
-        Assert.True(_service.SearchHashInSOD(sodContent, 1, hash));
+        Assert.True(PassiveAuth.SearchHashInSOD(sodContent, 1, hash));
     }
 
     [Fact]
     public void SearchHashInSOD_ContentShorterThanHash_ReturnsFalse()
     {
         var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes("x")); // 32 bytes
-        Assert.False(_service.SearchHashInSOD(new byte[8], 1, hash));
+        Assert.False(PassiveAuth.SearchHashInSOD(new byte[8], 1, hash));
     }
 
     // ── LoginAsync — QR payload, binding & nonce validation (security-critical) ─

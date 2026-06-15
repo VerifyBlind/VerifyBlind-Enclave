@@ -55,6 +55,9 @@ public class SecurePayload
 {
     public string SOD { get; set; } = string.Empty;
     public string DG1 { get; set; } = string.Empty;
+    // RAW DG2 data-group bytes (full EF, Base64). Needed to verify the DG2 hash against the SOD:
+    // DG2_Photo below is a re-encoded JPEG/JP2 and will NOT match the SOD hash. (Security review Y-3.)
+    public string DG2 { get; set; } = string.Empty;
     public string DG15 { get; set; } = string.Empty; // AA Public Key (Base64)
     public string ActiveSig { get; set; } = string.Empty;
     public string AAChallenge { get; set; } = string.Empty; // Challenge used for AA (Base64)
@@ -126,6 +129,15 @@ public class DemoRegisterRequest
 }
 
 // Ticket
+//
+// ⚠️  GÜVENLİK / UYUMLULUK UYARISI — BU SINIFIN ŞEKLİNİ DEĞİŞTİRMEYİN ⚠️
+// Ticket-MAC (TicketMacService.ComputeMac) bu tipin VARSAYILAN System.Text.Json serileştirmesi
+// üzerinden hesaplanır. Alan EKLEMEK / SİLMEK / YENİDEN ADLANDIRMAK / SIRASINI ya da TİPİNİ
+// değiştirmek wire JSON'u değiştirir → ÜRETİMDE ZATEN VERİLMİŞ TÜM TICKET'LARIN MAC'İ GEÇERSİZ
+// OLUR (cihazda saklı ticket'lar artık login'de doğrulanamaz; tüm kullanıcılar yeniden kayıt olmalı).
+// Zorunlu bir değişiklik gerekiyorsa sürümlü MAC planla (yeni alan + eski/yeni MAC geçiş penceresi).
+// VerifyBlind.Enclave.Tests/TicketMacServiceTests bu serileştirmeyi golden-vector ile sabitler —
+// test kırılırsa bu uyarıyı oku; testi körlemesine "düzeltme".
 public class TicketPayload
 {
     public string TCKN { get; set; } = string.Empty;
