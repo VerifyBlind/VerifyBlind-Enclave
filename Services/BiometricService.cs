@@ -138,7 +138,13 @@ namespace VerifyBlind.Enclave.Services
                 : (image.Height - size) / 2;
             image.Mutate(x => x
                 .Crop(new SixLabors.ImageSharp.Rectangle(left, top, size, size))
-                .Resize(112, 112));
+                .Resize(new ResizeOptions
+                {
+                    Size = new SixLabors.ImageSharp.Size(112, 112),
+                    // Bikübik (varsayılan) yerine Lanczos3 — büyük chip portresini 112'ye küçültürken
+                    // daha az aliasing, daha çok yüz detayı korunur → embedding kalitesi artar.
+                    Sampler = KnownResamplers.Lanczos3
+                }));
             return image;
         }
 
@@ -156,10 +162,12 @@ namespace VerifyBlind.Enclave.Services
                         for (int x = 0; x < accessor.Width; x++)
                         {
                             var pixel = pixelRow[x];
-                            // MobileFaceNet normalization: (x - 127.5) / 128.0
-                            input[0, 0, y, x] = (pixel.R - 127.5f) / 128.0f;
-                            input[0, 1, y, x] = (pixel.G - 127.5f) / 128.0f;
-                            input[0, 2, y, x] = (pixel.B - 127.5f) / 128.0f;
+                            // InsightFace/ArcFace (w600k_r50) referans normalizasyonu: (x - 127.5) / 127.5 → [-1, 1].
+                            // (Önceki /128.0 referans dışıydı; chip+probe'a tutarlı uygulandığı için fark küçük
+                            //  ama modelin eğitildiği ölçek bu — R50 eşiği kalibre edilirken doğru taban olsun diye düzeltildi.)
+                            input[0, 0, y, x] = (pixel.R - 127.5f) / 127.5f;
+                            input[0, 1, y, x] = (pixel.G - 127.5f) / 127.5f;
+                            input[0, 2, y, x] = (pixel.B - 127.5f) / 127.5f;
                         }
                     }
                 });

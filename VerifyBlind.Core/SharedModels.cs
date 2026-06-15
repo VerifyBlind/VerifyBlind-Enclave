@@ -73,8 +73,9 @@ public class SecurePayload
     public string LivenessVideo { get; set; } = string.Empty; // Base64 (MP4/WebM)
     public string ZoomVideo { get; set; } = string.Empty;     // Base64 (MP4/WebM)
     
-    // Best Frame from Liveness (JPEG) for Face Match
-    public string UserSelfie { get; set; } = string.Empty;    // Base64 (JPEG)
+    // Best Frame from Liveness (112x112 aligned, PNG/lossless) for Face Match.
+    // ImageSharp Image.Load formatı otomatik algılar (PNG/JPEG); istemci artık PNG gönderir.
+    public string UserSelfie { get; set; } = string.Empty;    // Base64 (PNG, lossless)
     
     // Play Integrity API Token
     public string IntegrityToken { get; set; } = string.Empty;
@@ -215,6 +216,23 @@ public class LoginRequest
 
     [JsonPropertyName("integrity_token")]
     public string IntegrityToken { get; set; } = string.Empty; // Play Integrity Token
+
+    // --- Holder-of-Key proof (Security review Y-4) ---
+    // SignedTicket, Enclave PUBLIC anahtarıyla şifrelidir → özel anahtar gerekmez; sızarsa (bulut
+    // yedeği / cihaz kopyası) bearer-token gibi herhangi bir partnere doğrulama için kullanılabilirdi.
+    // Bunu engellemek için cihaz, ticket içindeki UserPubKey'in ÖZEL eşiyle (Android Keystore / iOS
+    // Keychain, donanım-destekli, biyometrik-kapılı) "VBLOK1|{nonce}|{pk_hash}|{user_sig_ts}" mesajını
+    // RSA-PSS/SHA-256 ile imzalar. Enclave bu imzayı MAC-doğrulanmış UserPubKey ile doğrular.
+
+    /// <summary>Mobil istemcinin holder-of-key imzası (base64, RSA-PSS/SHA-256). Mesaj:
+    /// "VBLOK1|{nonce}|{pk_hash}|{user_sig_ts}". Yoksa/geçersizse enclave login'i reddeder.</summary>
+    [JsonPropertyName("user_signature")]
+    public string? UserSignature { get; set; }
+
+    /// <summary>Holder-of-key imzasının zaman damgası (epoch SANİYE). İmzalı mesaja dahildir;
+    /// enclave skew penceresi uygular (gelecek +5dk / geçmiş -15dk, QR TTL ile hizalı).</summary>
+    [JsonPropertyName("user_sig_ts")]
+    public long UserSigTimestamp { get; set; }
 
     // --- Fields set by API before Enclave relay (serialized to Enclave) ---
     // [JsonPropertyName("partner_id")] - REMOVED (Extracted from QrPayloadJson)

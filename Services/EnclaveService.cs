@@ -651,6 +651,52 @@ string? partnerId = null;
         }
         diag.Ok("Ticket Sig Verify");
 
+        // 4.1 Holder-of-Key kanıtı (Güvenlik incelemesi Y-4)
+        // SignedTicket, Enclave'in PUBLIC anahtarıyla şifrelidir; özel anahtar gerektirmez. Bu nedenle
+        // sızan bir SignedTicket (bulut yedeği / cihaz kopyası) bütünlük geçen herhangi bir uygulamada
+        // bearer-token gibi kullanılabilir → kurbanı herhangi bir partnere doğrulayabilir.
+        // Bunu engellemek için cihaz, ticket içindeki UserPubKey'in ÖZEL eşiyle (Android Keystore /
+        // iOS Keychain — donanım-destekli, biyometrik-kapılı, dışa aktarılamaz) bu login'e özgü
+        // "VBLOK1|{nonce}|{pk_hash}|{ts}" mesajını imzalar. UserPubKey, MAC-doğrulanmış ticket
+        // payload'ının parçası olduğundan bu noktada güvenilirdir.
+        diag.Begin("Holder-of-Key");
+        {
+            var userPubKey = signedTicket.Payload.UserPubKey;
+            if (string.IsNullOrEmpty(userPubKey))
+            {
+                diag.Fail("Holder-of-Key", "Bilette UserPubKey yok");
+                throw new Exception("Holder-of-key doğrulaması başarısız: bilette kullanıcı anahtarı yok.");
+            }
+            if (string.IsNullOrEmpty(request.UserSignature))
+            {
+                diag.Fail("Holder-of-Key", "İstekte user_signature yok");
+                throw new Exception("Holder-of-key doğrulaması başarısız: imza eksik (uygulamayı güncelleyin).");
+            }
+
+            // Zaman damgası tazeliği. Nonce zaten tek-kullanım + 15dk TTL ile replay'i engeller; bu
+            // pencere yalnızca cihaz-saati suistimalini sınırlar. Pencere QR TTL'sinden geniş tutulur
+            // ki meşru bir login (nonce ≤15dk yaşar) zaman damgası yüzünden ASLA kırılmasın.
+            const long SkewFutureSec = 300;  // +5 dk (ileri saat toleransı)
+            const long SkewPastSec   = 900;  // -15 dk (QR TTL ile hizalı)
+            var nowSec = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            if (request.UserSigTimestamp > nowSec + SkewFutureSec ||
+                request.UserSigTimestamp < nowSec - SkewPastSec)
+            {
+                diag.Fail("Holder-of-Key", $"timestamp pencere dışı: ts={request.UserSigTimestamp}, now={nowSec}");
+                throw new Exception("Holder-of-key doğrulaması başarısız: zaman damgası geçersiz.");
+            }
+
+            // Kanonik mesaj — mobil imzalayıcıyla BYTE-BYTE aynı olmalı (reqNonce==innerNonce==cihaz nonce,
+            // innerPkHash==cihaz pk_hash; ikisi de yukarıdaki binding/nonce kontrolleriyle doğrulandı).
+            var hokMessage = $"VBLOK1|{reqNonce}|{innerPkHash}|{request.UserSigTimestamp}";
+            if (!CryptoUtils.VerifySignature(hokMessage, request.UserSignature, userPubKey))
+            {
+                diag.Fail("Holder-of-Key", "İmza UserPubKey ile doğrulanamadı");
+                throw new Exception("Holder-of-key doğrulaması başarısız: imza geçersiz.");
+            }
+            diag.Ok("Holder-of-Key");
+        }
+
         // Kart geçerlilik tarihi kontrolü (imza doğrulandıktan sonra)
         if (signedTicket.Payload.GecerlilikTarihi < DateTime.UtcNow.Date)
         {
