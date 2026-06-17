@@ -308,6 +308,8 @@ public class EnclaveService
         try
         {
             diag.Begin("Ticket Sign");
+            // İmzalama zamanı — MAC bunu kapsar (kurcalanamaz). Login'de iptal kurallarına karşı kontrol edilir.
+            ticketPayload.SignedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
             var signature = _ticketMac.ComputeMac(ticketPayload);
             signedTicket = new SignedTicket
@@ -422,6 +424,7 @@ public class EnclaveService
         try
         {
             diag.Begin("Demo Ticket Sign");
+            ticketPayload.SignedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             await _ticketMac.EnsureSecretLoadedAsync(ticketSecretWrapped);
             var signature = _ticketMac.ComputeMac(ticketPayload);
             signedTicket = new SignedTicket
@@ -705,6 +708,17 @@ string? partnerId = null;
         }
         Console.WriteLine($"[Enclave] Kart geçerlilik tarihi DOĞRULANDI ✓ ({signedTicket.Payload.GecerlilikTarihi:yyyy-MM-dd})");
 
+        // Ticket-iptal kuralları (admin-yönetimli, relay'den iletilir) — SignedAtUnix etkin bir kurala
+        // düşerse reddet. Kural yok/boş → kabul. now ENCLAVE saatiyle (güvenlik kontrolü enclave-side).
+        diag.Begin("Revocation Check");
+        var nowUnixRevoke = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (RevocationPolicy.IsRevoked(signedTicket.Payload.SignedAtUnix, nowUnixRevoke, request.RevocationRules))
+        {
+            diag.Fail("Revocation Check", $"SignedAt={signedTicket.Payload.SignedAtUnix} bir iptal kuralına düşüyor");
+            throw new TicketRevokedException("Bu kimlik kaydı iptal edildi. Lütfen kimliğinizi yeniden ekleyin.");
+        }
+        diag.Ok("Revocation Check");
+
         if (userIdHmacTask != null)
         {
             userId = await userIdHmacTask;
@@ -771,6 +785,31 @@ string? partnerId = null;
                     if (kvp.Value is JsonElement boolEl && boolEl.ValueKind == JsonValueKind.True) requested = true;
                     else if (rawValue.ToLower() == "true") requested = true;
                     if (requested) validationsOutput["user_id"] = userId;
+                }
+                else if (kvp.Key == "nsbd_id")
+                {
+                    // Partner-scoped biyografik "kişi kovası" (TCKN olmayan kimlikler için). Bir kişinin
+                    // tüm kartlarında sabit; olasılıksal ipucu (namesake çakışması olabilir), otoriter değil.
+                    bool requested = (kvp.Value is JsonElement nbEl && nbEl.ValueKind == JsonValueKind.True)
+                                     || rawValue.ToLower() == "true";
+                    if (requested)
+                    {
+                        var nsbd = await IdentityCodes.BuildNsbdIdAsync(_kms, signedTicket.Payload, partnerId ?? "");
+                        if (nsbd != null) validationsOutput["nsbd_id"] = nsbd;
+                    }
+                }
+                else if (kvp.Key == "doc_id")
+                {
+                    // Partner-scoped card_id (SOD-tabanlı). Aynı doc_id ⟹ aynı fiziksel belge ⟹ aynı kişi
+                    // (sert sinyal). DocType öneki partner okunabilirliği içindir.
+                    bool requested = (kvp.Value is JsonElement docEl && docEl.ValueKind == JsonValueKind.True)
+                                     || rawValue.ToLower() == "true";
+                    if (requested)
+                    {
+                        var doc = await IdentityCodes.BuildDocIdAsync(
+                            _kms, loginCardId, signedTicket.Payload.DocumentType, partnerId ?? "");
+                        if (doc != null) validationsOutput["doc_id"] = doc;
+                    }
                 }
 
             }

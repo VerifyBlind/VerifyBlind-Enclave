@@ -152,6 +152,13 @@ public class EnclaveController : ControllerBase
                 return Content(result, "application/json");
             }
         }
+        catch (VerifyBlind.Enclave.Services.TicketRevokedException ex)
+        {
+            // Ticket admin iptal kuralıyla reddedildi → mobil ayırt edilebilir kodu görüp yeniden-kayıt tetikler.
+            diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
+            Console.WriteLine($"[Enclave Controller] LOGIN TICKET REVOKED: {ex.Message}");
+            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
+        }
         catch (Exception ex)
         {
             diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");

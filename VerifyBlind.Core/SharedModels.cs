@@ -165,6 +165,15 @@ public class TicketPayload
     public string CardId { get; set; } = string.Empty;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? DocumentType { get; set; } // MRZ line1[0]: P/I/A/C
+
+    /// <summary>
+    /// Enclave'in ticket'ı MAC-imzaladığı an (Unix epoch saniye). MAC bunu kapsadığı için kurcalanamaz.
+    /// DİKKAT: kimlik belgesinin düzenlenme tarihi DEĞİL — ticket'ın imzalanma zamanıdır.
+    /// Login'de admin-yönetimli iptal kurallarına (RevocationPolicy) karşı kontrol edilir:
+    /// belirli tarih aralığındaki veya x günden eski ticket'lar cerrahi olarak reddedilebilir.
+    /// long → JSON round-trip'te DateTime hassasiyet/kind sürtmesi yok (MAC stabil kalır).
+    /// </summary>
+    public long SignedAtUnix { get; set; }
 }
 
 public class SignedTicket
@@ -255,6 +264,15 @@ public class LoginRequest
     /// <summary>Relay API tarafından set edilir. Bkz. <see cref="RegistrationRequest.TicketSecretWrapped"/>.</summary>
     [JsonPropertyName("ticket_secret_wrapped")]
     public string? TicketSecretWrapped { get; set; }
+
+    /// <summary>
+    /// Relay API tarafından set edilir. Etkin ticket-iptal kurallarının JSON dizisi
+    /// (RevocationRule[]). Enclave bunu parse edip ticket'ın IssuedAtUnix'ini değerlendirir;
+    /// eşleşen ticket reddedilir (ERR_TICKET_REVOKED). null/boş → kısıt yok. Gizli değildir.
+    /// </summary>
+    [JsonPropertyName("revocation_rules")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RevocationRules { get; set; }
 
     // --- Internal API-only fields (not sent to Enclave) ---
     [JsonIgnore]

@@ -23,4 +23,5 @@ public static class EnclaveErrorCodes
     public const string ResponseEncryption    = "ERR_RESPONSE_ENCRYPTION";
     public const string DemoMissingPubkey     = "ERR_DEMO_MISSING_PUBKEY";
     public const string Antispoofing          = "ERR_ANTISPOOFING";
+    public const string TicketRevoked         = "ERR_TICKET_REVOKED";
 }
