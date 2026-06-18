@@ -40,7 +40,9 @@ public static class MrzParser
             var docTypeChar = line1[0];
             if (docTypeChar != 'P' && docTypeChar != 'I' && docTypeChar != 'A' && docTypeChar != 'C')
                 throw new Exception($"Bu belge türü desteklenmemektedir ('{docTypeChar}'). Yalnızca pasaport ve vatandaşlık kimlik kartları kabul edilmektedir.");
-            docType = docTypeChar.ToString();
+            // ICAO belge kodu = line1'in ilk 2 karakteri (poz 1-2); filler '<' temizlenir.
+            // "I<"→"I", "ID"→"ID". Tek karakter (line1[0]) almak 2 harfli kodun 2. harfini düşürürdü.
+            docType = line1.Substring(0, 2).Replace("<", "").Trim();
 
             line2 = mrzString.Substring(30, 30);
             line3 = mrzString.Substring(60, 30);
@@ -66,7 +68,9 @@ public static class MrzParser
             var docTypeChar = line1[0];
             if (docTypeChar != 'P' && docTypeChar != 'I' && docTypeChar != 'A' && docTypeChar != 'C')
                 throw new Exception($"Bu belge türü desteklenmemektedir ('{docTypeChar}'). Yalnızca pasaport ve vatandaşlık kimlik kartları kabul edilmektedir.");
-            docType = docTypeChar.ToString();
+            // ICAO belge kodu = line1'in ilk 2 karakteri (poz 1-2); filler '<' temizlenir.
+            // "P<"→"P", "ID"→"ID". Tek karakter (line1[0]) almak 2 harfli kodun 2. harfini düşürürdü.
+            docType = line1.Substring(0, 2).Replace("<", "").Trim();
 
             line2 = mrzString.Substring(44, 44);
 

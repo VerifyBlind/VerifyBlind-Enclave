@@ -520,6 +520,34 @@ public class EnclaveServiceTests
         Assert.Equal("TUR", ticket.Uyruk);
         Assert.Equal("pubkey", ticket.UserPubKey);
         Assert.Equal("TUR", ticket.CountryIsoCode);
+        Assert.Equal("I", ticket.DocumentType); // "I<" → filler '<' temizlenir
+    }
+
+    [Fact]
+    public void ParseDG1ToTicket_TwoLetterDocCode_PreservesBothChars()
+    {
+        // Belge kodu "ID" (filler '<' yok) → DocumentType iki harfi de korumalı, sadece "I" değil.
+        const string idMrz =
+            "IDTUR123456789012345678901<<<<" +
+            "9001011M3012311TUR00000000<<<0" +
+            "YILMAZ<<AHMET<<<<<<<<<<<<<<<<<";
+
+        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(idMrz), "pk", "TUR");
+
+        Assert.Equal("ID", ticket.DocumentType);
+        Assert.Equal("12345678901", ticket.TCKN); // 2. karakter değişimi TCKN çıkarımını bozmamalı
+    }
+
+    [Fact]
+    public void ParseDG1ToTicket_TD3_DocCodeStripsFiller()
+    {
+        // Pasaport "P<" → DocumentType "P".
+        const string td3Line1 = "P<TURYILMAZ<<AHMET<<<<<<<<<<<<<<<<<<<<<<<<<<";
+        const string td3Line2 = "1234567890TUR9001011M3012316123456789017<<00";
+
+        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(td3Line1 + td3Line2), "pk", "TUR");
+
+        Assert.Equal("P", ticket.DocumentType);
     }
 
     [Fact]
