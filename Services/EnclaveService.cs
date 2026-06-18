@@ -784,28 +784,19 @@ string? partnerId = null;
                     bool requested = false;
                     if (kvp.Value is JsonElement boolEl && boolEl.ValueKind == JsonValueKind.True) requested = true;
                     else if (rawValue.ToLower() == "true") requested = true;
-                    if (requested) validationsOutput["user_id"] = userId;
-                }
-                else if (kvp.Key == "nsbd_id")
-                {
-                    // Partner-scoped biyografik "kişi kovası" (TCKN olmayan kimlikler için). Bir kişinin
-                    // tüm kartlarında sabit; olasılıksal ipucu (namesake çakışması olabilir), otoriter değil.
-                    bool requested = (kvp.Value is JsonElement nbEl && nbEl.ValueKind == JsonValueKind.True)
-                                     || rawValue.ToLower() == "true";
                     if (requested)
                     {
+                        // Tek "user_id" isteği = üç partner-scoped kimlik kodu birden (AYRI string alanlar).
+                        // Amaç: ulusal-no şema değişimi (kaldırma/ekleme) ve kart yenileme boyunca partner'ın
+                        // aynı kişiyi takip edebilmesi — kodlar değişimden ÖNCE saklanmış olmalı, bu yüzden
+                        // opt-in değil bundle. user_id string kalır (mevcut partner kırılmaz). TCKN yoksa "".
+                        validationsOutput["user_id"] = userId;
+
+                        // nsbd_id: biyografik kişi kovası (kart yenilemede sabit, olasılıksal ipucu).
                         var nsbd = await IdentityCodes.BuildNsbdIdAsync(_kms, signedTicket.Payload, partnerId ?? "");
                         if (nsbd != null) validationsOutput["nsbd_id"] = nsbd;
-                    }
-                }
-                else if (kvp.Key == "doc_id")
-                {
-                    // Partner-scoped card_id (SOD-tabanlı). Aynı doc_id ⟹ aynı fiziksel belge ⟹ aynı kişi
-                    // (sert sinyal). DocType öneki partner okunabilirliği içindir.
-                    bool requested = (kvp.Value is JsonElement docEl && docEl.ValueKind == JsonValueKind.True)
-                                     || rawValue.ToLower() == "true";
-                    if (requested)
-                    {
+
+                        // doc_id: partner-scoped card_id (aynı belge ⟹ aynı kişi, sert sinyal).
                         var doc = await IdentityCodes.BuildDocIdAsync(
                             _kms, loginCardId, signedTicket.Payload.DocumentType, partnerId ?? "");
                         if (doc != null) validationsOutput["doc_id"] = doc;
@@ -854,10 +845,14 @@ string? partnerId = null;
         //    Sıfır Bilgi: person_id / user_id / card_id Relay DB'sine YAZILMAZ.
         //    enclave_sig: Bu rıza makbuzunun Enclave tarafından üretildiğinin kanıtı.
         var scopesList = reqValidations?.Keys.ToList() ?? new List<string>();
+        // KVKK şeffaflık: "user_id" istendiğinde nsbd_id/doc_id de fiilen paylaşılır. İstenen anahtarlar
+        // değil, GERÇEKTEN üretilen kimlik kodlarını da consent kapsamına yaz (değerler değil, adlar).
+        foreach (var bundledKey in new[] { "nsbd_id", "doc_id" })
+            if (validationsOutput.ContainsKey(bundledKey) && !scopesList.Contains(bundledKey))
+                scopesList.Add(bundledKey);
         var resultsBool = validationsOutput
             .Where(kv => kv.Value is bool)
             .ToDictionary(kv => kv.Key, kv => (bool)kv.Value);
-        //if (shareUserId) scopesList.Add("user_id");
 
         // Consent makbuzu imzası: scopes + results + nonce + partner_id
         var consentReceiptData = $"{request.Nonce}:{partnerId}:{string.Join(",", scopesList)}:{string.Join(",", resultsBool.Select(kv => $"{kv.Key}={kv.Value}"))}";
