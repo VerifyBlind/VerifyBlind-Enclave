@@ -46,6 +46,7 @@ RUN echo 'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/2
       socat=1.7.4.4-2 \
       iproute2=6.1.0-3 \
       libgomp1=12.2.0-14+deb12u1 \
+      chrony \
     && rm -rf /var/lib/apt/lists/* /var/lib/apt/periodic/* /var/log/apt/* /var/log/dpkg.log /var/log/alternatives.log /var/cache/apt/* \
     && sed -i '/^Installed-Time:/d' /var/lib/dpkg/status \
     # Delete regenerable / non-deterministic caches that vary between runs:
@@ -60,6 +61,14 @@ RUN echo 'deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/2
              /var/lib/dbus/machine-id \
              /var/lib/systemd/random-seed \
     && rm -rf /var/lib/dpkg/triggers/Lock /var/lib/dpkg/triggers/Unincorp /var/lib/dpkg/updates/* \
+    # Enclave chrony (NTP istemci) config'i — saat senkronu. Nitro enclave saati başlangıçtan sonra
+    # senkronlanmaz ve yüke bağlı kayar (gün içinde saatlerce); bu olmadan attestation leaf sertifikası
+    # GERÇEKTE süresi dolar. 'port 0' = NTP server soketi açma (UDP/123'ü entrypoint'teki socat köprüsü
+    # kullanır). 'makestep 1.0 -1' = ofset >1s ise saati hemen ADIMLA (saatlerce sapmış saat ilk
+    # ölçümde düzelir, slew değil). Bu RUN İÇİNDE yazılır ki aşağıdaki nuclear timestamp-normalize onu
+    # da kapsasın → deterministik PCR0. (chrony sürümü 20260101 dondurulmuş snapshot'tan deterministik;
+    # diğerleri gibi explicit pin istenirse ilk build'den sonra `dpkg -l chrony` ile sabitlenebilir.)
+    && printf 'server 127.0.0.1 iburst minpoll 4 maxpoll 6\nport 0\ndriftfile /var/lib/chrony/drift\nmakestep 1.0 -1\n' > /etc/chrony/chrony.conf \
     && find / \( -path /proc -o -path /sys -o -path /dev \) -prune -o \
        -exec touch -t 202601010000 {} + 2>/dev/null; true
 

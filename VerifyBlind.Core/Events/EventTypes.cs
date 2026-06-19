@@ -9,6 +9,10 @@ public static class EventTypes
     // ── Handshake ─────────────────────────────────────────────────────────────
     public const string HandshakeInitiated     = "HANDSHAKE_INITIATED";
     public const string HandshakeIntegrityFail = "HANDSHAKE_INTEGRITY_FAIL";
+    // Enclave'in döndürdüğü attestation belgesinin leaf sertifikası süresi dolmuş/dolmak üzere
+    // (enclave saat kayması cache'i bayatlatınca tetiklenir). Relay'in saati doğru olduğu için
+    // burada yakalanır; istemciye expired sertifika gönderilmez.
+    public const string AttestationStale       = "ATTESTATION_STALE";
 
     // ── Login / Verification ──────────────────────────────────────────────────
     public const string LoginIntegrityFail     = "LOGIN_INTEGRITY_FAIL";

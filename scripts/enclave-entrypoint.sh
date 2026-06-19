@@ -14,6 +14,16 @@ socat TCP-LISTEN:8001,reuseaddr,fork VSOCK-CONNECT:3:8001 &
 
 echo "vsock bridges started (KMS:8000, IMDS:8001)"
 
+# NTP saat senkronu: enclave chronyd → local UDP socat → vsock parent(CID 3):11123 → parent chronyd
+# (Amazon Time Sync ile senkron). Nitro enclave saati başlangıçtan sonra senkronlanmaz ve yüke bağlı
+# kayar → bu olmadan attestation leaf sertifikası GERÇEKTE süresi dolar (cache/relay-guard semptomu
+# maskeler ama kök neden budur). Best-effort: chrony başlamazsa enclave'i DÜŞÜRME ('|| echo' ile
+# 'set -e' tetiklenmez). Erken başlatılır ki ilk handshake'te attestation mint edilmeden saat düzelsin.
+socat UDP4-LISTEN:123,reuseaddr,fork VSOCK-CONNECT:3:11123 &
+echo "NTP vsock bridge started (UDP:123 -> vsock 3:11123)"
+mkdir -p /run/chrony /var/lib/chrony /var/log/chrony
+/usr/sbin/chronyd -u root -f /etc/chrony/chrony.conf || echo "WARN: chronyd baslatilamadi — saat senkronu YOK (kayma riski)"
+
 # 2. Create /tmp and ensure permissions
 mkdir -p /tmp
 chmod 1777 /tmp
