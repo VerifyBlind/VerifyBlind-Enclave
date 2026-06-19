@@ -46,7 +46,16 @@ public class NsmProvider : INsmProvider
     {
         if (!IsHardwareAvailable)
         {
-            Console.WriteLine("[NSM] /dev/nsm bulunamadı → Nitro Enclave dışı ortam, simülasyon modu (SADECE GELİŞTİRME).");
+            // Üretimde gerçek Nitro donanımı ZORUNLU: /dev/nsm yoksa SAHTE (PCR0=0) belge ÜRETME → fail-closed.
+            // Simülasyon yalnızca Production-DIŞI ortamda (yerel geliştirme/test) çalışır. Bu, "geliştirici
+            // attestation'ı istediği zaman kapatabilir" izlenimini ortadan kaldırır: prod yolu donanımsız
+            // çalışmaz, sahte belge prod'da hiç üretilmez.
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            if (string.Equals(env, "Production", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "[NSM] /dev/nsm yok fakat ASPNETCORE_ENVIRONMENT=Production — gerçek Nitro donanımı zorunlu, simülasyon reddedildi.");
+
+            Console.WriteLine("[NSM] /dev/nsm bulunamadı → Nitro dışı ortam, simülasyon (YALNIZCA geliştirme/test, prod'da reddedilir).");
             return BuildMockAttestationDocument(userData);
         }
 
