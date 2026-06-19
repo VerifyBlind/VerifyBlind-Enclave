@@ -46,10 +46,6 @@ public class NsmProvider : INsmProvider
     {
         if (!IsHardwareAvailable)
         {
-            // Üretimde gerçek Nitro donanımı ZORUNLU: /dev/nsm yoksa SAHTE (PCR0=0) belge ÜRETME → fail-closed.
-            // Simülasyon yalnızca Production-DIŞI ortamda (yerel geliştirme/test) çalışır. Bu, "geliştirici
-            // attestation'ı istediği zaman kapatabilir" izlenimini ortadan kaldırır: prod yolu donanımsız
-            // çalışmaz, sahte belge prod'da hiç üretilmez.
             var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             if (string.Equals(env, "Production", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException(
