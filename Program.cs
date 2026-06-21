@@ -1,6 +1,6 @@
 var builder = WebApplication.CreateBuilder(args);
 
-// Enclave için Unix Socket desteği (Lokal TCP'yi bozmadan)
+// Enclave için Unix Socket desteği (Lokal TCP'yi bozmadan) 
 var socketPath = "/tmp/enclave.sock";
 if (File.Exists(socketPath)) File.Delete(socketPath);
 
