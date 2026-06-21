@@ -156,27 +156,46 @@ jobs:
         run: |
           TAG="enclave-build-${{ github.run_number }}"
           TITLE="Enclave EIF — Build #${{ github.run_number }} ($(echo ${{ github.sha }} | cut -c1-7))"
-          BODY="**PCR0:** \`$PCR0\`
-          **Commit:** [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-          **nitro-cli:** $NITRO_VER
-          **Built at:** $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          {
+            printf '**PCR0:** `%s`\n' "$PCR0"
+            printf '**Commit:** [`%s`](https://github.com/%s/commit/%s)\n' "$SHORT_SHA" "$GITHUB_REPOSITORY" "$GITHUB_SHA"
+            printf '**nitro-cli:** %s\n' "$NITRO_VER"
+            printf '**Built at:** %s\n\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          } > release-body.md
+          cat >> release-body.md <<'EOF'
           ---
 
-          Bu release reproducible build pipeline'ından üretildi. Aynı commit'ten her build
-          aynı PCR0'ı üretir (workflow içinde double-build ile doğrulandı).
+          ## 🇹🇷 Bu release nedir + nasıl doğrulanır
 
-          ## Files
-          - \`enclave.eif\` — Nitro Enclave Image File, EC2 Graviton'a yüklenir
-          - \`pcr0.txt\` — Attestation PCR0 değeri (hex)
-          - \`expected_pcr.json\` — Build metadata (PCR0, commit, nitro-cli sürümü, build zamanı)
-          - \`nitro_cli_version.txt\` — Build için kullanılan nitro-cli sürümü"
+          Bu release **reproducible build** pipeline'ından üretildi: aynı commit'ten her build aynı PCR0'ı verir (workflow içinde cache-kapalı **iki kez** derlenerek doğrulanır). PCR0, enclave imajının kriptografik parmak izidir.
+
+          **Dosyalar:**
+          - `enclave.eif` — Nitro Enclave Image File (EC2 Graviton'a yüklenir)
+          - `pcr0.txt` — Beklenen attestation PCR0 değeri (hex)
+          - `expected_pcr.json` — Build metadata (PCR0, commit, nitro-cli sürümü, build zamanı)
+          - `nitro_cli_version.txt` — Kullanılan nitro-cli sürümü
+
+          **Doğrulama:** (1) **Kaynak açık + build yeniden-üretilebilir** — repo'yu bu commit'te klonlayıp aynı iş akışını (ya da kendi Nitro ortamında `nitro-cli build-enclave`) çalıştırarak yukarıdaki PCR0'a ulaştığınızı teyit edebilirsiniz. (2) **Canlı enclave kriptografik olarak zorlanır** — mobil uygulama her handshake'te AWS Nitro attestation belgesini doğrular, PCR0'ı imzalı izin listesiyle karşılaştırır; uyuşmazsa reddeder. Ayrıntı: [README](https://github.com/${{ github.repository }}#readme).
+
+          ## 🇬🇧 What this release is + how to verify
+
+          This release was produced by the **reproducible build** pipeline: every build from the same commit yields the same PCR0 (verified by building **twice** with cache disabled inside the workflow). PCR0 is the cryptographic fingerprint of the enclave image.
+
+          **Files:**
+          - `enclave.eif` — Nitro Enclave Image File (loaded on EC2 Graviton)
+          - `pcr0.txt` — Expected attestation PCR0 (hex)
+          - `expected_pcr.json` — Build metadata (PCR0, commit, nitro-cli version, build time)
+          - `nitro_cli_version.txt` — The nitro-cli version used
+
+          **Verify:** (1) **Source is public + build is reproducible** — clone the repo at this commit and re-run the same workflow (or `nitro-cli build-enclave` in your own Nitro environment) to confirm you reach the PCR0 above. (2) **The live enclave is cryptographically enforced** — on every handshake the mobile app verifies the AWS Nitro attestation document and compares PCR0 against a signed allow-list, rejecting any mismatch. Details: [README](https://github.com/${{ github.repository }}#readme).
+          EOF
 
           # Replace existing release with same tag (idempotent on re-runs of same build number)
           gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
           gh release create "$TAG" \
             --title "$TITLE" \
-            --notes "$BODY" \
+            --notes-file release-body.md \
             --repo "${{ github.repository }}" \
             enclave.eif \
             pcr0.txt \

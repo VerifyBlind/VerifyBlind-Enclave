@@ -412,7 +412,8 @@ public class SharedModelsTests
             CountryIsoCode = "TUR",
             PersonId = "person-hash",
             CardId = "card-hash",
-            DocumentType = "I"
+            DocumentType = "I",
+            FaceRefJpegB64 = "face-ref-b64"
         };
         var des = JsonSerializer.Deserialize<TicketPayload>(JsonSerializer.Serialize(original));
         Assert.Equal("12345678901", des!.TCKN);
@@ -421,6 +422,7 @@ public class SharedModelsTests
         Assert.Equal("person-hash", des.PersonId);
         Assert.Equal("card-hash", des.CardId);
         Assert.Equal("I", des.DocumentType);
+        Assert.Equal("face-ref-b64", des.FaceRefJpegB64);
     }
 
     [Fact]

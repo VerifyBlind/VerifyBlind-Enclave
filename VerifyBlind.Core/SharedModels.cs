@@ -139,6 +139,9 @@ public class DemoRegisterRequest
 // Zorunlu bir değişiklik gerekiyorsa sürümlü MAC planla (yeni alan + eski/yeni MAC geçiş penceresi).
 // VerifyBlind.Enclave.Tests/TicketMacServiceTests bu serileştirmeyi golden-vector ile sabitler —
 // test kırılırsa bu uyarıyı oku; testi körlemesine "düzeltme".
+// (2026-06-21) FaceRefJpegB64 EN SONA eklendi — bilinçli hard cutover (pre-launch, mevcut ticket yok);
+//   golden-vector güncellendi. Mobil round-trip raw-passthrough olduğu için (Android JsonElement /
+//   iOS JSONSerialization) yeni alan dokunulmadan geçer.
 public class TicketPayload
 {
     public string TCKN { get; set; } = string.Empty;
@@ -174,6 +177,15 @@ public class TicketPayload
     /// long → JSON round-trip'te DateTime hassasiyet/kind sürtmesi yok (MAC stabil kalır).
     /// </summary>
     public long SignedAtUnix { get; set; }
+
+    /// <summary>
+    /// Kullanıcının kimlik kartı DG2 yüz fotoğrafı (base64), register'da OLDUĞU GİBİ gömülür.
+    /// Self-custody: ticket kullanıcının cihazında şifreli durur — Relay'e/partnere GİTMEZ.
+    /// İleride enclave-içi yüz karşılaştırma (step-up doğrulama + biyometrik karşılaştırma) için
+    /// referans. Embedding değil FOTOĞRAF saklanır → gelecekteki daha iyi modeller re-registration
+    /// olmadan kullanılabilsin. Demo register'da boş kalır (gerçek DG2 yok).
+    /// </summary>
+    public string FaceRefJpegB64 { get; set; } = string.Empty;
 }
 
 public class SignedTicket

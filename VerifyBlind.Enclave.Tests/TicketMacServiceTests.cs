@@ -32,7 +32,8 @@ public class TicketMacServiceTests
         PersonId = "person-fixed",
         CardId = "card-fixed",
         DocumentType = "I",
-        SignedAtUnix = 1700000000
+        SignedAtUnix = 1700000000,
+        FaceRefJpegB64 = "GOLDENFACE"
     };
 
     // Dev-mode service: KMS_MODE != "aws" → deterministic dev secret (no KMS / Nitro needed).
@@ -53,7 +54,7 @@ public class TicketMacServiceTests
             "\"GecerlilikTarihi\":\"2030-12-31T00:00:00\",\"Cinsiyet\":\"M\",\"Uyruk\":\"TUR\"," +
             "\"UserPubKey\":\"GOLDEN_PUBKEY\",\"CountryIsoCode\":\"TUR\"," +
             "\"PersonId\":\"person-fixed\",\"CardId\":\"card-fixed\",\"DocumentType\":\"I\"," +
-            "\"SignedAtUnix\":1700000000}";
+            "\"SignedAtUnix\":1700000000,\"FaceRefJpegB64\":\"GOLDENFACE\"}";
 
         Assert.Equal(goldenJson, JsonSerializer.Serialize(GoldenPayload()));
     }
@@ -67,7 +68,7 @@ public class TicketMacServiceTests
         // Dev secret = SHA256("verifyblind-ticket-mac-dev-secret-v1"); domain label = "vb-ticket-v1\n".
         // HMAC-SHA256 over (label || goldenJson), Base64. Recompute ONLY if the wire form
         // intentionally changed (and understand that this breaks every existing production ticket).
-        const string expectedMac = "DBNI2ybNBMCaccvjNlVz5mB+GGipQmhoIz/omGo1vyY=";
+        const string expectedMac = "2CfejLfcH77dwbUMXbRHnQjAG6EdpTbJ07+bAMZFnew=";
         Assert.Equal(expectedMac, svc.ComputeMac(GoldenPayload()));
     }
 

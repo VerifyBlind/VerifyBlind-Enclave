@@ -310,6 +310,9 @@ public class EnclaveService
             diag.Begin("Ticket Sign");
             // İmzalama zamanı — MAC bunu kapsar (kurcalanamaz). Login'de iptal kurallarına karşı kontrol edilir.
             ticketPayload.SignedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            // Referans yüz fotosu (DG2) — self-custody ticket'a OLDUĞU GİBİ gömülür; MAC kapsar.
+            // Relay'e/partnere gitmez. İleride enclave-içi yüz karşılaştırma için referans (step-up + biyometrik karşılaştırma).
+            ticketPayload.FaceRefJpegB64 = payload.DG2_Photo;
             await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
             var signature = _ticketMac.ComputeMac(ticketPayload);
             signedTicket = new SignedTicket
