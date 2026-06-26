@@ -98,7 +98,14 @@ public class EnclaveController : ControllerBase
             Console.WriteLine($"[Enclave Controller] REGISTER ERROR ({ex.GetType().Name}): {ex}");
             // RegistrationException → kullanıcı verisi hatası (400), beklenmedik hatalar → sunucu hatası (500)
             var statusCode = ex is RegistrationException ? 400 : 500;
-            return StatusCode(statusCode, new { error = ex.Message, enclave_diag = diag.Entries });
+            var rejScore = (ex as RegistrationException)?.FaceScore;
+            return StatusCode(statusCode, new
+            {
+                error = ex.Message,
+                // Biyometrik red skoru (varsa) — relay metriği için, ZK-güvenli skaler
+                face_similarity_score = rejScore.HasValue ? (double?)Math.Round(rejScore.Value * 100, 1) : null,
+                enclave_diag = diag.Entries
+            });
         }
     }
 

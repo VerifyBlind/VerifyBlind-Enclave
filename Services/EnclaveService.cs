@@ -189,7 +189,10 @@ public class EnclaveService
             diag.Fail("Biometric", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.BiometricVerification}] adımında başarısız: {ex}");
             var bioCode = !_biometricService.IsModelLoaded ? "ERR_BIOMETRIC_MODEL_MISSING" : "ERR_BIOMETRIC_MISMATCH";
-            throw new RegistrationException(RegistrationStep.BiometricVerification, bioCode, ex.Message);
+            throw new RegistrationException(RegistrationStep.BiometricVerification, bioCode, ex.Message)
+            {
+                FaceScore = (ex as BiometricMismatchException)?.Score
+            };
         }
 
         // --- Step 7: Anti-Spoof (passive liveness) ---
@@ -1241,7 +1244,7 @@ string? partnerId = null;
 
         if (similarity < THRESHOLD)
         {
-            throw new Exception($"Kimlik Doğrulama Başarısız: Yüz kimlik kartıyla eşleşmiyor. Puan: {similarity:0.00}");
+            throw new BiometricMismatchException(similarity, $"Kimlik Doğrulama Başarısız: Yüz kimlik kartıyla eşleşmiyor. Puan: {similarity:0.00}");
         }
 
         Console.WriteLine("[Enclave] Biyometrik Kimlik EŞLEŞMESİ ONAYLANDI ✓");

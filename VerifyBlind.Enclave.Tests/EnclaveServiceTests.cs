@@ -753,7 +753,9 @@ public class EnclaveServiceTests
             UserSelfie = Convert.ToBase64String(new byte[100])
         };
 
-        Assert.Throws<Exception>(() => _service.VerifyBiometricMatchParallel(payload));
+        // Red, skoru taşıyan typed exception fırlatır (relay metriği bu skoru observe eder).
+        var ex = Assert.Throws<BiometricMismatchException>(() => _service.VerifyBiometricMatchParallel(payload));
+        Assert.Equal(0.20f, ex.Score);
     }
 
     // ── VerifyDGHashes (fallback scan path — non-LDS SOD content) ─────────────
