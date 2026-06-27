@@ -16,7 +16,7 @@ namespace VerifyBlind.Enclave.Services.FaceAlignment
     /// çok yükseltir (LFW: ~%46 → ~%1.7). YuNet girdisi SABİT 640x640 (onnxruntime reshape
     /// yapmaz) → letterbox + ölçek geri-haritalama. Yüz bulunamazsa merkez-kare kırpmaya düşer.
     /// </summary>
-    public sealed partial class FaceAligner : IDisposable
+    public sealed class FaceAligner : IDisposable
     {
         public const int OutputSize = 112;
         private const int InputSize = 640;

@@ -61,20 +61,61 @@ public class CalibrationLfwTests
                 identities[Path.GetFileName(personDir)] = embs;
         }
         _out.WriteLine($"[+] {identities.Count} kişi, {total} foto (atlanan: {skipped})");
-        Assert.True(identities.Count >= 2, "En az 2 kişi gerekli.");
+        Assert.True(identities.Count >= 4, "Held-out split için en az 4 kişi gerekli.");
 
-        // 2) Genuine (aynı kişi tüm çiftler) + impostor (farklı kişi, örneklenmiş) kosinüsleri.
+        // 2) SIZINTISIZ kişi-bazlı 70/30 train/test split (calibrate_threshold.py ile aynı yöntem).
+        var rng = new Random(42);
+        var ids = identities.Keys.OrderBy(k => k).OrderBy(_ => rng.Next()).ToList();
+        int cut = Math.Max(1, (int)(ids.Count * 0.7));
+        var trainIds = new HashSet<string>(ids.Take(cut));
+        var train = identities.Where(kv => trainIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var test = identities.Where(kv => !trainIds.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        var (gTr, imTr) = MakePairs(train, rng);
+        var (gTe, imTe) = MakePairs(test, rng);
+        _out.WriteLine($"[+] train: {gTr.Length} genuine / {imTr.Length} impostor  |  test: {gTe.Length} genuine / {imTe.Length} impostor");
+
+        // 3) TRAIN'de EER + hedef-FAR eşikleri; HELD-OUT TEST'te o eşiklerin gerçek FAR/FRR'si.
+        double eerT = 0, eerGap = double.MaxValue, eerVal = 1;
+        for (double t = 0; t <= 1.0001; t += 0.005)
+        {
+            double far = Frac(imTr, x => x >= t), frr = Frac(gTr, x => x < t);
+            if (Math.Abs(far - frr) < eerGap) { eerGap = Math.Abs(far - frr); eerT = t; eerVal = (far + frr) / 2; }
+        }
+        _out.WriteLine($"\n[TRAIN] EER ~ %{eerVal * 100:0.00} @ eşik {eerT:0.000}");
+        _out.WriteLine("Hedef-FAR | train eşik | HELD-OUT TEST: gerçek FAR / FRR(red)");
+        foreach (var tf in new[] { 0.01, 0.001, 0.0001 })
+        {
+            double chosenT = -1;
+            for (double t = 0; t <= 1.0001; t += 0.005)
+                if (Frac(imTr, x => x >= t) <= tf) { chosenT = t; break; }
+            if (chosenT < 0) continue;
+            double farTe = Frac(imTe, x => x >= chosenT), frrTe = Frac(gTe, x => x < chosenT);
+            _out.WriteLine($"  FAR≤%{tf * 100,5:0.00} | {chosenT,6:0.000}    | TEST FAR %{farTe * 100:0.000}  FRR %{frrTe * 100:0.00}");
+        }
+
+        // 4) Aday eşiklerin TEST FRR'si (karar için ham tablo).
+        _out.WriteLine("\nAday eşik | TEST FAR / FRR (cross-domain'de FRR daha yüksek olur — muhafazakâr seç):");
+        foreach (var t in new[] { 0.15, 0.18, 0.20, 0.22, 0.25, 0.30, 0.40 })
+            _out.WriteLine($"  {t:0.00} | TEST FAR %{Frac(imTe, x => x >= t) * 100:0.000}  FRR %{Frac(gTe, x => x < t) * 100:0.00}");
+        _out.WriteLine("(KIYAS — center-crop: EER ~%7, FAR≤%0.1'de FRR ~%46 ; hizalı THRESHOLD=0.20 — EnclaveService.cs)");
+
+        Assert.True(eerVal < 0.04, $"TRAIN EER %{eerVal * 100:0.00} beklenenden yüksek — hizalama bozuk olabilir.");
+    }
+
+    /// <summary>Genuine: aynı kişi tüm çiftler. Impostor: farklı kişi, örneklenmiş (≤100k).</summary>
+    private static (double[] genuine, double[] impostor) MakePairs(Dictionary<string, List<float[]>> ids, Random rng)
+    {
         var genuine = new List<double>();
-        foreach (var embs in identities.Values)
+        foreach (var embs in ids.Values)
             for (int i = 0; i < embs.Count; i++)
                 for (int j = i + 1; j < embs.Count; j++)
                     genuine.Add(Dot(embs[i], embs[j]));
 
-        var flat = identities.SelectMany(kv => kv.Value.Select(e => (kv.Key, e))).ToList();
-        var rng = new Random(42);
+        var flat = ids.SelectMany(kv => kv.Value.Select(e => (kv.Key, e))).ToList();
         var impostor = new List<double>();
-        int tries = 0;
-        while (impostor.Count < 200_000 && tries < 4_000_000)
+        int tries = 0, max = Math.Min(100_000, Math.Max(2000, flat.Count * flat.Count));
+        while (impostor.Count < max && tries < max * 20 && flat.Count > 1)
         {
             tries++;
             var a = flat[rng.Next(flat.Count)];
@@ -82,35 +123,7 @@ public class CalibrationLfwTests
             if (a.Key == b.Key) continue;
             impostor.Add(Dot(a.e, b.e));
         }
-        _out.WriteLine($"[+] {genuine.Count} genuine / {impostor.Count} impostor çift");
-
-        // 3) Eşik taraması: EER + hedef-FAR noktaları.
-        var g = genuine.OrderBy(x => x).ToArray();
-        var im = impostor.OrderBy(x => x).ToArray();
-        double bestT = 0, bestGap = double.MaxValue, eerVal = 1;
-        for (double t = 0; t <= 1.0001; t += 0.005)
-        {
-            double far = Frac(im, x => x >= t);
-            double frr = Frac(g, x => x < t);
-            if (Math.Abs(far - frr) < bestGap) { bestGap = Math.Abs(far - frr); bestT = t; eerVal = (far + frr) / 2; }
-        }
-        _out.WriteLine($"\n[C#-HIZALI] EER ~ %{eerVal * 100:0.00}  @ eşik {bestT:0.000}");
-        _out.WriteLine("Hedef-FAR tablosu (held-out değil, tüm LFW — referansla kıyas için):");
-        foreach (var tf in new[] { 0.01, 0.001, 0.0001 })
-        {
-            double chosenT = -1, realFar = 0, frrAt = 0;
-            for (double t = 0; t <= 1.0001; t += 0.005)
-            {
-                double far = Frac(im, x => x >= t);
-                if (far <= tf) { chosenT = t; realFar = far; frrAt = Frac(g, x => x < t); break; }
-            }
-            if (chosenT >= 0)
-                _out.WriteLine($"  FAR≤%{tf * 100:0.00}: eşik {chosenT:0.000}  gerçek FAR %{realFar * 100:0.000}  FRR %{frrAt * 100:0.00}");
-        }
-        _out.WriteLine("(KIYAS — numpy referans: EER ~%1.56 / FAR≤%0.1'de FRR ~%1.70 ; center-crop: EER ~%7, FRR ~%46)");
-
-        // Sanity: hizalı boru hattı center-crop'tan (EER ~%7) ÇOK daha iyi olmalı.
-        Assert.True(eerVal < 0.04, $"EER %{eerVal * 100:0.00} beklenenden yüksek — hizalama bozuk olabilir.");
+        return (genuine.OrderBy(x => x).ToArray(), impostor.OrderBy(x => x).ToArray());
     }
 
     private static float[]? Normalize(float[]? e)

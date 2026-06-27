@@ -745,7 +745,7 @@ public class EnclaveServiceTests
     public void VerifyBiometricMatchParallel_ScoreBelowThreshold_Throws()
     {
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
-            .Returns(0.20f); // below 0.40 threshold
+            .Returns(0.10f); // below 0.20 hizalı eşik (FaceAligner pipeline)
 
         var payload = new SecurePayload
         {
@@ -755,7 +755,7 @@ public class EnclaveServiceTests
 
         // Red, skoru taşıyan typed exception fırlatır (relay metriği bu skoru observe eder).
         var ex = Assert.Throws<BiometricMismatchException>(() => _service.VerifyBiometricMatchParallel(payload));
-        Assert.Equal(0.20f, ex.Score);
+        Assert.Equal(0.10f, ex.Score);
     }
 
     // ── VerifyDGHashes (fallback scan path — non-LDS SOD content) ─────────────

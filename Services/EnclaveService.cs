@@ -1238,7 +1238,13 @@ string? partnerId = null;
 
         float similarity = _biometricService.VerifyFaceParallel(idPhotoBytes, probePhotoBytes);
 
-        const float THRESHOLD = 0.40f;
+        // ArcFace (w600k_r50) kosinüs eşiği — YuNet 5-nokta HİZALI boru hattı için kalibre edildi
+        // (FaceAligner; eski 0.40 hizalamasız center-crop içindi, hizalı dağılımda çok yüksek kalırdı).
+        // LFW held-out: 0.20'de FAR ~%0.16 / FRR ~%1.3. Cross-domain (DG2 chip ↔ canlı selfie) genuine
+        // skorları daha düşük → muhafazakâr başlangıç; canlı histogram (biometric_face_score_percent,
+        // BiometricScoreDriftLow alert) gerçek dağılımı gösterince ince ayar. Bkz
+        // tools/biometric/yunet_frr_ref.py + CalibrationLfwTests (LFW_DIR gated).
+        const float THRESHOLD = 0.20f;
 
         Console.WriteLine($" > [AI] Benzerlik Puanı (paralel): {similarity * 100:0.0}%");
 

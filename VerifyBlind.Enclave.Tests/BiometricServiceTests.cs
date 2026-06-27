@@ -84,20 +84,23 @@ public class BiometricServiceTests
 
     // ── Score Range / Threshold Tests ─────────────────────────────────────────
     // NOTE: EnclaveService.VerifyBiometricMatch[Parallel] uses an ArcFace cosine-similarity
-    // THRESHOLD of 0.40f (see EnclaveService.cs). These tests pin that value so an
-    // accidental change that weakens (or breaks) face matching fails the build.
+    // THRESHOLD of 0.20f (see EnclaveService.cs). This value is calibrated for the YuNet
+    // 5-point ALIGNED pipeline (FaceAligner); the old 0.40 was for the unaligned center-crop
+    // pipeline and would reject most genuine users on the aligned distribution. LFW held-out:
+    // 0.20 → FAR ~%0.16 / FRR ~%1.3 (tools/biometric/yunet_frr_ref.py + CalibrationLfwTests).
+    // These tests pin the value so an accidental change that weakens face matching fails the build.
 
     [Theory]
     [InlineData(0.0f, false)]
-    [InlineData(0.20f, false)]
-    [InlineData(0.39f, false)]
-    [InlineData(0.40f, true)]
-    [InlineData(0.41f, true)]
+    [InlineData(0.10f, false)]
+    [InlineData(0.19f, false)]
+    [InlineData(0.20f, true)]
+    [InlineData(0.21f, true)]
     [InlineData(0.85f, true)]
     [InlineData(1.0f, true)]
-    public void FaceScore_EnclaveThresholdIsZeroPointFour(float score, bool shouldPass)
+    public void FaceScore_EnclaveThresholdIsZeroPointTwo(float score, bool shouldPass)
     {
-        const float enclaveThreshold = 0.40f;
+        const float enclaveThreshold = 0.20f;
         Assert.Equal(shouldPass, score >= enclaveThreshold);
     }
 
