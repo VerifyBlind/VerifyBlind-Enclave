@@ -32,6 +32,13 @@
     <None Update="Models\minifasnet_v2.onnx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Yuz HIZALAMA dedektoru: YuNet (sabit 640x640 BGR girdi; 3-stride cls/obj/bbox/kps).
+         5-nokta landmark -> ArcFace kanonik sablona similarity-transform warp. Hizalama
+         FRR'yi center-crop'a kiyasla cok dusurur (LFW: ~%46 -> ~%1.7). Detay:
+         project_biometric_threshold_calibration. -->
+    <None Update="Models\yunet.onnx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

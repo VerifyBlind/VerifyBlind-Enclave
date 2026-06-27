@@ -8,6 +8,7 @@ using Microsoft.ML.OnnxRuntime.Tensors; // ADDED for DenseTensor
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using VerifyBlind.Enclave.Services.FaceAlignment;
 
 namespace VerifyBlind.Enclave.Services
 {
@@ -24,6 +25,7 @@ namespace VerifyBlind.Enclave.Services
         private readonly string _modelPath;
         private string _inputName = "input.1";
         private bool _isLoaded = false;
+        private readonly FaceAligner _aligner;
 
         public bool IsModelLoaded => _isLoaded;
 
@@ -33,6 +35,9 @@ namespace VerifyBlind.Enclave.Services
             _modelPath = Path.Combine(basePath, "Models", "w600k_r50.onnx");
 
             LoadModel();
+            // YuNet 5-nokta hizalama — w600k_r50 bu hizalamayla eğitildi. Yüz bulunamazsa
+            // FaceAligner merkez-kırpmaya düşer (eski SmartFaceCrop davranışı), embedding akışı bozulmaz.
+            _aligner = new FaceAligner();
         }
 
         private void LoadModel()
@@ -113,44 +118,15 @@ namespace VerifyBlind.Enclave.Services
             }
         }
 
-        /// <summary>
-        /// Kimlik kartı ve selfie fotoğrafları için akıllı ön işleme:
-        /// Naif stretch yerine merkez kare kırpma uygular, portre görüntülerde
-        /// yüz bölgesini yakalamak için üstten hafif bias ekler.
-        /// Bu yaklaşım, her iki giriş de aynı şekilde işlendiğinden cosine similarity'yi
-        /// yaklaşık 0.05–0.10 puan artırır.
-        /// </summary>
-        private static Image<Rgb24> SmartFaceCrop(byte[] imageBytes)
+        // internal: offline eşik kalibrasyonu (CalibrationLfwTests) + gelecekteki biyometrik
+        // karşılaştırma/step-up primitifi. VerifyFace bunun üstüne kosinüs ekler.
+        internal float[] GetEmbedding(byte[] imageBytes)
         {
-            var image = Image.Load<Rgb24>(imageBytes);
-
-            // Mobil tarafından gelen selfie zaten 112x112 hizalanmış bitmap olabilir.
-            // Bu durumda kırpma yapma, sadece normalize et.
-            if (image.Width == 112 && image.Height == 112)
-                return image;
-
-            // Kimlik kartı chip fotoğrafı (ICAO portre): merkez kare kırpma,
-            // portre görüntülerde yüz üst bölgede yer aldığından yukarıya doğru bias.
-            int size = Math.Min(image.Width, image.Height);
-            int left = (image.Width - size) / 2;
-            int top = image.Height > image.Width
-                ? (int)((image.Height - size) * 0.2f)
-                : (image.Height - size) / 2;
-            image.Mutate(x => x
-                .Crop(new SixLabors.ImageSharp.Rectangle(left, top, size, size))
-                .Resize(new ResizeOptions
-                {
-                    Size = new SixLabors.ImageSharp.Size(112, 112),
-                    // Bikübik (varsayılan) yerine Lanczos3 — büyük chip portresini 112'ye küçültürken
-                    // daha az aliasing, daha çok yüz detayı korunur → embedding kalitesi artar.
-                    Sampler = KnownResamplers.Lanczos3
-                }));
-            return image;
-        }
-
-        private float[] GetEmbedding(byte[] imageBytes)
-        {
-            using (var image = SmartFaceCrop(imageBytes))
+            // YuNet 5-nokta hizalama → ArcFace kanonik 112x112. Hem DG2 hem selfie aynı güvenli
+            // enclave-tarafı boru hattından geçer (istemciye güvenilmez). Yüz bulunamazsa
+            // FaceAligner merkez-kare kırpmaya düşer.
+            using (var source = Image.Load<Rgb24>(imageBytes))
+            using (var image = _aligner.Align(source))
             {
                 var input = new DenseTensor<float>(new[] { 1, 3, 112, 112 });
 
