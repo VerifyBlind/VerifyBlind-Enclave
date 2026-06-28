@@ -250,8 +250,9 @@ Console.WriteLine($"[Enclave] SOD Doğrulaması Başarısız: {ex}");
 
         // DG2 (face) — required. Without this the biometric photo is NOT cryptographically bound to
         // the document: an attacker could pair a genuine SOD/DG1 with a substituted face and still
-        // pass the face match. The raw DG2 bytes (not the re-encoded DG2_Photo) must be supplied by
-        // the client. (Security review Y-3.)
+        // pass the face match. The raw DG2 bytes must be supplied by the client; the enclave verifies
+        // them here AND extracts the biometric face from them (Dg2FaceExtractor) — never from a
+        // separate client-supplied image. (Security review Y-3 + DG2_Photo removal.)
         summary.Add("DG2:" + VerifyOneDgHash(sodContent, lds, dgNumber: 2, dgBase64: dg2Base64, required: true));
 
         // DG15 (Active Authentication public key) — only present on chip-auth capable cards.

@@ -313,9 +313,12 @@ public class EnclaveService
             diag.Begin("Ticket Sign");
             // İmzalama zamanı — MAC bunu kapsar (kurcalanamaz). Login'de iptal kurallarına karşı kontrol edilir.
             ticketPayload.SignedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            // Referans yüz fotosu (DG2) — self-custody ticket'a OLDUĞU GİBİ gömülür; MAC kapsar.
-            // Relay'e/partnere gitmez. İleride enclave-içi yüz karşılaştırma için referans (step-up + biyometrik karşılaştırma).
-            ticketPayload.FaceRefJpegB64 = payload.DG2_Photo;
+            // Referans yüz fotosu — self-custody ticket'a gömülür; MAC kapsar. Relay'e/partnere gitmez.
+            // İleride enclave-içi yüz karşılaştırma için referans (step-up + biyometrik karşılaştırma).
+            // SOD-doğrulanmış HAM DG2'den çıkarılır (telefonun DG2_Photo alanına GÜVENİLMEZ) → gelecekteki
+            // karşılaştırmalar da doğrulanmış referansa dayanır. Bu noktada PassiveAuth DG2'yi doğrulamış olur.
+            ticketPayload.FaceRefJpegB64 = Convert.ToBase64String(
+                Dg2FaceExtractor.ExtractFaceImage(Convert.FromBase64String(payload.DG2)));
             await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
             var signature = _ticketMac.ComputeMac(ticketPayload);
             signedTicket = new SignedTicket
@@ -1227,10 +1230,15 @@ string? partnerId = null;
     {
         Console.WriteLine("[Enclave] Biyometrik Kimlik Eşleşmesi başlatılıyor (paralel)...");
 
-        if (string.IsNullOrEmpty(payload.DG2_Photo)) throw new Exception("Biyometrik Hata: Kimlik fotoğrafı (DG2) eksik.");
+        if (string.IsNullOrEmpty(payload.DG2)) throw new Exception("Biyometrik Hata: Kimlik veri grubu (DG2) eksik.");
         if (string.IsNullOrEmpty(payload.UserSelfie)) throw new Exception("Biyometrik Hata: Kullanıcı selfie'si eksik.");
 
-        byte[] idPhotoBytes = Convert.FromBase64String(payload.DG2_Photo);
+        // Kimlik fotoğrafı, Passive Authentication'ın SOD/CSCA'ya karşı doğruladığı HAM DG2'den
+        // çıkarılır — telefonun ayrı gönderdiği (hiçbir şeye bağlı OLMAYAN) yeniden-kodlanmış görüntüye
+        // GÜVENİLMEZ. Çağrı sırası şartı: bu metot register akışında PassiveAuth'tan SONRA çalışır,
+        // dolayısıyla payload.DG2 bu noktada kriptografik olarak doğrulanmıştır. Çıkarım başarısızsa
+        // fail-closed (Dg2FaceExtractor fırlatır) — asla istemci görüntüsüne geri düşülmez.
+        byte[] idPhotoBytes = Dg2FaceExtractor.ExtractFaceImage(Convert.FromBase64String(payload.DG2));
         byte[] probePhotoBytes = Convert.FromBase64String(payload.UserSelfie);
 
         Console.WriteLine($"[Enclave] Kimlik Fotoğrafı Boyutu: {idPhotoBytes.Length} bayt");

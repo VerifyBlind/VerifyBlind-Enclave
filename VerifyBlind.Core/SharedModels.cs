@@ -55,8 +55,9 @@ public class SecurePayload
 {
     public string SOD { get; set; } = string.Empty;
     public string DG1 { get; set; } = string.Empty;
-    // RAW DG2 data-group bytes (full EF, Base64). Needed to verify the DG2 hash against the SOD:
-    // DG2_Photo below is a re-encoded JPEG/JP2 and will NOT match the SOD hash. (Security review Y-3.)
+    // RAW DG2 data-group bytes (full EF, Base64). Needed to (1) verify the DG2 hash against the SOD
+    // and (2) extract the biometric face (Dg2FaceExtractor) — the face is no longer sent as a separate
+    // re-encoded field, which would not be bound to the document. (Security review Y-3 + DG2_Photo removal.)
     public string DG2 { get; set; } = string.Empty;
     public string DG15 { get; set; } = string.Empty; // AA Public Key (Base64)
     public string ActiveSig { get; set; } = string.Empty;
@@ -69,7 +70,9 @@ public class SecurePayload
     public string NonceSignature { get; set; } = string.Empty;
     
     // Biometric Data (Base64 encoded)
-    public string DG2_Photo { get; set; } = string.Empty; // Chip Photo
+    // NOT: Kimlik yüz fotoğrafı ayrı bir alan olarak GÖNDERİLMEZ. Enclave biyometrik yüzü, Passive
+    // Authentication'ın SOD'a karşı doğruladığı HAM DG2'den çıkarır (bkz Dg2FaceExtractor). Eski
+    // DG2_Photo alanı, belgeye bağlı OLMAYAN istemci görüntüsüne güvendiği için kaldırıldı.
     public string LivenessVideo { get; set; } = string.Empty; // Base64 (MP4/WebM)
     public string ZoomVideo { get; set; } = string.Empty;     // Base64 (MP4/WebM)
     

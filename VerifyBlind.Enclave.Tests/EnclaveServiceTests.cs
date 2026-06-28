@@ -708,9 +708,10 @@ public class EnclaveServiceTests
     // ── VerifyBiometricMatchParallel ──────────────────────────────────────────
 
     [Fact]
-    public void VerifyBiometricMatchParallel_MissingDg2Photo_Throws()
+    public void VerifyBiometricMatchParallel_MissingDg2_Throws()
     {
-        var payload = new SecurePayload { DG2_Photo = "", UserSelfie = "abc" };
+        // Biyometri yüzü ham DG2'den çıkarılır; DG2 yoksa eşleştirme yapılamaz.
+        var payload = new SecurePayload { DG2 = "", UserSelfie = "abc" };
         Assert.Throws<Exception>(() => _service.VerifyBiometricMatchParallel(payload));
     }
 
@@ -719,7 +720,7 @@ public class EnclaveServiceTests
     {
         var payload = new SecurePayload
         {
-            DG2_Photo = Convert.ToBase64String(new byte[100]),
+            DG2 = Convert.ToBase64String(Dg2TestFixtures.ValidDg2),
             UserSelfie = ""
         };
         Assert.Throws<Exception>(() => _service.VerifyBiometricMatchParallel(payload));
@@ -733,7 +734,7 @@ public class EnclaveServiceTests
 
         var payload = new SecurePayload
         {
-            DG2_Photo = Convert.ToBase64String(new byte[100]),
+            DG2 = Convert.ToBase64String(Dg2TestFixtures.ValidDg2),
             UserSelfie = Convert.ToBase64String(new byte[100])
         };
 
@@ -749,13 +750,35 @@ public class EnclaveServiceTests
 
         var payload = new SecurePayload
         {
-            DG2_Photo = Convert.ToBase64String(new byte[100]),
+            DG2 = Convert.ToBase64String(Dg2TestFixtures.ValidDg2),
             UserSelfie = Convert.ToBase64String(new byte[100])
         };
 
         // Red, skoru taşıyan typed exception fırlatır (relay metriği bu skoru observe eder).
         var ex = Assert.Throws<BiometricMismatchException>(() => _service.VerifyBiometricMatchParallel(payload));
         Assert.Equal(0.10f, ex.Score);
+    }
+
+    [Fact]
+    public void VerifyBiometricMatchParallel_UsesFaceExtractedFromRawDg2_NotClientField()
+    {
+        // GÜVENLİK ÇEKİRDEĞİ: enclave, biyometriye giden kimlik fotoğrafını telefonun ayrı gönderdiği
+        // (hiçbir şeye bağlı olmayan) bir alandan DEĞİL, SOD-doğrulanmış HAM DG2'den çıkarmalı. Mock'a
+        // geçen idPhoto baytları, ham DG2'ye gömülü JPEG ile birebir eşleşmeli.
+        byte[]? idPhotoPassed = null;
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+            .Callback<byte[], byte[]>((id, _) => idPhotoPassed = id)
+            .Returns(0.85f);
+
+        var payload = new SecurePayload
+        {
+            DG2 = Convert.ToBase64String(Dg2TestFixtures.ValidDg2),
+            UserSelfie = Convert.ToBase64String(new byte[100])
+        };
+
+        _service.VerifyBiometricMatchParallel(payload);
+
+        Assert.Equal(Dg2TestFixtures.ValidJpeg, idPhotoPassed);
     }
 
     // ── VerifyDGHashes (fallback scan path — non-LDS SOD content) ─────────────
