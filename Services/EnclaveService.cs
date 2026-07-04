@@ -195,37 +195,8 @@ public class EnclaveService
             };
         }
 
-        // --- Step 7: Anti-Spoof (passive liveness) ---
-        // When the model is loaded the crop is MANDATORY: a missing crop must NOT silently skip passive
-        // liveness. Allowing an empty crop to bypass the check was a downgrade hole identical to the
-        // AA / DG2 issues — the client could just omit the field. (Security review.)
-        if (_antiSpoof.IsModelLoaded)
-        {
-            try
-            {
-                diag.Begin("AntiSpoof");
-                if (string.IsNullOrEmpty(payload.AntiSpoofCrop))
-                    throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
-                        "Anti-spoof crop eksik — pasif canlılık doğrulaması atlanamaz.");
-
-                byte[] cropBytes = Convert.FromBase64String(payload.AntiSpoofCrop);
-                float[] probs = _antiSpoof.Predict(cropBytes);
-                // Live = indeks 1 (etiketli referansla doğrulandı: ham-BGR girdide real→idx1≈0.99, fake→≈0.00). 3 sınıfı da logla.
-                float pLive = probs.Length > 1 ? probs[1] : 0f;
-                string breakdown = probs.Length >= 3 ? $" [c0={probs[0]:P1} c1={probs[1]:P1} c2={probs[2]:P1}]" : "";
-                diag.Ok("AntiSpoof", $"P(live)={Math.Round(pLive * 100, 1)}%{breakdown}");
-
-                if (pLive < AntiSpoofService.LiveThreshold)
-                    throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
-                        $"Canlı yüz tespit edilemedi (P={pLive:F3}).");
-            }
-            catch (RegistrationException) { throw; }
-            catch (Exception ex)
-            {
-                diag.Fail("AntiSpoof", ex.Message);
-                Console.WriteLine($"[Enclave] Anti-spoof inference hatası (devam edilecek): {ex.Message}");
-            }
-        }
+        // --- Step 7: Anti-Spoof (passive liveness) — FAIL-CLOSED (bkz. EnforceAntiSpoof) ---
+        EnforceAntiSpoof(payload, diag);
 
         // --- Step 8: DG1 Parsing ---
         TicketPayload ticketPayload;
@@ -918,8 +889,54 @@ string? partnerId = null;
         Console.WriteLine("[Enclave] Nonce İmzası DOĞRULANDI ✓");
     }
 
+    // --- PASSIVE LIVENESS (Anti-Spoof) — FAIL-CLOSED ---
+    // Güvenlik denetimi #1: eski kod, crop çözme/çıkarım sırasındaki HER istisnayı genel bir
+    // catch ile yutup ("devam edilecek") kaydı canlılık kontrolsüz tamamlıyordu; model yüklü
+    // değilse de bloğu sessizce atlıyordu. İkisi de fail-OPEN'dı. Artık:
+    //   • model yüklü değil → REDDET (biyometrik adımla simetrik; startup/readiness backstop)
+    //   • crop boş / bozuk base64 / çözülemeyen JPEG / çıkarım hatası → REDDET
+    //   • P(live) eşiğin altında → REDDET
+    internal void EnforceAntiSpoof(SecurePayload payload, DiagLog diag)
+    {
+        diag.Begin("AntiSpoof");
+
+        if (!_antiSpoof.IsModelLoaded)
+        {
+            diag.Fail("AntiSpoof", "model yüklü değil");
+            throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING_MODEL_MISSING",
+                "Pasif canlılık modeli yüklü değil — kayıt güvenli şekilde tamamlanamaz.");
+        }
+
+        if (string.IsNullOrEmpty(payload.AntiSpoofCrop))
+            throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
+                "Anti-spoof crop eksik — pasif canlılık doğrulaması atlanamaz.");
+
+        float pLive;
+        try
+        {
+            byte[] cropBytes = Convert.FromBase64String(payload.AntiSpoofCrop);
+            float[] probs = _antiSpoof.Predict(cropBytes);
+            // Live = indeks 1 (etiketli referansla doğrulandı: ham-BGR girdide real→idx1≈0.99, fake→≈0.00).
+            pLive = probs.Length > 1 ? probs[1] : 0f;
+            string breakdown = probs.Length >= 3 ? $" [c0={probs[0]:P1} c1={probs[1]:P1} c2={probs[2]:P1}]" : "";
+            diag.Ok("AntiSpoof", $"P(live)={Math.Round(pLive * 100, 1)}%{breakdown}");
+        }
+        catch (Exception ex)
+        {
+            // Bozuk base64 / çözülemeyen JPEG / çıkarım hatası → FAIL-CLOSED (eskiden yutuluyordu).
+            diag.Fail("AntiSpoof", ex.Message);
+            Console.WriteLine($"[Enclave] Anti-spoof girdi/çıkarım hatası — kayıt REDDEDİLDİ: {ex.Message}");
+            throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
+                "Pasif canlılık doğrulaması yapılamadı (geçersiz veya işlenemeyen anti-spoof verisi).");
+        }
+
+        if (pLive < AntiSpoofService.LiveThreshold)
+            throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
+                $"Canlı yüz tespit edilemedi (P={pLive:F3}).");
+    }
+
     // --- ACTIVE AUTHENTICATION (Chip Clone Protection) ---
-    
+
     internal void VerifyActiveAuth(SecurePayload payload)
     {
         Console.WriteLine("[Enclave] Aktif Kimlik Doğrulama kontrol ediliyor (ISO 9796-2)...");

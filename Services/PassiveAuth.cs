@@ -39,12 +39,7 @@ public static class PassiveAuth
         // 2. Parse SOD (PKCS#7 Signed Data)
         byte[] sodBytes = Convert.FromBase64String(sodBase64);
         
-        // SIMULATION BYPASS
-        try {
-            var sodStr = Encoding.UTF8.GetString(sodBytes);
-        } catch {}
-        
-        Console.WriteLine("[Enclave] SOD sahte değil. GERÇEK Pasif Kimlik Doğrulama başlatılıyor...");
+        Console.WriteLine("[Enclave] Pasif Kimlik Doğrulama başlatılıyor (SOD/CSCA imza kontrolü)...");
 
         // FIX: Unwrap ICAO Application Tag 0x77 if present
         try 

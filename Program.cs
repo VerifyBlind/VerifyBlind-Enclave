@@ -56,6 +56,25 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<VerifyBlind.Enclav
 
 var app = builder.Build();
 
+// --- Güvenlik denetimi #1: ML modelleri fail-CLOSED startup kontrolü ---
+// Pasif canlılık (anti-spoof) ve biyometrik modeller yüklenemezse enclave PROD'da hiç ayağa
+// kalkmamalı — aksi halde kayıtlar model-yokluğunda sessizce güvenlik-düşük çalışırdı. Bu, model
+// eksikliğini istek-zamanı outage yerine deploy-zamanı arıza olarak yakalar. (İstek-zamanı
+// EnforceAntiSpoof / biyometrik kontrolleri yine backstop olarak reddeder.)
+if (!app.Environment.IsDevelopment())
+{
+    using var startupScope = app.Services.CreateScope();
+    var antiSpoof = startupScope.ServiceProvider.GetRequiredService<VerifyBlind.Enclave.Services.IAntiSpoofService>();
+    var biometric = startupScope.ServiceProvider.GetRequiredService<VerifyBlind.Enclave.Services.IBiometricService>();
+    if (!antiSpoof.IsModelLoaded || !biometric.IsModelLoaded)
+    {
+        Console.WriteLine($"[ENCLAVE BOOT][FATAL] ML modelleri eksik (antiSpoof={antiSpoof.IsModelLoaded}, biometric={biometric.IsModelLoaded}). " +
+                          "Güvenlik gereği enclave başlatılmıyor. minifasnet_v2.onnx / w600k_r50.onnx (Git LFS) dosyalarını kontrol edin.");
+        throw new InvalidOperationException("ML modelleri yüklenemedi — enclave fail-closed başlatılmadı (güvenlik denetimi #1).");
+    }
+    Console.WriteLine("[ENCLAVE BOOT] ML modelleri doğrulandı (anti-spoof + biyometrik yüklü) ✓");
+}
+
 app.MapControllers();
 
 // Liveness probe — EnclaveRouter.GetInstanceHealthAsync() tarafından kullanılır

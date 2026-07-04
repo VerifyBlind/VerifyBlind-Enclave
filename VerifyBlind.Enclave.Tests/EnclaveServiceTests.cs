@@ -705,6 +705,61 @@ public class EnclaveServiceTests
         _service.VerifyActiveAuth(payload); // must not throw
     }
 
+    // ── EnforceAntiSpoof — pasif canlılık FAIL-CLOSED (güvenlik denetimi #1) ──────
+
+    [Fact]
+    public void EnforceAntiSpoof_CorruptBase64Crop_ThrowsAntiSpoofing()
+    {
+        // Model yüklü ama crop geçersiz base64 → decode istisnası ARTIK yutulmuyor, REDDET.
+        var payload = new SecurePayload { AntiSpoofCrop = "!!!not-valid-base64!!!" };
+        var ex = Assert.Throws<RegistrationException>(() => _service.EnforceAntiSpoof(payload, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public void EnforceAntiSpoof_PredictThrows_ThrowsAntiSpoofing()
+    {
+        // Geçerli base64 ama çıkarım (bozuk JPEG / ONNX) patlıyor → REDDET (eskiden yutuluyordu).
+        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Throws(new InvalidOperationException("bad jpeg"));
+        var payload = new SecurePayload { AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }) };
+        var ex = Assert.Throws<RegistrationException>(() => _service.EnforceAntiSpoof(payload, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public void EnforceAntiSpoof_ModelNotLoaded_ThrowsModelMissing()
+    {
+        _antiSpoof.Setup(a => a.IsModelLoaded).Returns(false);
+        var payload = new SecurePayload { AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }) };
+        var ex = Assert.Throws<RegistrationException>(() => _service.EnforceAntiSpoof(payload, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING_MODEL_MISSING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public void EnforceAntiSpoof_EmptyCrop_ThrowsAntiSpoofing()
+    {
+        var payload = new SecurePayload { AntiSpoofCrop = "" };
+        var ex = Assert.Throws<RegistrationException>(() => _service.EnforceAntiSpoof(payload, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public void EnforceAntiSpoof_LowLiveScore_ThrowsAntiSpoofing()
+    {
+        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0.9f, 0.1f, 0f }); // pLive=0.1 < 0.55
+        var payload = new SecurePayload { AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }) };
+        var ex = Assert.Throws<RegistrationException>(() => _service.EnforceAntiSpoof(payload, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public void EnforceAntiSpoof_ValidLiveCrop_DoesNotThrow()
+    {
+        // Default mock: IsModelLoaded=true, Predict→[0,1,0] (pLive=1.0)
+        var payload = new SecurePayload { AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }) };
+        _service.EnforceAntiSpoof(payload, new DiagLog()); // must not throw
+    }
+
     // ── VerifyBiometricMatchParallel ──────────────────────────────────────────
 
     [Fact]
