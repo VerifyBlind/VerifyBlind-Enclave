@@ -339,6 +339,12 @@ public class EnclaveService
     }
 
     /// <summary>
+    /// Demo kartın sabit TCKN sentinel'i. Gerçek bir TCKN asla tümü-sıfır olmaz, bu yüzden
+    /// login sırasında demo kartı güvenle ayırt etmek için kullanılır (kimlik kodlarını TEST önekiyle işaretlemek üzere).
+    /// </summary>
+    internal const string DemoTckn = "00000000000";
+
+    /// <summary>
     /// Demo Mode için hardcoded veriyle gerçek imzalı ticket üretir.
     /// NFC/biometrik adımları atlanır; ID üretimi, imza ve şifreleme normal akıştaki gibi gerçek HSM ile yapılır.
     /// Tek farkı: SecurePayload yok, kimlik verisi enklavın içine gömülü.
@@ -352,7 +358,7 @@ public class EnclaveService
             throw new RegistrationException(RegistrationStep.RsaDecrypt, "ERR_DEMO_MISSING_PUBKEY");
 
         // Hardcoded demo identity (gerçek bir kart yok — TCKN/SOD hash sabit)
-        const string demoTckn = "00000000000";
+        const string demoTckn = DemoTckn;
         const string demoSodHashHex = "demo_sod_hash_fixed_for_card_id_derivation";
 
         var ticketPayload = new TicketPayload
@@ -766,20 +772,25 @@ string? partnerId = null;
                     else if (rawValue.ToLower() == "true") requested = true;
                     if (requested)
                     {
+                        // Demo kart (sabit TCKN) ile giriş → partner'ın test verisini gerçek doğrulamalardan
+                        // ayırt edebilmesi için üç kimlik kodunun başına "TEST" öneki eklenir (ilk 4 karakter TEST).
+                        bool isDemo = signedTicket.Payload.TCKN == DemoTckn;
+                        string Mark(string code) => isDemo && !string.IsNullOrEmpty(code) ? "TEST" + code : code;
+
                         // Tek "user_id" isteği = üç partner-scoped kimlik kodu birden (AYRI string alanlar).
                         // Amaç: ulusal-no şema değişimi (kaldırma/ekleme) ve kart yenileme boyunca partner'ın
                         // aynı kişiyi takip edebilmesi — kodlar değişimden ÖNCE saklanmış olmalı, bu yüzden
                         // opt-in değil bundle. user_id string kalır (mevcut partner kırılmaz). TCKN yoksa "".
-                        validationsOutput["user_id"] = userId;
+                        validationsOutput["user_id"] = Mark(userId);
 
                         // nsbd_id: biyografik kişi kovası (kart yenilemede sabit, olasılıksal ipucu).
                         var nsbd = await IdentityCodes.BuildNsbdIdAsync(_kms, signedTicket.Payload, partnerId ?? "");
-                        if (nsbd != null) validationsOutput["nsbd_id"] = nsbd;
+                        if (nsbd != null) validationsOutput["nsbd_id"] = Mark(nsbd);
 
                         // doc_id: partner-scoped card_id (aynı belge ⟹ aynı kişi, sert sinyal).
                         var doc = await IdentityCodes.BuildDocIdAsync(
                             _kms, loginCardId, signedTicket.Payload.DocumentType, partnerId ?? "");
-                        if (doc != null) validationsOutput["doc_id"] = doc;
+                        if (doc != null) validationsOutput["doc_id"] = Mark(doc);
                     }
                 }
 
