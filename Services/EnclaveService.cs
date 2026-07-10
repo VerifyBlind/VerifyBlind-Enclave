@@ -773,9 +773,9 @@ string? partnerId = null;
                     if (requested)
                     {
                         // Demo kart (sabit TCKN) ile giriş → partner'ın test verisini gerçek doğrulamalardan
-                        // ayırt edebilmesi için üç kimlik kodunun başına "TEST" öneki eklenir (ilk 4 karakter TEST).
+                        // ayırt edebilmesi için üç kimlik kodunun başına "TEST_" öneki eklenir (ilk 5 karakter TEST_).
                         bool isDemo = signedTicket.Payload.TCKN == DemoTckn;
-                        string Mark(string code) => isDemo && !string.IsNullOrEmpty(code) ? "TEST" + code : code;
+                        string Mark(string code) => isDemo && !string.IsNullOrEmpty(code) ? "TEST_" + code : code;
 
                         // Tek "user_id" isteği = üç partner-scoped kimlik kodu birden (AYRI string alanlar).
                         // Amaç: ulusal-no şema değişimi (kaldırma/ekleme) ve kart yenileme boyunca partner'ın
