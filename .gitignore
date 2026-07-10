@@ -23,3 +23,5 @@ appsettings.*.local.json
 # OS
 .DS_Store
 Thumbs.db
+# Build caches (regenerated)
+*.csproj.lscache
