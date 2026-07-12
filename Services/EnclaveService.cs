@@ -690,7 +690,7 @@ string? partnerId = null;
         if (signedTicket.Payload.GecerlilikTarihi < DateTime.UtcNow.Date)
         {
             Console.WriteLine($"[Enclave] Kimlik kartı süresi dolmuş: {signedTicket.Payload.GecerlilikTarihi:yyyy-MM-dd}");
-            throw new Exception($"Kimlik kartının geçerlilik süresi dolmuş ({signedTicket.Payload.GecerlilikTarihi:dd.MM.yyyy}). Giriş yapılamaz.");
+            throw new CardExpiredException($"Kimlik kartının geçerlilik süresi dolmuş ({signedTicket.Payload.GecerlilikTarihi:dd.MM.yyyy}). Giriş yapılamaz.");
         }
         Console.WriteLine($"[Enclave] Kart geçerlilik tarihi DOĞRULANDI ✓ ({signedTicket.Payload.GecerlilikTarihi:yyyy-MM-dd})");
 

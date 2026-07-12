@@ -166,6 +166,13 @@ public class EnclaveController : ControllerBase
             Console.WriteLine($"[Enclave Controller] LOGIN TICKET REVOKED: {ex.Message}");
             return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
         }
+        catch (VerifyBlind.Enclave.Services.CardExpiredException ex)
+        {
+            // Kart geçerlilik tarihi geçmiş → makine-okur kod (ERR_CARD_EXPIRED); relay resx ile lokalize eder.
+            diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
+            Console.WriteLine($"[Enclave Controller] LOGIN CARD EXPIRED: {ex.Message}");
+            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
+        }
         catch (Exception ex)
         {
             diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
