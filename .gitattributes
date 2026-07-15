@@ -1,0 +1,17 @@
+# LF-only enforcement for reproducible builds. CRLF in source files would change
+# byte content → different PCR0. Linux CI runner checks out with LF; Windows
+# devs editing files locally would otherwise convert to CRLF and break PCR0.
+* text=auto eol=lf
+
+# Binary files (no line-ending conversion, no diff)
+*.onnx binary
+*.eif binary
+*.crt binary
+*.crl binary
+*.cer binary
+*.der binary
+*.key binary
+
+# LFS — ONNX models must live in the repo (LFS) because CI bakes them into the EIF;
+# the enclave is isolated and cannot fetch models at runtime.
+Models/*.onnx filter=lfs diff=lfs merge=lfs -text
