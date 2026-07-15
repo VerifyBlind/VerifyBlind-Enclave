@@ -1,0 +1,214 @@
+name: Build EIF & Publish PCR Values
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    name: Build Enclave & Extract PCR0
+    # Native arm64 runner — no QEMU; matches Graviton EC2 architecture
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write  # needed for gh release create
+
+      
+    steps:
+      - name: 📥 Checkout Code (with LFS for ONNX model)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: 🏗️ Prepare Build Context
+        run: |
+          # Dockerfile.enclave was written for the monorepo and expects:
+          #   <context>/VerifyBlind.Enclave/...   (project sources)
+          #   <context>/scripts/enclave-entrypoint.sh
+          # In this standalone repo, the Enclave project IS the repo root,
+          # so we assemble a temporary wrapping directory rather than editing
+          # the Dockerfile (which is also consumed by the monorepo's start-enclave.sh).
+          mkdir -p _ctx/VerifyBlind.Enclave _ctx/scripts
+          rsync -a \
+            --exclude='_ctx' \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='bin' \
+            --exclude='obj' \
+            --exclude='VerifyBlind.Core.Tests' \
+            --exclude='VerifyBlind.Enclave.Tests' \
+            ./ _ctx/VerifyBlind.Enclave/
+          cp scripts/enclave-entrypoint.sh _ctx/scripts/enclave-entrypoint.sh
+          [ -f .dockerignore ] && cp .dockerignore _ctx/.dockerignore || true
+
+      - name: 🕒 Normalize File Timestamps (Deterministic Build)
+        run: |
+          find _ctx -exec touch -t 202601010000 {} +
+
+      - name: 🐳 Build Enclave Docker Image — TWICE (reproducibility verification)
+        run: |
+          # Build the image two times with --no-cache and compare image IDs.
+          # If the two builds produce byte-identical images, reproducibility holds
+          # for THIS commit's build inputs — proves the build pipeline did not regress
+          # (snapshot.debian.org changes, BuildKit upgrade, base image content drift, etc.)
+          # Code changes legitimately change PCR0; this check is orthogonal to that.
+          docker buildx create --use --name reproducible-builder 2>/dev/null || docker buildx use reproducible-builder
+
+          build_once() {
+            local TAG="$1"
+            SOURCE_DATE_EPOCH=0 docker buildx build \
+              --platform linux/arm64 \
+              --no-cache \
+              -t "$TAG" \
+              --output type=docker,rewrite-timestamp=true \
+              -f _ctx/VerifyBlind.Enclave/Dockerfile.enclave \
+              _ctx/
+          }
+
+          echo "--- Build #1 ---"
+          build_once localhost/verifyblind-enclave:build1
+          IMAGE_ID_1=$(docker image inspect localhost/verifyblind-enclave:build1 --format '{{.Id}}')
+          LAYERS_1=$(docker image inspect localhost/verifyblind-enclave:build1 --format '{{range .RootFS.Layers}}{{println .}}{{end}}')
+
+          # Wipe BuildKit cache so build #2 cannot replay cached layers
+          docker buildx prune -af >/dev/null 2>&1 || true
+
+          echo "--- Build #2 ---"
+          build_once localhost/verifyblind-enclave:latest
+          IMAGE_ID_2=$(docker image inspect localhost/verifyblind-enclave:latest --format '{{.Id}}')
+          LAYERS_2=$(docker image inspect localhost/verifyblind-enclave:latest --format '{{range .RootFS.Layers}}{{println .}}{{end}}')
+
+          echo "DOCKER_IMAGE_ID=$IMAGE_ID_2" >> $GITHUB_ENV
+          echo "Build #1 image ID: $IMAGE_ID_1"
+          echo "Build #2 image ID: $IMAGE_ID_2"
+
+          if [ "$IMAGE_ID_1" = "$IMAGE_ID_2" ]; then
+            echo "✅ Reproducibility verified: both builds produced identical image ID"
+            # echo "### ✅ Reproducibility Check: PASS" >> $GITHUB_STEP_SUMMARY
+            # echo "Two cache-disabled builds of the same commit produced byte-identical Docker images." >> $GITHUB_STEP_SUMMARY
+            # echo "- **Image ID:** \`$IMAGE_ID_2\`" >> $GITHUB_STEP_SUMMARY
+            # Clean up build1 — keep only :latest for the EIF step
+            docker rmi localhost/verifyblind-enclave:build1 >/dev/null 2>&1 || true
+          else
+            echo "::error::Reproducibility REGRESSION! Two builds of identical source produced different images."
+            echo "### ❌ Reproducibility Check: FAIL" >> $GITHUB_STEP_SUMMARY
+            echo "Two cache-disabled builds of the same commit produced DIFFERENT Docker images." >> $GITHUB_STEP_SUMMARY
+            echo "This indicates a build-pipeline regression (snapshot mirror drift, BuildKit upgrade," >> $GITHUB_STEP_SUMMARY
+            echo "base image content change, or a new non-determinism source)." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- **Build #1 image ID:** \`$IMAGE_ID_1\`" >> $GITHUB_STEP_SUMMARY
+            echo "- **Build #2 image ID:** \`$IMAGE_ID_2\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Layer-by-layer diff:**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            diff <(echo "$LAYERS_1") <(echo "$LAYERS_2") >> $GITHUB_STEP_SUMMARY || true
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: 🏗️ Build EIF (AWS Nitro Image - ARM64)
+        run: |
+          # amazonlinux:2 pinned by manifest-list digest (2026-05-23)
+          docker run --rm --name nitro-builder \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $(pwd):/workspace \
+            amazonlinux:2@sha256:74e5c80ad36e6ef0f6fd4a55bb3cc969c05dec6b9dc27fdfa68c8e77264901f9 \
+            /bin/bash -c "
+              amazon-linux-extras install aws-nitro-enclaves-cli -y
+              yum install -y aws-nitro-enclaves-cli-devel
+              nitro-cli build-enclave --docker-uri localhost/verifyblind-enclave:latest --output-file /workspace/enclave.eif > /workspace/build_output.txt
+              nitro-cli --version > /workspace/nitro_cli_version.txt
+            "
+
+          NITRO_VER=$(cat nitro_cli_version.txt 2>/dev/null || echo "unknown")
+          PCR0=$(grep -oP '"PCR0":\s*"\K[^"]+' build_output.txt | head -n 1 | tr -d '\n\r ')
+          echo -n "$PCR0" > pcr0.txt
+          echo "CLEAN_PCR0=$PCR0"
+          echo "NITRO_CLI_VER=$NITRO_VER"
+
+          cat > expected_pcr.json <<EOF
+          {
+            "pcr0": "$PCR0",
+            "built_at": "$(date -u)",
+            "nitro_cli_version": "$NITRO_VER",
+            "git_commit": "${{ github.sha }}"
+          }
+          EOF
+
+          echo "PCR0=$PCR0" >> $GITHUB_ENV
+          echo "NITRO_VER=$NITRO_VER" >> $GITHUB_ENV
+
+      - name: 📝 Build Transparency Report
+        run: |
+          echo "### 🛡️ Build Transparency Report" >> $GITHUB_STEP_SUMMARY
+          echo "Enclave image built on GitHub Infrastructure (native arm64)." >> $GITHUB_STEP_SUMMARY
+          echo "- **PCR0:** \`$PCR0\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **nitro-cli:** \`$NITRO_VER\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          # echo "> **Model hash (w600k_r50.onnx):** \`4c06341c33c2ca1f86781dab0e829f88ad5b64be9fba56e56bc9ebdefc619e43\`" >> $GITHUB_STEP_SUMMARY
+          # echo "> **Model hash (minifasnet_v2.onnx):** \`d7b3cd9ba8a7ceb13baa8c4720902e27ca3112eff52f926c08804af6b6eecc7b\`" >> $GITHUB_STEP_SUMMARY
+          # echo "> Hash verified inside Docker build (sha256sum -c). Build would fail if model bytes differ." >> $GITHUB_STEP_SUMMARY
+
+      - name: 📦 Publish as GitHub Release (fast CDN-backed downloads, persists until deleted)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="enclave-build-${{ github.run_number }}"
+          TITLE="Enclave EIF — Build #${{ github.run_number }} ($(echo ${{ github.sha }} | cut -c1-7))"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          {
+            printf '**PCR0:** `%s`\n' "$PCR0"
+            printf '**Commit:** [`%s`](https://github.com/%s/commit/%s)\n' "$SHORT_SHA" "$GITHUB_REPOSITORY" "$GITHUB_SHA"
+            printf '**nitro-cli:** %s\n' "$NITRO_VER"
+            printf '**Built at:** %s\n\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          } > release-body.md
+          cat >> release-body.md <<'EOF'
+          ---
+
+          ## 🇹🇷 Bu release nedir + nasıl doğrulanır
+
+          Bu release **reproducible build** pipeline'ından üretildi: aynı commit'ten her build aynı PCR0'ı verir (workflow içinde cache-kapalı **iki kez** derlenerek doğrulanır). PCR0, enclave imajının kriptografik parmak izidir.
+
+          **Dosyalar:**
+          - `enclave.eif` — Nitro Enclave Image File (EC2 Graviton'a yüklenir)
+          - `pcr0.txt` — Beklenen attestation PCR0 değeri (hex)
+          - `expected_pcr.json` — Build metadata (PCR0, commit, nitro-cli sürümü, build zamanı)
+          - `nitro_cli_version.txt` — Kullanılan nitro-cli sürümü
+
+          **Doğrulama:** (1) **Kaynak açık + build yeniden-üretilebilir** — repo'yu bu commit'te klonlayıp aynı iş akışını (ya da kendi Nitro ortamında `nitro-cli build-enclave`) çalıştırarak yukarıdaki PCR0'a ulaştığınızı teyit edebilirsiniz. (2) **Canlı enclave kriptografik olarak zorlanır** — mobil uygulama her handshake'te AWS Nitro attestation belgesini doğrular, PCR0'ı imzalı izin listesiyle karşılaştırır; uyuşmazsa reddeder. Ayrıntı: [README](https://github.com/${{ github.repository }}#readme).
+
+          ## 🇬🇧 What this release is + how to verify
+
+          This release was produced by the **reproducible build** pipeline: every build from the same commit yields the same PCR0 (verified by building **twice** with cache disabled inside the workflow). PCR0 is the cryptographic fingerprint of the enclave image.
+
+          **Files:**
+          - `enclave.eif` — Nitro Enclave Image File (loaded on EC2 Graviton)
+          - `pcr0.txt` — Expected attestation PCR0 (hex)
+          - `expected_pcr.json` — Build metadata (PCR0, commit, nitro-cli version, build time)
+          - `nitro_cli_version.txt` — The nitro-cli version used
+
+          **Verify:** (1) **Source is public + build is reproducible** — clone the repo at this commit and re-run the same workflow (or `nitro-cli build-enclave` in your own Nitro environment) to confirm you reach the PCR0 above. (2) **The live enclave is cryptographically enforced** — on every handshake the mobile app verifies the AWS Nitro attestation document and compares PCR0 against a signed allow-list, rejecting any mismatch. Details: [README](https://github.com/${{ github.repository }}#readme).
+          EOF
+
+          # Replace existing release with same tag (idempotent on re-runs of same build number)
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" \
+            --title "$TITLE" \
+            --notes-file release-body.md \
+            --repo "${{ github.repository }}" \
+            enclave.eif \
+            pcr0.txt \
+            expected_pcr.json \
+            nitro_cli_version.txt
+
+          REL_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG"
+          echo "✅ Release published: $REL_URL"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Artifacts (GitHub Release)" >> $GITHUB_STEP_SUMMARY
+          echo "Download from: <$REL_URL>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Or via gh CLI:" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "gh release download $TAG -R ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
