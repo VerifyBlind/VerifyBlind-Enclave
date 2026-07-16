@@ -73,6 +73,23 @@ if (!app.Environment.IsDevelopment())
         throw new InvalidOperationException("ML modelleri yüklenemedi — enclave fail-closed başlatılmadı (güvenlik denetimi #1).");
     }
     Console.WriteLine("[ENCLAVE BOOT] ML modelleri doğrulandı (anti-spoof + biyometrik yüklü) ✓");
+
+    // --- Güvenlik denetimi #2: DEV ticket-MAC secret'ı PROD'da fail-CLOSED ---
+    // KMS_MODE != "aws" iken TicketMacService sabit bir DEV secret'a düşer
+    // (SHA256("verifyblind-ticket-mac-dev-secret-v1")) — kaynak kodda olduğu için herkes
+    // yeniden hesaplayabilir ve "bu pasaport doğrulandı" diyen sahte bir SignedTicket üretip
+    // MRZ/passive auth/biyometri/anti-spoof'un TAMAMINI atlayabilir. Prod'da bu yola girilmesi
+    // bir yapılandırma kazasıdır; sessizce güvenlik-düşük çalışmak yerine hiç başlamamalı.
+    // Dev-secret yolu artık TicketMacService içinde de ayrıca reddediliyor (savunma derinliği).
+    if (!string.Equals(kmsMode, "aws", StringComparison.OrdinalIgnoreCase))
+    {
+        Console.WriteLine($"[ENCLAVE BOOT][FATAL] KMS_MODE='{kmsMode}' (aws değil) ve ortam '{app.Environment.EnvironmentName}' " +
+                          "— bu, ticket-MAC için kaynak-kodda sabit DEV secret'ı seçerdi ve ticket sahteciliğine açık kapı bırakırdı. " +
+                          "Güvenlik gereği enclave başlatılmıyor. Prod'da KMS_MODE=aws olmalı.");
+        throw new InvalidOperationException(
+            $"KMS_MODE='{kmsMode}' non-Development ortamda kabul edilmez — enclave fail-closed başlatılmadı (güvenlik denetimi #2).");
+    }
+    Console.WriteLine("[ENCLAVE BOOT] KMS_MODE=aws doğrulandı (attestation-bound ticket-MAC secret) ✓");
 }
 
 app.MapControllers();

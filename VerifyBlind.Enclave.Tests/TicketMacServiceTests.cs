@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Moq;
 using VerifyBlind.Core.Models;
 using VerifyBlind.Enclave.Services;
@@ -36,12 +37,48 @@ public class TicketMacServiceTests
         FaceRefJpegB64 = "GOLDENFACE"
     };
 
-    // Dev-mode service: KMS_MODE != "aws" → deterministic dev secret (no KMS / Nitro needed).
+    private static Mock<IHostEnvironment> Env(string environmentName)
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.SetupGet(e => e.EnvironmentName).Returns(environmentName);
+        return env;
+    }
+
+    // Dev-mode service: KMS_MODE != "aws" + Development → deterministic dev secret (no KMS / Nitro needed).
     private static TicketMacService DevService()
     {
         var config = new Mock<IConfiguration>();
         config.Setup(c => c["KMS_MODE"]).Returns((string?)null);
-        return new TicketMacService(new Mock<IKmsService>().Object, new Mock<IEnclaveKeyService>().Object, config.Object);
+        return new TicketMacService(
+            new Mock<IKmsService>().Object, new Mock<IEnclaveKeyService>().Object,
+            config.Object, Env(Environments.Development).Object);
+    }
+
+    // ── Dev-secret fail-closed (SAST: forged-ticket / full verification bypass) ────────────────
+
+    [Theory]
+    [InlineData(null)]        // KMS_MODE unset → dev secret path
+    [InlineData("local")]
+    [InlineData("")]
+    public async Task EnsureSecretLoaded_DevSecretPath_IsRefusedOutsideDevelopment(string? kmsMode)
+    {
+        // The dev secret is a constant committed to source — anyone can recompute it and forge a
+        // SignedTicket claiming a passport was verified. It must never load outside Development.
+        var config = new Mock<IConfiguration>();
+        config.Setup(c => c["KMS_MODE"]).Returns(kmsMode);
+        var svc = new TicketMacService(
+            new Mock<IKmsService>().Object, new Mock<IEnclaveKeyService>().Object,
+            config.Object, Env(Environments.Production).Object);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.EnsureSecretLoadedAsync(null));
+    }
+
+    [Fact]
+    public async Task EnsureSecretLoaded_DevSecretPath_IsAllowedInDevelopment()
+    {
+        var svc = DevService(); // KMS_MODE unset + Development
+        await svc.EnsureSecretLoadedAsync(null);
+        Assert.NotNull(svc.ComputeMac(GoldenPayload())); // secret loaded → MAC computable
     }
 
     [Fact]

@@ -28,6 +28,7 @@ public class TicketMacService : ITicketMacService
     private readonly IKmsService _kms;
     private readonly IEnclaveKeyService _keys;
     private readonly bool _awsMode;
+    private readonly bool _isDevelopment;
 
     // Domain separation: MAC girdisinin amaç-dışı yeniden kullanımını engeller.
     private static readonly byte[] Label = Encoding.UTF8.GetBytes("vb-ticket-v1\n");
@@ -35,11 +36,12 @@ public class TicketMacService : ITicketMacService
     private byte[]? _secret;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    public TicketMacService(IKmsService kms, IEnclaveKeyService keys, IConfiguration config)
+    public TicketMacService(IKmsService kms, IEnclaveKeyService keys, IConfiguration config, IHostEnvironment env)
     {
         _kms = kms;
         _keys = keys;
         _awsMode = string.Equals(config["KMS_MODE"], "aws", StringComparison.OrdinalIgnoreCase);
+        _isDevelopment = env.IsDevelopment();
     }
 
     public async Task EnsureSecretLoadedAsync(string? wrappedBlobB64)
@@ -70,9 +72,23 @@ public class TicketMacService : ITicketMacService
             }
             else
             {
-                // DEV: gerçek KMS/Nitro yok → sabit dev secret. PROD'da (KMS_MODE=aws) bu yola ASLA girilmez.
+                // DEV: gerçek KMS/Nitro yok → sabit dev secret.
+                // FAIL-CLOSED: bu secret kaynak kodda sabit olduğu için herkes yeniden hesaplayıp
+                // "bu pasaport doğrulandı" diyen sahte bir SignedTicket üretebilir (MRZ/passive auth/
+                // biyometri/anti-spoof tamamen atlanır). Bu yüzden yalnızca Development ortamında
+                // kabul edilir. Eskiden burada "PROD'da bu yola ASLA girilmez" diyen bir YORUM vardı —
+                // ama bunu zorlayan bir kontrol yoktu; yanlış bir KMS_MODE sessizce sahteciliğe açardı.
+                // Program.cs'te ayrıca boot-anı kapısı var (güvenlik denetimi #2); bu, o kapı bir
+                // refactor'da kaybolursa diye ikinci savunma katmanı.
+                if (!_isDevelopment)
+                {
+                    throw new InvalidOperationException(
+                        "DEV ticket-MAC secret yalnızca Development ortamında kullanılabilir " +
+                        "(KMS_MODE=aws bekleniyordu). Fail-closed: ticket sahteciliğini önlemek için reddedildi.");
+                }
+
                 _secret = SHA256.HashData(Encoding.UTF8.GetBytes("verifyblind-ticket-mac-dev-secret-v1"));
-                Console.WriteLine("[TicketMacService] DEV ticket-MAC secret kullanılıyor (KMS_MODE!=aws).");
+                Console.WriteLine("[TicketMacService] DEV ticket-MAC secret kullanılıyor (KMS_MODE!=aws, ortam=Development).");
             }
         }
         finally { _gate.Release(); }
