@@ -198,4 +198,73 @@ public class IdentityCodesTests
     [Fact]
     public async Task DocId_NullWhenPartnerIdEmpty()
         => Assert.Null(await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", ""));
+
+    // ── PIN tabanlı person_id türetimi (KMS) ──────────────────────────────────
+    // TCKN'siz kimliklerin bulut yedek anahtarı (KEK) buradan türer. TCKN yolundan
+    // ("{TCKN}_Person_id") domain separation ile ayrıktır.
+
+    [Fact]
+    public async Task PinPersonId_IsLowercaseHex64()
+    {
+        var pid = await IdentityCodes.BuildPinPersonIdAsync(Kms(), "123456", "550e8400-e29b-41d4-a716-446655440000");
+        Assert.NotNull(pid);
+        Assert.Matches(Hex64, pid);
+    }
+
+    [Fact]
+    public async Task PinPersonId_IsDeterministic()
+    {
+        // Aynı PIN + aynı UUID ⟹ aynı kod. Yedek şifresinin çözülebilmesi buna dayanır.
+        var a = await IdentityCodes.BuildPinPersonIdAsync(Kms(), "123456", "uuid-fixed");
+        var b = await IdentityCodes.BuildPinPersonIdAsync(Kms(), "123456", "uuid-fixed");
+        Assert.Equal(a, b);
+    }
+
+    [Fact]
+    public async Task PinPersonId_DiffersForDifferentUuid()
+    {
+        // UUID per-user salt: aynı PIN'i seçen iki kullanıcı AYNI kodu üretmemeli,
+        // yoksa birbirlerinin yedeğini çözebilirlerdi.
+        var a = await IdentityCodes.BuildPinPersonIdAsync(Kms(), "123456", "uuid-a");
+        var b = await IdentityCodes.BuildPinPersonIdAsync(Kms(), "123456", "uuid-b");
+        Assert.NotEqual(a, b);
+    }
+
+    [Fact]
+    public async Task PinPersonId_DiffersForDifferentPin()
+    {
+        var a = await IdentityCodes.BuildPinPersonIdAsync(Kms(), "123456", "uuid-fixed");
+        var b = await IdentityCodes.BuildPinPersonIdAsync(Kms(), "654321", "uuid-fixed");
+        Assert.NotEqual(a, b);
+    }
+
+    [Fact]
+    public async Task PinPersonId_NullWhenPinEmpty()
+        => Assert.Null(await IdentityCodes.BuildPinPersonIdAsync(Kms(), "", "uuid-fixed"));
+
+    [Fact]
+    public async Task PinPersonId_NullWhenUuidEmpty()
+        => Assert.Null(await IdentityCodes.BuildPinPersonIdAsync(Kms(), "123456", ""));
+
+    [Fact]
+    public async Task PinPersonId_IsDomainSeparatedFromTcknPath()
+    {
+        // TCKN yolu HMAC("{TCKN}_Person_id"), PIN yolu HMAC("VBPIN1|{pin}|{uuid}").
+        // Bir kullanıcı PIN olarak bir TCKN yazsa bile o TCKN'nin person_id'siyle ÇAKIŞMAMALI.
+        var kms = Kms();
+        const string tckn = "12345678901";
+
+        var tcknHmac = await kms.ComputeHmacAsync($"{tckn}_Person_id");
+        var tcknPersonId = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(tcknHmac))
+        ).ToLowerInvariant();
+
+        var pinPersonId = await IdentityCodes.BuildPinPersonIdAsync(kms, tckn, "any-uuid");
+
+        Assert.NotEqual(tcknPersonId, pinPersonId);
+    }
+
+    [Fact]
+    public void PinVersion_IsVbpin1()
+        => Assert.Equal("VBPIN1", IdentityCodes.PinVersion);
 }

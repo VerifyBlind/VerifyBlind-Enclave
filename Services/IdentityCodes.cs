@@ -31,6 +31,13 @@ public static class IdentityCodes
     public const string NsbdVersion = "NSBD1";
 
     /// <summary>
+    /// PIN tabanlı person_id şema sürümü. Reçete (girdi sırası/normalizasyon) ileride değişirse
+    /// "VBPIN2"ye yükseltilir; eski wrap'ler eski kodla açılmaya devam eder (yedek dosyasında aynı
+    /// DEK birden çok KEK ile sarılabildiği için geçiş yeniden-şifreleme GEREKTİRMEZ).
+    /// </summary>
+    public const string PinVersion = "VBPIN1";
+
+    /// <summary>
     /// nsbd_id üretir: <c>hex(SHA256(HMAC( BuildNsbdCanonical(payload) + ":" + partnerId )))</c>.
     /// Güvenilir bir kod üretilemiyorsa (kanonik boş ya da partnerId boş) <c>null</c> döner.
     /// </summary>
@@ -43,6 +50,36 @@ public static class IdentityCodes
         // ":" + partnerId scope eki user_id ile birebir aynı kalıp; kanonik string MRZ alfabesinde
         // ":" içermez → ayraç güvenli.
         var hmac = await kms.ComputeHmacAsync($"{canon}:{partnerId}");
+        return Sha256Hex(hmac);
+    }
+
+    /// <summary>
+    /// TCKN'siz kimlikler için PIN tabanlı person_id üretir:
+    /// <c>hex(SHA256(HMAC( "VBPIN1|{pin}|{uuid}" )))</c>.
+    ///
+    /// <para><b>Amaç:</b> bulut yedeğinin KEK'ini besler. TCKN'li kartlarda person_id
+    /// HMAC(TCKN)'den gelir ve kart yenilemesinden sağ çıkar; TCKN'siz belgelerde karta bağlı hiçbir
+    /// değer kart yenilemesinden sağ çıkmaz → kullanıcının bildiği bir PIN tek dayanak noktasıdır.</para>
+    ///
+    /// <para><b>UUID neden var:</b> per-user salt. Salt olmasaydı aynı PIN'i seçen iki kullanıcı aynı
+    /// person_id'yi üretir ve birbirlerinin yedeğini çözebilirdi. UUID sır DEĞİLDİR — yedek dosyasında
+    /// düz metin durur; tekilliği sağlar, gizliliği değil.</para>
+    ///
+    /// <para><b>Domain separation:</b> "VBPIN1|" ön eki ile TCKN yolunun ("{TCKN}_Person_id") girdi
+    /// uzayından ayrıktır → bir kullanıcı PIN olarak birinin TCKN'sini yazsa bile o kişinin
+    /// person_id'siyle çakışamaz.</para>
+    ///
+    /// <para><b>Kaba kuvvet:</b> koruma BURADA DEĞİL. HMAC anahtarı enclave'de olduğu için saldırgan
+    /// offline deneyemez; her deneme relay'den geçmek zorundadır (PinDeriveRateLimiter: UUID başına
+    /// 10/gün + cihaz attestation'ı). Bu fonksiyon bilerek saf ve deterministiktir.</para>
+    ///
+    /// pin ya da uuid boşsa <c>null</c> döner → çağıran taraf person_id üretmemeli.
+    /// </summary>
+    public static async Task<string?> BuildPinPersonIdAsync(IKmsService kms, string pin, string uuid)
+    {
+        if (string.IsNullOrEmpty(pin) || string.IsNullOrEmpty(uuid)) return null;
+
+        var hmac = await kms.ComputeHmacAsync($"{PinVersion}|{pin}|{uuid}");
         return Sha256Hex(hmac);
     }
 
