@@ -109,6 +109,29 @@ public class RegistrationRequest
     public string? TicketSecretWrapped { get; set; }
 }
 
+// PIN -> person_id türetme (Phone -> Relay -> Enclave). TCKN'siz kimliklerin bulut yedek
+// anahtarını (KEK) besler.
+//
+// Sıfır Bilgi: PIN ve UUID DB'ye YAZILMAZ, loglanmaz — relay yalnız taşır, türetim enclave'de
+// KMS-HMAC ile yapılır. Kaba kuvvet freni relay'dedir (PinDeriveRateLimiter: UUID başına 10/gün
+// + cihaz attestation'ı); HMAC anahtarı enclave'de olduğu için saldırgan offline deneyemez.
+public class DerivePinPersonIdRequest
+{
+    [JsonPropertyName("pin")]
+    public string Pin { get; set; } = string.Empty;
+
+    // Per-user salt. Sır DEĞİLDİR — yedek dosyasında düz metin durur. Aynı PIN'i seçen iki
+    // kullanıcının aynı person_id'yi türetmesini engeller.
+    [JsonPropertyName("uuid")]
+    public string Uuid { get; set; } = string.Empty;
+}
+
+public class DerivePinPersonIdResponse
+{
+    [JsonPropertyName("person_id")]
+    public string PersonId { get; set; } = string.Empty;
+}
+
 // Demo Registration Request (Phone -> Relay -> Enclave)
 // NFC/biometric verisi olmadan, enklavda hardcoded demo veriyle gerçek imzalı ticket üretir.
 public class DemoRegisterRequest

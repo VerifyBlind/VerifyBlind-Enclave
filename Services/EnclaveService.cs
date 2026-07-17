@@ -18,6 +18,14 @@ public class EnclaveService
     // Ticket'lar enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
     private readonly ITicketMacService _ticketMac;
 
+    /// <summary>
+    /// TCKN'siz kimlikler için PIN tabanlı person_id türetir (bulut yedek KEK'ini besler).
+    /// Saf ve deterministik: kaba kuvvet freni RELAY'dedir (PinDeriveRateLimiter), burada değil.
+    /// pin/uuid boşsa null.
+    /// </summary>
+    public async Task<string?> DerivePinPersonIdAsync(string pin, string uuid)
+        => await IdentityCodes.BuildPinPersonIdAsync(_kms, pin, uuid);
+
     public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
         ITicketMacService ticketMac, IAntiSpoofService antiSpoof)
     {
