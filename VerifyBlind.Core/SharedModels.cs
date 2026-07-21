@@ -112,10 +112,30 @@ public class RegistrationRequest
 // PIN -> person_id türetme (Phone -> Relay -> Enclave). TCKN'siz kimliklerin bulut yedek
 // anahtarını (KEK) besler.
 //
-// Sıfır Bilgi: PIN ve UUID DB'ye YAZILMAZ, loglanmaz — relay yalnız taşır, türetim enclave'de
-// KMS-HMAC ile yapılır. Kaba kuvvet freni relay'dedir (PinDeriveRateLimiter: UUID başına 10/gün
-// + cihaz attestation'ı); HMAC anahtarı enclave'de olduğu için saldırgan offline deneyemez.
+// Sıfır Bilgi: PIN cihazdan enclave'e HİBRİT ŞİFRELİ gider (kayıt akışındaki kalıp: AES-GCM
+// gövde + enclave public key'ine RSA-OAEP-SHA256 sarılı anahtar) — relay yalnız opak zarfı
+// taşır, PIN'i GÖREMEZ. Ele geçirilmiş bir relay bile PIN'leri pasif olarak toplayamaz.
+// Türetim enclave'de KMS-HMAC ile yapılır; PIN/UUID saklanmaz, loglanmaz.
+//
+// Kaba kuvvet freni relay'dedir (PinDeriveRateLimiter: UUID başına 10/gün + cihaz attestation'ı);
+// HMAC anahtarı enclave'de olduğu için saldırgan offline deneyemez.
 public class DerivePinPersonIdRequest
+{
+    // Zarf anahtarı: enclave public key'ine RSA-OAEP-SHA256 ile sarılmış AES anahtarı (base64).
+    [JsonPropertyName("enc_key")]
+    public string EncKey { get; set; } = string.Empty;
+
+    // AES-GCM gövde: nonce(12) ‖ ciphertext ‖ tag(16), base64. Çözülünce PinDerivePayload JSON'u.
+    [JsonPropertyName("blob")]
+    public string Blob { get; set; } = string.Empty;
+}
+
+// DerivePinPersonIdRequest.Blob çözülünce elde edilen düz metin. YALNIZCA enclave belleğinde var olur.
+//
+// UUID'nin zarfın İÇİNDE olması bilinçlidir: türetim bu iç değerle yapılır, böylece yakalanan bir
+// zarf başka bir UUID ile eşleştirilip kurbanın PIN'ini test etmek için kullanılamaz. Relay'e ayrıca
+// düz metin UUID gider ama o YALNIZCA kota anahtarıdır (sır değildir, yedek dosyasında da düz durur).
+public class PinDerivePayload
 {
     [JsonPropertyName("pin")]
     public string Pin { get; set; } = string.Empty;

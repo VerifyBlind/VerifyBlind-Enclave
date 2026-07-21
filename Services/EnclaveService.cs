@@ -20,11 +20,39 @@ public class EnclaveService
 
     /// <summary>
     /// TCKN'siz kimlikler için PIN tabanlı person_id türetir (bulut yedek KEK'ini besler).
-    /// Saf ve deterministik: kaba kuvvet freni RELAY'dedir (PinDeriveRateLimiter), burada değil.
-    /// pin/uuid boşsa null.
+    ///
+    /// <para>Girdi HİBRİT ŞİFRELİ zarftır (kayıt akışıyla aynı kalıp): <paramref name="encKey"/> =
+    /// enclave public key'ine RSA-OAEP-SHA256 ile sarılı AES anahtarı, <paramref name="blob"/> =
+    /// AES-GCM gövde. PIN böylece relay'e HİÇ görünmez — zarf yalnız burada açılır.</para>
+    ///
+    /// <para>Türetim zarfın İÇİNDEKİ uuid ile yapılır: yakalanan bir zarf başka bir uuid'ye
+    /// eşleştirilip kurbanın PIN'i test edilemesin diye. Saf ve deterministik — kaba kuvvet freni
+    /// RELAY'dedir (PinDeriveRateLimiter), burada değil.</para>
+    ///
+    /// <para>Zarf açılamaz/bozuksa ya da pin/uuid boşsa null (ayrıntı sızdırılmaz).</para>
     /// </summary>
-    public async Task<string?> DerivePinPersonIdAsync(string pin, string uuid)
-        => await IdentityCodes.BuildPinPersonIdAsync(_kms, pin, uuid);
+    public async Task<string?> DerivePinPersonIdAsync(string encKey, string blob)
+    {
+        if (string.IsNullOrEmpty(encKey) || string.IsNullOrEmpty(blob)) return null;
+
+        PinDerivePayload? payload;
+        try
+        {
+            var aesKey = _enclaveKeys.DecryptWithEnclaveKey(encKey);
+            var payloadJson = CryptoUtils.AesDecrypt(blob, aesKey);
+            payload = JsonSerializer.Deserialize<PinDerivePayload>(payloadJson);
+        }
+        catch (Exception)
+        {
+            // Bozuk/kurcalanmış zarf ya da yanlış anahtar (GCM tag). PIN içerebileceği için
+            // istisna DETAYI loglanmaz; çağıran taraf yalnız "türetilemedi" görür.
+            Console.WriteLine("[Enclave] PIN zarfı çözülemedi.");
+            return null;
+        }
+
+        if (payload == null) return null;
+        return await IdentityCodes.BuildPinPersonIdAsync(_kms, payload.Pin, payload.Uuid);
+    }
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
         ITicketMacService ticketMac, IAntiSpoofService antiSpoof)

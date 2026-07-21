@@ -32,6 +32,9 @@ public class EnclaveController : ControllerBase
     /// POST /api/Enclave/derive-pin-person-id
     /// TCKN'siz kimliklerin bulut yedek KEK'i için PIN → person_id türetir.
     ///
+    /// Girdi HİBRİT ŞİFRELİ zarftır (enc_key + blob) — PIN relay'e görünmez, yalnız burada açılır.
+    /// Türetim zarfın İÇİNDEKİ uuid ile yapılır (relay'in gördüğü düz metin uuid yalnız kota anahtarı).
+    ///
     /// Kaba kuvvet freni burada DEĞİL, relay'dedir (PinDeriveRateLimiter: UUID başına 10/gün +
     /// cihaz attestation'ı). Bu uç bilerek saf ve deterministiktir; güvenlik HMAC anahtarının
     /// enclave'de kalmasından gelir → saldırgan offline deneyemez.
@@ -41,7 +44,7 @@ public class EnclaveController : ControllerBase
     [HttpPost("derive-pin-person-id")]
     public async Task<IActionResult> DerivePinPersonId([FromBody] DerivePinPersonIdRequest request)
     {
-        var personId = await _service.DerivePinPersonIdAsync(request.Pin, request.Uuid);
+        var personId = await _service.DerivePinPersonIdAsync(request.EncKey, request.Blob);
         if (string.IsNullOrEmpty(personId))
             return BadRequest(new { error = "ERR_PIN_DERIVE_FAILED" });
 

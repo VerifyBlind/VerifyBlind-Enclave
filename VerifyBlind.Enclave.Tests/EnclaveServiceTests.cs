@@ -1264,4 +1264,87 @@ public class EnclaveServiceTests
         var ex = await Assert.ThrowsAsync<Exception>(() => _service.LoginAsync(request, new DiagLog()));
         Assert.Contains("Geçersiz bilet", ex.Message);
     }
+
+    // ── PIN person_id: hibrit zarf yolu ───────────────────────────────────────
+    //
+    // Zarf düzeni istemcilerle (Android/iOS `BackupPinPayload`) BİREBİR olmak zorunda:
+    // AES-GCM gövde (nonce‖ct‖tag) + enclave public key'ine RSA-OAEP-SHA256 sarılı AES anahtarı.
+    // Bu testler o sözleşmeyi enclave tarafından kilitler — istemci tarafı derlenerek doğrulanır.
+
+    /// <summary>İstemcinin yaptığını taklit eder: rastgele AES + OAEP-SHA256 sarma.</summary>
+    private static (string encKey, string blob) BuildPinEnvelope(string pin, string uuid, RSA enclaveRsa)
+    {
+        var innerJson = $"{{\"pin\":\"{pin}\",\"uuid\":\"{uuid}\"}}";
+        var (blob, aesKey, _) = VerifyBlind.Core.Crypto.CryptoUtils.AesEncrypt(innerJson);
+        var encKey = Convert.ToBase64String(
+            enclaveRsa.Encrypt(Encoding.UTF8.GetBytes(aesKey), RSAEncryptionPadding.OaepSHA256));
+        return (encKey, blob);
+    }
+
+    /// <summary>Gerçek RSA ile decrypt eden key service mock'u + gerçek (local) KMS'li servis.</summary>
+    private EnclaveService ServiceWithRealCrypto(RSA rsa, LocalKmsService kms)
+    {
+        var keys = new Mock<IEnclaveKeyService>();
+        keys.Setup(k => k.DecryptWithEnclaveKey(It.IsAny<string>()))
+            .Returns((string c) => Encoding.UTF8.GetString(
+                rsa.Decrypt(Convert.FromBase64String(c), RSAEncryptionPadding.OaepSHA256)));
+        return new EnclaveService(keys.Object, kms, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
+    }
+
+    [Fact]
+    public async Task DerivePinPersonId_HybridEnvelope_MatchesDirectDerivation()
+    {
+        using var rsa = RSA.Create(2048);
+        var kms = new LocalKmsService();
+        var service = ServiceWithRealCrypto(rsa, kms);
+
+        var (encKey, blob) = BuildPinEnvelope("123456", "uuid-fixed", rsa);
+        var fromEnvelope = await service.DerivePinPersonIdAsync(encKey, blob);
+
+        // Zarf yolu, doğrudan türetimle AYNI sonucu vermeli (zarf yalnız taşıma katmanı).
+        var direct = await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-fixed");
+        Assert.False(string.IsNullOrEmpty(fromEnvelope));
+        Assert.Equal(direct, fromEnvelope);
+    }
+
+    [Fact]
+    public async Task DerivePinPersonId_DerivesFromInnerUuid_NotOuter()
+    {
+        // Türetim zarfın İÇİNDEKİ uuid ile yapılır. Böylece yakalanan bir zarf başka bir uuid'ye
+        // eşleştirilip kurbanın PIN'i test edilemez — dış uuid yalnız relay'in kota anahtarıdır.
+        using var rsa = RSA.Create(2048);
+        var kms = new LocalKmsService();
+        var service = ServiceWithRealCrypto(rsa, kms);
+
+        var (encKey, blob) = BuildPinEnvelope("123456", "uuid-inner", rsa);
+        var result = await service.DerivePinPersonIdAsync(encKey, blob);
+
+        Assert.Equal(await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-inner"), result);
+        Assert.NotEqual(await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-outer"), result);
+    }
+
+    [Fact]
+    public async Task DerivePinPersonId_TamperedBlob_ReturnsNull()
+    {
+        // GCM tag uyuşmazlığı → çözülemez. Sessizce null (ayrıntı sızdırılmaz), istisna FIRLATILMAZ.
+        using var rsa = RSA.Create(2048);
+        var service = ServiceWithRealCrypto(rsa, new LocalKmsService());
+
+        var (encKey, blob) = BuildPinEnvelope("123456", "uuid-fixed", rsa);
+        var raw = Convert.FromBase64String(blob);
+        raw[^1] ^= 0xFF; // son tag baytını boz
+        var tampered = Convert.ToBase64String(raw);
+
+        Assert.Null(await service.DerivePinPersonIdAsync(encKey, tampered));
+    }
+
+    [Fact]
+    public async Task DerivePinPersonId_EmptyEnvelope_ReturnsNull()
+    {
+        using var rsa = RSA.Create(2048);
+        var service = ServiceWithRealCrypto(rsa, new LocalKmsService());
+
+        Assert.Null(await service.DerivePinPersonIdAsync("", "blob"));
+        Assert.Null(await service.DerivePinPersonIdAsync("enc", ""));
+    }
 }
