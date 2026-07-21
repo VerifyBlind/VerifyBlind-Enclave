@@ -330,8 +330,12 @@ public class EnclaveService
             ).ToLowerInvariant();
 
             // 2 HMAC çağrısı birbirinden bağımsız — paralel çalıştır (~60ms kazanç)
+            // TCKN formatı burada da doğrulanır (login yoluyla aynı kapı). Bugün MrzParser TCKN'yi
+            // ya boş ya geçerli bıraktığı için "boş mu" kontrolüyle denk; ama o invariant'a bağlı
+            // kalmamak için açıkça IsValidTckn kullanılır — TicketPayload başka bir yoldan
+            // üretilirse (test, gelecekteki bir akış) iki uç ayrışmasın.
             Task<string>? personHmacTask = null;
-            if (!string.IsNullOrEmpty(ticketPayload.TCKN))
+            if (IdentityCodes.IsValidTckn(ticketPayload.TCKN))
                 personHmacTask = _kms.ComputeHmacAsync($"{ticketPayload.TCKN}_Person_id");
 
             var cardHmacTask = _kms.ComputeHmacAsync($"{sodHashHex}_Card_id");
@@ -346,7 +350,7 @@ public class EnclaveService
             else
             {
                 personId = "";
-                Console.WriteLine("[Enclave] TCKN bulunamadı. person_id boş string olarak ayarlandı.");
+                Console.WriteLine("[Enclave] Geçerli TCKN yok → person_id üretilmedi (boş bırakıldı).");
             }
 
             var cIdHmac = await cardHmacTask;
