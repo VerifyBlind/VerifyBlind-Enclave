@@ -267,4 +267,25 @@ public class IdentityCodesTests
     [Fact]
     public void PinVersion_IsVbpin1()
         => Assert.Equal("VBPIN1", IdentityCodes.PinVersion);
+
+    // ── IsValidTckn ───────────────────────────────────────────────────────────
+    // Bu kapı olmadan geçersiz/eksik TCKN sessizce boş user_id üretiyordu ve TCKN'siz TÜM
+    // kullanıcılar partner tarafında aynı kimliğe çakışıyordu.
+
+    [Theory]
+    [InlineData("12345678901")]
+    [InlineData("98765432109")]
+    public void IsValidTckn_ElevenDigitsNotStartingWithZero_IsValid(string tckn)
+        => Assert.True(IdentityCodes.IsValidTckn(tckn));
+
+    [Theory]
+    [InlineData(null)]          // hiç yok
+    [InlineData("")]            // boş — eski "sessiz boş user_id" yolu
+    [InlineData("1234567890")]  // 10 hane
+    [InlineData("123456789012")]// 12 hane
+    [InlineData("01234567890")] // 0 ile başlıyor — geçerli bir TCKN olamaz
+    [InlineData("1234567890A")] // harf içeriyor
+    [InlineData("12345 678901")]// boşluk içeriyor
+    public void IsValidTckn_MalformedInput_IsInvalid(string? tckn)
+        => Assert.False(IdentityCodes.IsValidTckn(tckn));
 }

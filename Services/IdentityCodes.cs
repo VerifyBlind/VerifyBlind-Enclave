@@ -38,6 +38,23 @@ public static class IdentityCodes
     public const string PinVersion = "VBPIN1";
 
     /// <summary>
+    /// TCKN format kapısı: tam 11 hane, tamamı rakam, ilk hane 0 olamaz.
+    ///
+    /// <para><b>Neden var:</b> daha önce yalnız "boş mu" kontrol ediliyordu. MRZ'nin İsteğe Bağlı
+    /// Veri alanı beklenenden farklı geldiğinde (ör. alan boş ya da başka veri taşıyor) sistem
+    /// sessizce boş TCKN ile devam ediyor, login'de partner'a <c>user_id = ""</c> dönüyordu —
+    /// yani TCKN'siz TÜM kullanıcılar partner tarafında AYNI kimliğe çakışıyordu. Artık geçersiz
+    /// TCKN'de kod hiç üretilmez ve alan cevaptan düşer.</para>
+    ///
+    /// <para>Kasıtlı olarak TCKN'nin doğrulama-hanesi (checksum) algoritması UYGULANMAZ: buradaki
+    /// amaç "çöp değer üretme"yi engellemektir, vatandaşlık numarasının gerçekliğine hükmetmek
+    /// değil. Checksum eklemek gerçek bir kartı yanlışlıkla reddetme riski taşır; asıl güvence
+    /// zaten SOD/CSCA zinciridir.</para>
+    /// </summary>
+    public static bool IsValidTckn(string? tckn) =>
+        !string.IsNullOrEmpty(tckn) && tckn.Length == 11 && tckn[0] != '0' && tckn.All(char.IsDigit);
+
+    /// <summary>
     /// nsbd_id üretir: <c>hex(SHA256(HMAC( BuildNsbdCanonical(payload) + ":" + partnerId )))</c>.
     /// Güvenilir bir kod üretilemiyorsa (kanonik boş ya da partnerId boş) <c>null</c> döner.
     /// </summary>

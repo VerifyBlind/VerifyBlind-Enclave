@@ -13,6 +13,14 @@ public class RegistrationException : Exception
     /// <summary>Biyometrik red durumunda skoru taşır (relay metriği için, ZK-güvenli skaler). Diğer hatalarda null.</summary>
     public float? FaceScore { get; init; }
 
+    /// <summary>
+    /// Belge politikası reddinde SOD-doğrulanmış ihraç eden ülke kodu (ör. "DEU"). Relay bunu
+    /// Sentry'ye yapısal alan olarak basar — istemcinin beyan ettiği CountryIsoCode'dan farklı
+    /// olarak GÜVENİLİRDİR. ZK-güvenli: düşük kardinaliteli ISO kodu, kişisel veri değil.
+    /// Diğer hatalarda null.
+    /// </summary>
+    public string? IssuingCountry { get; init; }
+
     public RegistrationException(RegistrationStep step, string errorCode, string? technicalDetail = null)
         : base(errorCode)
     {

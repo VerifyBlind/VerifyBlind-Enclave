@@ -14,6 +14,8 @@ public static class EnclaveErrorCodes
     public const string NonceVerification     = "ERR_NONCE_VERIFICATION";
     public const string ActiveAuth            = "ERR_ACTIVE_AUTH";
     public const string PassiveAuth           = "ERR_PASSIVE_AUTH";
+    public const string UnsupportedCountry    = "ERR_UNSUPPORTED_COUNTRY";
+    public const string UnsupportedDocType    = "ERR_UNSUPPORTED_DOC_TYPE";
     public const string BiometricMismatch     = "ERR_BIOMETRIC_MISMATCH";
     public const string BiometricModelMissing = "ERR_BIOMETRIC_MODEL_MISSING";
     public const string Dg1Parse              = "ERR_DG1_PARSE";

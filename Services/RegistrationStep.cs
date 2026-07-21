@@ -10,6 +10,7 @@ public enum RegistrationStep
     NonceVerification,
     ActiveAuthentication,
     PassiveAuthentication,
+    DocumentPolicy,
     BiometricVerification,
     Dg1Parsing,
     TicketSigning,

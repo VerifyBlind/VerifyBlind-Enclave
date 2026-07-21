@@ -25,73 +25,37 @@ public static class MrzParser
 
         Console.WriteLine($"[Enclave] MRZ ayrıştırıldı ({mrzString.Length} karakter): {EnclaveService.Mask(mrzString)}");
 
-        // TD1 = 90 chars (3×30), TD3 (Passport) = 88 chars (2×44)
-        string line1, line2, line3;
-        string docNo, nationality, dob, gender, expiry, surname, givenName, issuingCountry;
-        string docType = "";
+        // Yalnızca TD1 (kimlik kartı, 3×30 = 90 karakter) desteklenir. TD3 (pasaport, 2×44 = 88)
+        // DocumentPolicy tarafından zaten Step 5.5'te reddedilmiştir; buraya ulaşmaz.
+        if (mrzString.Length < 90)
+            throw new Exception($"Invalid MRZ length: {mrzString.Length}. Expected 90 (TD1).");
 
-        if (mrzString.Length >= 90)
-        {
-            // TD1 format (ID Card): 3 lines × 30 chars
-            line1 = mrzString.Substring(0, 30);
+        // TD1 format (ID Card): 3 lines × 30 chars
+        var line1 = mrzString.Substring(0, 30);
+        var line2 = mrzString.Substring(30, 30);
+        var line3 = mrzString.Substring(60, 30);
 
-            // Belge tipi doğrulaması: P (pasaport), I/A/C (kimlik kartı) kabul edilir
-            // V (vize) ve diğer geçici belge tipleri reddedilir
-            var docTypeChar = line1[0];
-            if (docTypeChar != 'P' && docTypeChar != 'I' && docTypeChar != 'A' && docTypeChar != 'C')
-                throw new Exception($"Bu belge türü desteklenmemektedir ('{docTypeChar}'). Yalnızca pasaport ve vatandaşlık kimlik kartları kabul edilmektedir.");
-            // ICAO belge kodu = line1'in ilk 2 karakteri (poz 1-2); filler '<' temizlenir.
-            // "I<"→"I", "ID"→"ID". Tek karakter (line1[0]) almak 2 harfli kodun 2. harfini düşürürdü.
-            docType = line1.Substring(0, 2).Replace("<", "").Trim();
+        // ICAO belge kodu = line1'in ilk 2 karakteri (poz 1-2); filler '<' temizlenir.
+        // "I<"→"I", "ID"→"ID". Tek karakter (line1[0]) almak 2 harfli kodun 2. harfini düşürürdü.
+        var docType = line1.Substring(0, 2).Replace("<", "").Trim();
 
-            line2 = mrzString.Substring(30, 30);
-            line3 = mrzString.Substring(60, 30);
+        var issuingCountry = line1.Substring(2, 3).Replace("<", "").Trim();
+        var docNo = line1.Substring(5, 9).Replace("<", "").Trim();
+        var dob = line2.Substring(0, 6);
+        var gender = line2.Substring(7, 1);
+        var expiry = line2.Substring(8, 6);
+        var nationality = line2.Substring(15, 3).Replace("<", "").Trim();
 
-            issuingCountry = line1.Substring(2, 3).Replace("<", "").Trim();
-            docNo = line1.Substring(5, 9).Replace("<", "").Trim();
-            dob = line2.Substring(0, 6);
-            gender = line2.Substring(7, 1);
-            expiry = line2.Substring(8, 6);
-            nationality = line2.Substring(15, 3).Replace("<", "").Trim();
+        // Line 3: SURNAME<<GIVENNAMES<<<...
+        var nameParts = line3.Replace("<", " ").Trim().Split(new[] { "  " }, StringSplitOptions.RemoveEmptyEntries);
+        var surname = nameParts.Length > 0 ? nameParts[0].Trim() : "";
+        var givenName = nameParts.Length > 1 ? nameParts[1].Trim() : "";
 
-            // Line 3: SURNAME<<GIVENNAMES<<<...
-            var nameParts = line3.Replace("<", " ").Trim().Split(new[] { "  " }, StringSplitOptions.RemoveEmptyEntries);
-            surname = nameParts.Length > 0 ? nameParts[0].Trim() : "";
-            givenName = nameParts.Length > 1 ? nameParts[1].Trim() : "";
-        }
-        else if (mrzString.Length >= 88)
-        {
-            // TD3 format (Passport): 2 lines × 44 chars
-            line1 = mrzString.Substring(0, 44);
-
-            // TD3'te de belge tipi kontrolü (visa TD3 teorik olarak mümkün)
-            var docTypeChar = line1[0];
-            if (docTypeChar != 'P' && docTypeChar != 'I' && docTypeChar != 'A' && docTypeChar != 'C')
-                throw new Exception($"Bu belge türü desteklenmemektedir ('{docTypeChar}'). Yalnızca pasaport ve vatandaşlık kimlik kartları kabul edilmektedir.");
-            // ICAO belge kodu = line1'in ilk 2 karakteri (poz 1-2); filler '<' temizlenir.
-            // "P<"→"P", "ID"→"ID". Tek karakter (line1[0]) almak 2 harfli kodun 2. harfini düşürürdü.
-            docType = line1.Substring(0, 2).Replace("<", "").Trim();
-
-            line2 = mrzString.Substring(44, 44);
-
-            issuingCountry = line1.Substring(2, 3).Replace("<", "").Trim();
-            // Line 1: [DocType1][Type1][Country3][NAME39]
-            var nameSection = line1.Substring(5).Replace("<", " ").Trim();
-            var nameParts = nameSection.Split(new[] { "  " }, StringSplitOptions.RemoveEmptyEntries);
-            surname = nameParts.Length > 0 ? nameParts[0].Trim() : "";
-            givenName = nameParts.Length > 1 ? nameParts[1].Trim() : "";
-
-            // Line 2: [DocNo9][Check1][Nationality3][DOB6][Check1][Sex1][Expiry6][Check1]...
-            docNo = line2.Substring(0, 9).Replace("<", "").Trim();
-            nationality = line2.Substring(10, 3).Replace("<", "").Trim();
-            dob = line2.Substring(13, 6);
-            gender = line2.Substring(20, 1);
-            expiry = line2.Substring(21, 6);
-        }
-        else
-        {
-            throw new Exception($"Invalid MRZ length: {mrzString.Length}. Expected 90 (TD1) or 88 (TD3).");
-        }
+        // Savunmacı: DocumentPolicy kapısı Step 5.5'te uygulanır, ama bu metot doğrudan
+        // çağrılırsa (test / gelecekteki bir akış) politika sessizce atlanmasın.
+        var policyVerdict = DocumentPolicy.Evaluate(issuingCountry, docType);
+        if (policyVerdict != DocumentPolicy.Verdict.Accepted)
+            throw new Exception($"Bu belge desteklenmemektedir (politika: {policyVerdict}).");
 
         Console.WriteLine($"[Enclave] DG1 Ayrıştırıldı: Ülke={issuingCountry}, Uyruk={nationality}, BelgeNo={EnclaveService.Mask(docNo)}, Cinsiyet={gender}");
 
@@ -99,55 +63,28 @@ public static class MrzParser
         var dobDate = ParseMrzDate(dob);
         var expiryDate = ParseMrzDate(expiry, isExpiry: true);
 
-// For citizens of known countries, we extract their National ID (TCKN for TUR, National ID for THA, etc.)
-        // This is stored in different places depending on document type (TD1 vs TD3)
-        string primaryId = ""; // Default to empty string (will result in empty person_id/user_id)
-        
-        bool isTur = issuingCountry == "TUR" || nationality == "TUR";
-        bool isTha = issuingCountry == "THA" || nationality == "THA";
-
-        if (isTur || isTha)
+        // TCKN — TD1 İsteğe Bağlı Veri alanından (Line 1, index 15-29).
+        // Boş kalabilir: aşağı akışta user_id/person_id üretilmez ve user_id partner cevabından
+        // DÜŞER (bkz. IdentityCodes.IsValidTckn + EnclaveService login). Sessizce boş string
+        // döndürülmesi eskiden TCKN'siz tüm kullanıcılara aynı user_id'yi verirdi.
+        string primaryId = "";
+        var optionalData = line1.Substring(15, 15).Replace("<", "").Trim();
+        // TCKN alanın ilk 11 karakteridir; kart bu alana ek veri koyarsa kuyruğu yok sayılır
+        // (eski davranış korunur), ama artık format doğrulanmadan kabul edilmez.
+        var tcknCandidate = optionalData.Length >= 11 ? optionalData.Substring(0, 11) : optionalData;
+        if (IdentityCodes.IsValidTckn(tcknCandidate))
         {
-            if (mrzString.Length >= 90)
-            {
-                // TD1 (ID Card): Optional Data field (Line 1, index 15-29)
-                var optionalData = line1!.Substring(15, 15).Replace("<", "").Trim();
-                if (isTur && optionalData.Length >= 11 && optionalData.Take(11).All(char.IsDigit))
-                {
-                    primaryId = optionalData.Substring(0, 11);
-                    Console.WriteLine($"[Enclave] TD1 İsteğe Bağlı Veriden TCKN çıkarıldı: {EnclaveService.Mask(primaryId)}");
-                }
-                // (Thailand TD1 support can be added here if needed)
-            }
-            else if (mrzString.Length >= 88)
-            {
-                // TD3 (Passport): Personal Number (Line 2, positions 28-42 in zero-based Line 2 index)
-                // Total mrzString index: 44 + 28 = 72. Length: 14.
-                if (mrzString.Length >= 72 + 14)
-                {
-                    var personalNo = mrzString.Substring(72, 14).Replace("<", "").Trim();
-                    
-                    if (isTha && personalNo.Length >= 13 && personalNo.Take(13).All(char.IsDigit))
-                    {
-                        primaryId = personalNo.Substring(0, 13);
-                        Console.WriteLine($"[Enclave] TD3 Kişisel Numaradan Tayland Ulusal ID çıkarıldı: {EnclaveService.Mask(primaryId)}");
-                    }
-                    else if (isTur && personalNo.Length >= 11 && personalNo.Take(11).All(char.IsDigit))
-                    {
-                        primaryId = personalNo.Substring(0, 11);
-                        Console.WriteLine($"[Enclave] TD3 Kişisel Numaradan TCKN çıkarıldı: {EnclaveService.Mask(primaryId)}");
-                    }
-                    else if (isTur || isTha)
-                    {
-                        Console.WriteLine($"[Enclave] UYARI: {issuingCountry}/{nationality} belgesi tespit edildi ancak Kişisel Numara alanı geçersiz veya ID eksik: '{EnclaveService.Mask(personalNo)}'");
-                    }
-                } 
-            }
+            primaryId = tcknCandidate;
+            Console.WriteLine($"[Enclave] TD1 İsteğe Bağlı Veriden TCKN çıkarıldı: {EnclaveService.Mask(primaryId)}");
+        }
+        else
+        {
+            Console.WriteLine($"[Enclave] UYARI: TC kimlik kartında İsteğe Bağlı Veri alanı geçerli bir TCKN içermiyor: '{EnclaveService.Mask(optionalData)}'");
         }
 
         return new TicketPayload
         {
-TCKN = primaryId, // Will be empty for non-TUR or missing TCKN
+            TCKN = primaryId, // TCKN alınamadıysa boş — kimlik kodları buna göre düşer
             Ad = givenName,
             Soyad = surname,
             DogumTarihi = dobDate,
@@ -179,7 +116,40 @@ TCKN = primaryId, // Will be empty for non-TUR or missing TCKN
             Console.WriteLine($"[Enclave] CSCA klasörü için ülke çıkarılamadı: {ex.Message}");
         }
         return "UNKNOWN";
-    } 
+    }
+
+    /// <summary>
+    /// Belge politikası kapısı için gereken İKİ alanı DG1'den çıkarır: ihraç eden ülke ve ICAO
+    /// belge kodu. Tam ayrıştırmadan (ParseDG1ToTicket) ayrı tutulur çünkü politika kontrolü
+    /// biyometrikten ÖNCE, ucuz biçimde yapılmalıdır.
+    ///
+    /// <para>MRZ'nin ilk 5 karakteri her iki formatta da aynı yerleşimdedir:
+    /// [BelgeKodu2][Ülke3] — TD1 "I&lt;TUR..", TD3 "P&lt;TUR..". Bu yüzden format ayrımı
+    /// yapmadan okunabilir; TD3 zaten politikada reddedilecektir.</para>
+    ///
+    /// Ayrıştırılamazsa ("", "") döner → politika bunu UnsupportedCountry olarak reddeder
+    /// (fail-closed).
+    /// </summary>
+    internal static (string issuingCountry, string documentCode) ExtractPolicyFieldsFromDG1(string dg1Base64)
+    {
+        try
+        {
+            var dg1Bytes = Convert.FromBase64String(dg1Base64);
+            var mrz = ExtractMrzFromDG1(dg1Bytes);
+            if (!string.IsNullOrEmpty(mrz) && mrz.Length >= 5)
+            {
+                var docCode = mrz.Substring(0, 2).Replace("<", "").Trim().ToUpperInvariant();
+                var country = mrz.Substring(2, 3).Replace("<", "").Trim().ToUpperInvariant();
+                return (country, docCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Enclave] Politika alanları DG1'den çıkarılamadı: {ex.Message}");
+        }
+        return (string.Empty, string.Empty);
+    }
+
     /// <summary>
     /// Extracts MRZ string from DG1 TLV structure.
     /// DG1 is BER-TLV: Tag 61 { Tag 5F1F { MRZ bytes } }
