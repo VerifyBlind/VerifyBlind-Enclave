@@ -48,6 +48,11 @@ builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IAntiSpoofService, Ve
 // Ticket Forgery fix: ticket'ı enclave-içi MAC ile imzala/doğrula. Singleton — secret boot başına
 // 1 kez attestation-bound Decrypt ile yüklenip RAM'de cache'lenir (TICKET_FORGERY_FIX_PLAN.md).
 builder.Services.AddSingleton<VerifyBlind.Enclave.Services.ITicketMacService, VerifyBlind.Enclave.Services.TicketMacService>();
+// PIN kaba-kuvvet backstop'u. Singleton ŞART: sayaç süreç-içi durumdur, scoped olsaydı her istek
+// sıfırdan başlar ve fren hiç çalışmazdı. Relay'deki Redis kotasının (10/gün) yerine geçmez —
+// onun ele geçirilmiş relay'de atlanabilmesine karşı ikinci savunma katmanıdır.
+builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IPinAttemptLimiter>(
+    _ => new VerifyBlind.Enclave.Services.PinAttemptLimiter());
 builder.Services.AddScoped<VerifyBlind.Enclave.Services.EnclaveService>();
 
 // Metrik toplama servisi (Admin portal için)
