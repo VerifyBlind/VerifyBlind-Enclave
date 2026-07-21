@@ -17,6 +17,8 @@ public class EnclaveService
     private readonly IAntiSpoofService _antiSpoof;
     // Ticket'lar enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
     private readonly ITicketMacService _ticketMac;
+    // PIN tahmin backstop'u — relay ele geçirilse bile kaba kuvveti UUID başına N/gün'e indirir.
+    private readonly IPinAttemptLimiter _pinLimiter;
 
     /// <summary>
     /// TCKN'siz kimlikler için PIN tabanlı person_id türetir (bulut yedek KEK'ini besler).
@@ -29,11 +31,14 @@ public class EnclaveService
     /// eşleştirilip kurbanın PIN'i test edilemesin diye. Saf ve deterministik — kaba kuvvet freni
     /// RELAY'dedir (PinDeriveRateLimiter), burada değil.</para>
     ///
-    /// <para>Zarf açılamaz/bozuksa ya da pin/uuid boşsa null (ayrıntı sızdırılmaz).</para>
+    /// <para>Zarf açılamaz/bozuksa ya da pin/uuid boşsa <c>Invalid</c> (ayrıntı sızdırılmaz).
+    /// Enclave-içi kota (<see cref="IPinAttemptLimiter"/>) aşılmışsa <c>RateLimited</c> — çağıran
+    /// bunu 429'a çevirir ve relay slot İADE ETMEZ (gerçek bir tahmin oluşmuştur).</para>
     /// </summary>
-    public async Task<string?> DerivePinPersonIdAsync(string encKey, string blob)
+    public async Task<PinDeriveResult> DerivePinPersonIdAsync(string encKey, string blob)
     {
-        if (string.IsNullOrEmpty(encKey) || string.IsNullOrEmpty(blob)) return null;
+        if (string.IsNullOrEmpty(encKey) || string.IsNullOrEmpty(blob))
+            return PinDeriveResult.Invalid;
 
         PinDerivePayload? payload;
         try
@@ -47,21 +52,36 @@ public class EnclaveService
             // Bozuk/kurcalanmış zarf ya da yanlış anahtar (GCM tag). PIN içerebileceği için
             // istisna DETAYI loglanmaz; çağıran taraf yalnız "türetilemedi" görür.
             Console.WriteLine("[Enclave] PIN zarfı çözülemedi.");
-            return null;
+            return PinDeriveResult.Invalid;
         }
 
-        if (payload == null) return null;
-        return await IdentityCodes.BuildPinPersonIdAsync(_kms, payload.Pin, payload.Uuid);
+        if (payload == null || string.IsNullOrEmpty(payload.Pin) || string.IsNullOrEmpty(payload.Uuid))
+            return PinDeriveResult.Invalid;
+
+        // Enclave-içi backstop: ele geçirilmiş bir relay kendi kotasını atlarsa devreye girer.
+        // Anahtar, relay'in beyan ettiği dış uuid DEĞİL, zarftan ÇÖZÜLEN uuid'dir — sahte uuid ile
+        // sayaç dağıtılamaz. Tüketim türetimden ÖNCE yapılır (reddedilen istek KMS'e gitmez).
+        if (!_pinLimiter.TryConsume(payload.Uuid))
+        {
+            Console.WriteLine("[Enclave] PIN türetme enclave-içi kotayı aştı — reddedildi.");
+            return PinDeriveResult.RateLimited;
+        }
+
+        var personId = await IdentityCodes.BuildPinPersonIdAsync(_kms, payload.Pin, payload.Uuid);
+        return string.IsNullOrEmpty(personId)
+            ? PinDeriveResult.Invalid
+            : new PinDeriveResult(PinDeriveStatus.Ok, personId);
     }
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
-        ITicketMacService ticketMac, IAntiSpoofService antiSpoof)
+        ITicketMacService ticketMac, IAntiSpoofService antiSpoof, IPinAttemptLimiter pinLimiter)
     {
         _enclaveKeys = enclaveKeys;
         _kms = kms;
         _biometricService = biometricService;
         _ticketMac = ticketMac;
         _antiSpoof = antiSpoof;
+        _pinLimiter = pinLimiter;
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
@@ -210,6 +230,40 @@ public class EnclaveService
             diag.Fail("Passive Auth", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.PassiveAuthentication}] adımında başarısız: {ex}");
             throw new RegistrationException(RegistrationStep.PassiveAuthentication, "ERR_PASSIVE_AUTH", ex.Message);
+        }
+
+        // --- Step 5.5: Document Policy (yalnızca TC kimlik kartı) ---
+        // KONUM GEREKÇESİ: Passive Auth'tan SONRA çünkü DG1'e ancak SOD'a karşı doğrulandıktan
+        // sonra güvenilebilir — aksi halde değiştirilmiş bir istemci ülke alanına "TUR" yazıp
+        // kapıyı geçerdi. Biyometrikten ÖNCE çünkü desteklenmeyen belge için ONNX maliyeti
+        // ödenmesin. Mobil taraf (DocumentSupport) aynı kuralı kullanıcıya erken mesaj için
+        // uygular; burası otoritedir.
+        try
+        {
+            diag.Begin("Document Policy");
+            var (polCountry, polDocCode) = MrzParser.ExtractPolicyFieldsFromDG1(payload.DG1);
+            var verdict = DocumentPolicy.Evaluate(polCountry, polDocCode);
+            if (verdict != DocumentPolicy.Verdict.Accepted)
+            {
+                var polCode = DocumentPolicy.ErrorCodeFor(verdict)!;
+                diag.Fail("Document Policy", $"{verdict} (ülke={polCountry}, kod={polDocCode})");
+                Console.WriteLine($"[Enclave] Belge politikası reddi: {verdict} — ülke={polCountry}, belgeKodu={polDocCode}");
+                throw new RegistrationException(
+                    RegistrationStep.DocumentPolicy, polCode,
+                    $"Desteklenmeyen belge (ülke={polCountry}, kod={polDocCode}).")
+                {
+                    // Relay bunu Sentry'ye yapısal alan olarak basar (ZK-güvenli ISO kodu).
+                    IssuingCountry = string.IsNullOrEmpty(polCountry) ? "UNKNOWN" : polCountry
+                };
+            }
+            diag.Ok("Document Policy", $"Country={polCountry}, DocCode={polDocCode}");
+        }
+        catch (RegistrationException) { throw; }
+        catch (Exception ex)
+        {
+            diag.Fail("Document Policy", ex.Message);
+            Console.WriteLine($"[Enclave] [{RegistrationStep.DocumentPolicy}] adımında başarısız: {ex}");
+            throw new RegistrationException(RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.UnsupportedDocType, ex.Message);
         }
 
         // --- Step 6: Biometric Verification (parallel embedding) ---
@@ -659,9 +713,12 @@ string? partnerId = null;
         await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
         Task<bool> sigVerifyTask = Task.FromResult(_ticketMac.VerifyMac(signedTicket));
 
-        // UserId HMAC'ı imza doğrulamasından bağımsız — paralel başlat
+        // UserId HMAC'ı imza doğrulamasından bağımsız — paralel başlat.
+        // TCKN formatı BURADA doğrulanır (yalnız "boş mu" değil): geçersizse kod hiç üretilmez ve
+        // user_id partner cevabından DÜŞER — eskiden boş string dönüyordu, bu da TCKN'siz tüm
+        // kullanıcıları partner tarafında aynı kimliğe çakıştırıyordu.
         Task<string>? userIdHmacTask = null;
-        if (!string.IsNullOrEmpty(signedTicket.Payload.TCKN))
+        if (IdentityCodes.IsValidTckn(signedTicket.Payload.TCKN))
         {
             diag.Begin("UserId+PersonId");
             userIdHmacTask = _kms.ComputeHmacAsync($"{signedTicket.Payload.TCKN}:{partnerId}");
@@ -757,8 +814,10 @@ string? partnerId = null;
         {
             userId   = "";
             personId = "";
-            diag.Ok("[Enclave] Bilette TCKN yok. user_id/person_id için boş string kullanılıyor.");
-            diag.Info("UserId/PersonId: boş (TCKN yok)");
+            // Boş string burada yalnız DAHİLİ bir işaretçidir — partner cevabına ASLA konmaz
+            // (aşağıda user_id yalnız üretilebildiyse validationsOutput'a yazılır).
+            diag.Ok("[Enclave] Bilette geçerli TCKN yok → user_id/person_id üretilmedi.");
+            diag.Info("UserId/PersonId: üretilmedi (geçersiz/eksik TCKN)");
         }
 
         // card_id: read from signed ticket (computed at registration from SOD, globally unique).
@@ -770,6 +829,10 @@ string? partnerId = null;
         // 6. Process Validations (e.g. Age Check, Nationality Check)
         diag.Begin("Validations");
         var validationsOutput = new Dictionary<string, object>();
+        // Partner istedi ama türetilemedi → alan cevaptan düşer, adı buraya yazılır. relay_metadata
+        // ile relay'e taşınır; relay bunu Sentry'ye basar (enclave'in ağ erişimi yok, sinyal ancak
+        // relay üzerinden çıkabilir). Yalnız kod ADLARI — kişisel veri değil.
+        var missingIdentityCodes = new List<string>();
 
         if (reqValidations != null && reqValidations.Count > 0)
         {
@@ -816,17 +879,25 @@ string? partnerId = null;
                         // Tek "user_id" isteği = üç partner-scoped kimlik kodu birden (AYRI string alanlar).
                         // Amaç: ulusal-no şema değişimi (kaldırma/ekleme) ve kart yenileme boyunca partner'ın
                         // aynı kişiyi takip edebilmesi — kodlar değişimden ÖNCE saklanmış olmalı, bu yüzden
-                        // opt-in değil bundle. user_id string kalır (mevcut partner kırılmaz). TCKN yoksa "".
-                        validationsOutput["user_id"] = Mark(userId);
+                        // opt-in değil bundle.
+                        //
+                        // SÖZLEŞME: bir kod türetilemiyorsa ALAN HİÇ DÖNMEZ (boş string DEĞİL).
+                        // Boş string dönmek, kodu türetilemeyen tüm kullanıcıları partner tarafında
+                        // aynı kimliğe çakıştırıyordu. Doğrulama başarılı kalır; eksik alanlar
+                        // relay_metadata üzerinden Sentry'ye sinyallenir.
+                        if (!string.IsNullOrEmpty(userId)) validationsOutput["user_id"] = Mark(userId);
+                        else missingIdentityCodes.Add("user_id");
 
                         // nsbd_id: biyografik kişi kovası (kart yenilemede sabit, olasılıksal ipucu).
                         var nsbd = await IdentityCodes.BuildNsbdIdAsync(_kms, signedTicket.Payload, partnerId ?? "");
                         if (nsbd != null) validationsOutput["nsbd_id"] = Mark(nsbd);
+                        else missingIdentityCodes.Add("nsbd_id");
 
                         // doc_id: partner-scoped card_id (aynı belge ⟹ aynı kişi, sert sinyal).
                         var doc = await IdentityCodes.BuildDocIdAsync(
                             _kms, loginCardId, signedTicket.Payload.DocumentType, partnerId ?? "");
                         if (doc != null) validationsOutput["doc_id"] = Mark(doc);
+                        else missingIdentityCodes.Add("doc_id");
                     }
                 }
 
@@ -877,6 +948,10 @@ string? partnerId = null;
         foreach (var bundledKey in new[] { "nsbd_id", "doc_id" })
             if (validationsOutput.ContainsKey(bundledKey) && !scopesList.Contains(bundledKey))
                 scopesList.Add(bundledKey);
+        // Aynı doğruluk kuralı ters yönde: istendi ama TÜRETİLEMEDİ ise kapsamda görünmemeli —
+        // rıza makbuzu paylaşılmamış bir veriyi paylaşılmış gibi göstermez.
+        if (!validationsOutput.ContainsKey("user_id"))
+            scopesList.Remove("user_id");
         var resultsBool = validationsOutput
             .Where(kv => kv.Value is bool)
             .ToDictionary(kv => kv.Key, kv => (bool)kv.Value);
@@ -891,7 +966,10 @@ string? partnerId = null;
             scopes           = scopesList,
             results          = resultsBool,
             consent_version  = "1.0",
-            enclave_sig      = consentEnclaveSig
+            enclave_sig      = consentEnclaveSig,
+            // Operasyonel sinyal (DB'ye YAZILMAZ, yalnız relay log/Sentry): partner'ın istediği
+            // ama türetilemeyen kimlik kodlarının ADLARI. Boş dizi = her şey yolunda.
+            identity_codes_missing = missingIdentityCodes
         };
 
         // e. Final response: encrypted_response (partner) + relay_metadata (Relay) + nationality (nonce_ledger)

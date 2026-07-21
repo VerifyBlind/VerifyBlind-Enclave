@@ -35,20 +35,26 @@ public class EnclaveController : ControllerBase
     /// Girdi HİBRİT ŞİFRELİ zarftır (enc_key + blob) — PIN relay'e görünmez, yalnız burada açılır.
     /// Türetim zarfın İÇİNDEKİ uuid ile yapılır (relay'in gördüğü düz metin uuid yalnız kota anahtarı).
     ///
-    /// Kaba kuvvet freni burada DEĞİL, relay'dedir (PinDeriveRateLimiter: UUID başına 10/gün +
-    /// cihaz attestation'ı). Bu uç bilerek saf ve deterministiktir; güvenlik HMAC anahtarının
-    /// enclave'de kalmasından gelir → saldırgan offline deneyemez.
+    /// Kaba kuvvet freni İKİ katmanlıdır: birincil fren relay'dedir (PinDeriveRateLimiter: UUID
+    /// başına 10/gün + cihaz attestation'ı), ikincil backstop burada (IPinAttemptLimiter) — relay
+    /// ele geçirilip kendi kotasını atlarsa devreye girer. Ayrıca HMAC anahtarı enclave'de kalır
+    /// → saldırgan offline deneyemez, her tahmin bu iki frenden geçmek zorundadır.
     ///
     /// Sıfır Bilgi: PIN/UUID saklanmaz, loglanmaz.
     /// </summary>
     [HttpPost("derive-pin-person-id")]
     public async Task<IActionResult> DerivePinPersonId([FromBody] DerivePinPersonIdRequest request)
     {
-        var personId = await _service.DerivePinPersonIdAsync(request.EncKey, request.Blob);
-        if (string.IsNullOrEmpty(personId))
-            return BadRequest(new { error = "ERR_PIN_DERIVE_FAILED" });
+        var result = await _service.DerivePinPersonIdAsync(request.EncKey, request.Blob);
 
-        return Ok(new DerivePinPersonIdResponse { PersonId = personId });
+        return result.Status switch
+        {
+            PinDeriveStatus.Ok => Ok(new DerivePinPersonIdResponse { PersonId = result.PersonId! }),
+            // 429 AYRI tutulur: relay bunu altyapı hatası sanıp slot İADE ETMEMELİ — gerçek bir
+            // tahmin oluşmuştur (bkz. BackupController refund mantığı).
+            PinDeriveStatus.RateLimited => StatusCode(429, new { error = "ERR_PIN_RATE_LIMITED" }),
+            _ => BadRequest(new { error = "ERR_PIN_DERIVE_FAILED" })
+        };
     }
 
     [HttpPost("handshake")]
@@ -127,6 +133,9 @@ public class EnclaveController : ControllerBase
                 error = ex.Message,
                 // Biyometrik red skoru (varsa) — relay metriği için, ZK-güvenli skaler
                 face_similarity_score = rejScore.HasValue ? (double?)Math.Round(rejScore.Value * 100, 1) : null,
+                // Belge politikası reddinde SOD-doğrulanmış ihraç ülkesi — relay bunu Sentry'ye
+                // basar. İstemcinin beyan ettiği CountryIsoCode'un aksine GÜVENİLİRDİR.
+                issuing_country = (ex as RegistrationException)?.IssuingCountry,
                 enclave_diag = diag.Entries
             });
         }

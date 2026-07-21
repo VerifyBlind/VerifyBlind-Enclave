@@ -30,7 +30,7 @@ public class EnclaveServiceTests
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
         _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0f, 1.0f, 0f });
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
+        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object, new PinAttemptLimiter());
     }
 
     // ── Handshake ─────────────────────────────────────────────────────────────
@@ -539,51 +539,31 @@ public class EnclaveServiceTests
     }
 
     [Fact]
-    public void ParseDG1ToTicket_TD3_DocCodeStripsFiller()
+    public void ParseDG1ToTicket_TD3_Passport_RejectedByPolicy()
     {
-        // Pasaport "P<" → DocumentType "P".
-        const string td3Line1 = "P<TURYILMAZ<<AHMET<<<<<<<<<<<<<<<<<<<<<<<<<<";
-        const string td3Line2 = "1234567890TUR9001011M3012316123456789017<<00";
+        // Eskiden TD3 ayrıştırılır ve Kişisel Numara alanından TCKN çıkarılırdı. Pasaport desteği
+        // artık KAPALI (JP2 DG2 + AA politikası gerçek bir pasaportla test edilmedi) → Türk
+        // pasaportu bile reddedilir. Açılırken bu test "kabul" yönünde güncellenmeli.
+        const string td3Line1 = "P<TURYILMAZ<<AHMET<<<<<<<<<<<<<<<<<<<<<<<<<<"; // 44
+        const string td3Line2 = "1234567890TUR9001011M3012316123456789017<<00"; // 44
 
-        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(td3Line1 + td3Line2), "pk", "TUR");
+        var mrzString = td3Line1 + td3Line2;
+        Assert.Equal(88, mrzString.Length);
 
-        Assert.Equal("P", ticket.DocumentType);
+        Assert.Throws<Exception>(() => MrzParser.ParseDG1ToTicket(BuildDG1Base64(mrzString), "pk", "TUR"));
     }
 
     [Fact]
-    public void ParseDG1ToTicket_TD1_NonTurkish_NoTckn()
+    public void ParseDG1ToTicket_TD1_NonTurkish_RejectedByPolicy()
     {
-        // German TD1 — country DEU, nationality DEU
+        // German TD1 — country DEU, nationality DEU. Eskiden ayrıştırılıp TCKN'siz (boş user_id
+        // üreten) bir ticket'a dönüşürdü; artık politika kapısında reddedilir.
         const string germanMrz =
             "I<DEU123456789012345678901<<<<" +
             "9001011M3012311DEU00000000<<<0" +
             "MUSTERMANN<<ERIKA<<<<<<<<<<<<<";
 
-        var dg1Base64 = BuildDG1Base64(germanMrz);
-        var ticket = MrzParser.ParseDG1ToTicket(dg1Base64, "pk", "DEU");
-
-        Assert.Equal("", ticket.TCKN); // no TCKN for non-TUR
-        Assert.Equal("ERIKA", ticket.Ad);
-        Assert.Equal("MUSTERMANN", ticket.Soyad);
-    }
-
-    [Fact]
-    public void ParseDG1ToTicket_TD3_TurkishPassport_ExtractsTckn()
-    {
-        // TD3 = 2×44 chars. Personal number field (pos 72-85 in full MRZ) holds TCKN.
-        // Line 1 (44): P<TUR + SURNAME<<GIVENNAME padded to 44 chars
-        // Line 2 (44): DocNo9+Chk+Nat3+DOB6+Chk+Sex1+Exp6+Chk+PersonNo14+PersChk+Composite
-        const string td3Line1 = "P<TURYILMAZ<<AHMET<<<<<<<<<<<<<<<<<<<<<<<<<<"; // P<TUR(5)+YILMAZ(6)+<<(2)+AHMET(5)+26×< = 44
-        const string td3Line2 = "1234567890TUR9001011M3012316123456789017<<00"; // 44 chars
-
-        var mrzString = td3Line1 + td3Line2;
-        Assert.Equal(88, mrzString.Length);
-
-        var dg1Base64 = BuildDG1Base64(mrzString);
-        var ticket = MrzParser.ParseDG1ToTicket(dg1Base64, "pk", "TUR");
-
-        // Personal number at mrzString pos 72 (= td3Line2 pos 28): "12345678901 7<<" → TCKN = "12345678901"
-        Assert.Equal("12345678901", ticket.TCKN);
+        Assert.Throws<Exception>(() => MrzParser.ParseDG1ToTicket(BuildDG1Base64(germanMrz), "pk", "DEU"));
     }
 
     [Fact]
@@ -1019,7 +999,7 @@ public class EnclaveServiceTests
     [Fact]
     public void ParseDG1ToTicket_UnsupportedDocType_Throws()
     {
-        // 'V' = visa — only P / I / A / C are accepted document types.
+        // 'V' = visa — only the Turkish ID card (I / ID) is accepted.
         var visaMrz = "V" + FakeTurkishTD1Mrz.Substring(1);
         Assert.Throws<Exception>(() => MrzParser.ParseDG1ToTicket(BuildDG1Base64(visaMrz), "pk", "TUR"));
     }
@@ -1043,13 +1023,78 @@ public class EnclaveServiceTests
     }
 
     [Fact]
-    public void ParseDG1ToTicket_NonTurkishCard_LeavesTcknEmpty()
+    public void ParseDG1ToTicket_NonTurkishCard_Throws()
     {
-        // Even though the optional-data field is numeric, a non-TUR/THA card must not yield a TCKN.
+        // Document policy is Turkish-ID-only: a foreign card is rejected outright rather than
+        // parsed into a ticket with an empty TCKN (which used to collapse every TCKN-less user
+        // onto the same empty user_id at the partner).
         var frenchMrz = FakeTurkishTD1Mrz.Replace("TUR", "FRA");
-        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(frenchMrz), "pk", "FRA");
+        Assert.Throws<Exception>(() => MrzParser.ParseDG1ToTicket(BuildDG1Base64(frenchMrz), "pk", "FRA"));
+    }
+
+    [Fact]
+    public void ParseDG1ToTicket_TurkishPassport_Throws()
+    {
+        // TD3 passports are not supported yet (JP2 DG2 + AA policy untested) — including Turkish ones.
+        var passportMrz = "P<TUR" + FakeTurkishTD1Mrz.Substring(5);
+        Assert.Throws<Exception>(() => MrzParser.ParseDG1ToTicket(BuildDG1Base64(passportMrz), "pk", "TUR"));
+    }
+
+    [Fact]
+    public void ParseDG1ToTicket_InvalidTcknInOptionalData_LeavesTcknEmpty()
+    {
+        // Optional-data field that is not a well-formed TCKN must yield an empty TCKN — downstream
+        // this drops user_id from the partner response instead of emitting a shared empty value.
+        var badTcknMrz = "I<TUR123456789012345AB8901<<<<" +
+                         FakeTurkishTD1Mrz.Substring(30);
+        var ticket = MrzParser.ParseDG1ToTicket(BuildDG1Base64(badTcknMrz), "pk", "TUR");
         Assert.Equal("", ticket.TCKN);
-        Assert.Equal("FRA", ticket.Uyruk);
+    }
+
+    // ── DocumentPolicy ────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("TUR", "I")]
+    [InlineData("TUR", "ID")]
+    [InlineData("tur", "i<")]   // normalizasyon: küçük harf + MRZ dolgusu
+    public void DocumentPolicy_TurkishIdCard_IsAccepted(string country, string docCode)
+    {
+        Assert.Equal(DocumentPolicy.Verdict.Accepted, DocumentPolicy.Evaluate(country, docCode));
+    }
+
+    [Theory]
+    [InlineData("DEU", "I")]
+    [InlineData("USA", "P")]
+    [InlineData("", "I")]
+    [InlineData(null, "I")]
+    public void DocumentPolicy_NonTurkishDocument_IsUnsupportedCountry(string? country, string docCode)
+    {
+        Assert.Equal(DocumentPolicy.Verdict.UnsupportedCountry, DocumentPolicy.Evaluate(country, docCode));
+    }
+
+    [Theory]
+    [InlineData("P")]    // pasaport
+    [InlineData("V")]    // vize
+    [InlineData("")]
+    [InlineData(null)]
+    public void DocumentPolicy_TurkishNonIdDocument_IsUnsupportedDocumentType(string? docCode)
+    {
+        Assert.Equal(DocumentPolicy.Verdict.UnsupportedDocumentType, DocumentPolicy.Evaluate("TUR", docCode));
+    }
+
+    [Fact]
+    public void DocumentPolicy_CountryCheckPrecedesDocumentType()
+    {
+        // Yabancı pasaportta "pasaport desteklenmiyor" demek yanıltıcı olurdu.
+        Assert.Equal(DocumentPolicy.Verdict.UnsupportedCountry, DocumentPolicy.Evaluate("DEU", "P"));
+    }
+
+    [Fact]
+    public void DocumentPolicy_ErrorCodeFor_MapsVerdicts()
+    {
+        Assert.Equal("ERR_UNSUPPORTED_COUNTRY", DocumentPolicy.ErrorCodeFor(DocumentPolicy.Verdict.UnsupportedCountry));
+        Assert.Equal("ERR_UNSUPPORTED_DOC_TYPE", DocumentPolicy.ErrorCodeFor(DocumentPolicy.Verdict.UnsupportedDocumentType));
+        Assert.Null(DocumentPolicy.ErrorCodeFor(DocumentPolicy.Verdict.Accepted));
     }
 
     // ── VerifyDGHashes — DG15 path (fallback scan) ────────────────────────────
@@ -1282,13 +1327,14 @@ public class EnclaveServiceTests
     }
 
     /// <summary>Gerçek RSA ile decrypt eden key service mock'u + gerçek (local) KMS'li servis.</summary>
-    private EnclaveService ServiceWithRealCrypto(RSA rsa, LocalKmsService kms)
+    private EnclaveService ServiceWithRealCrypto(RSA rsa, LocalKmsService kms, IPinAttemptLimiter? limiter = null)
     {
         var keys = new Mock<IEnclaveKeyService>();
         keys.Setup(k => k.DecryptWithEnclaveKey(It.IsAny<string>()))
             .Returns((string c) => Encoding.UTF8.GetString(
                 rsa.Decrypt(Convert.FromBase64String(c), RSAEncryptionPadding.OaepSHA256)));
-        return new EnclaveService(keys.Object, kms, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
+        return new EnclaveService(keys.Object, kms, _biometrics.Object, _ticketMac.Object,
+            _antiSpoof.Object, limiter ?? new PinAttemptLimiter());
     }
 
     [Fact]
@@ -1299,12 +1345,12 @@ public class EnclaveServiceTests
         var service = ServiceWithRealCrypto(rsa, kms);
 
         var (encKey, blob) = BuildPinEnvelope("123456", "uuid-fixed", rsa);
-        var fromEnvelope = await service.DerivePinPersonIdAsync(encKey, blob);
+        var result = await service.DerivePinPersonIdAsync(encKey, blob);
 
         // Zarf yolu, doğrudan türetimle AYNI sonucu vermeli (zarf yalnız taşıma katmanı).
         var direct = await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-fixed");
-        Assert.False(string.IsNullOrEmpty(fromEnvelope));
-        Assert.Equal(direct, fromEnvelope);
+        Assert.Equal(PinDeriveStatus.Ok, result.Status);
+        Assert.Equal(direct, result.PersonId);
     }
 
     [Fact]
@@ -1319,14 +1365,14 @@ public class EnclaveServiceTests
         var (encKey, blob) = BuildPinEnvelope("123456", "uuid-inner", rsa);
         var result = await service.DerivePinPersonIdAsync(encKey, blob);
 
-        Assert.Equal(await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-inner"), result);
-        Assert.NotEqual(await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-outer"), result);
+        Assert.Equal(await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-inner"), result.PersonId);
+        Assert.NotEqual(await IdentityCodes.BuildPinPersonIdAsync(kms, "123456", "uuid-outer"), result.PersonId);
     }
 
     [Fact]
-    public async Task DerivePinPersonId_TamperedBlob_ReturnsNull()
+    public async Task DerivePinPersonId_TamperedBlob_ReturnsInvalid()
     {
-        // GCM tag uyuşmazlığı → çözülemez. Sessizce null (ayrıntı sızdırılmaz), istisna FIRLATILMAZ.
+        // GCM tag uyuşmazlığı → çözülemez. Sessizce Invalid (ayrıntı sızdırılmaz), istisna FIRLATILMAZ.
         using var rsa = RSA.Create(2048);
         var service = ServiceWithRealCrypto(rsa, new LocalKmsService());
 
@@ -1335,16 +1381,91 @@ public class EnclaveServiceTests
         raw[^1] ^= 0xFF; // son tag baytını boz
         var tampered = Convert.ToBase64String(raw);
 
-        Assert.Null(await service.DerivePinPersonIdAsync(encKey, tampered));
+        var result = await service.DerivePinPersonIdAsync(encKey, tampered);
+        Assert.Equal(PinDeriveStatus.Invalid, result.Status);
+        Assert.Null(result.PersonId);
     }
 
     [Fact]
-    public async Task DerivePinPersonId_EmptyEnvelope_ReturnsNull()
+    public async Task DerivePinPersonId_EmptyEnvelope_ReturnsInvalid()
     {
         using var rsa = RSA.Create(2048);
         var service = ServiceWithRealCrypto(rsa, new LocalKmsService());
 
-        Assert.Null(await service.DerivePinPersonIdAsync("", "blob"));
-        Assert.Null(await service.DerivePinPersonIdAsync("enc", ""));
+        Assert.Equal(PinDeriveStatus.Invalid, (await service.DerivePinPersonIdAsync("", "blob")).Status);
+        Assert.Equal(PinDeriveStatus.Invalid, (await service.DerivePinPersonIdAsync("enc", "")).Status);
+    }
+
+    // ── Enclave-içi tahmin backstop'u (IPinAttemptLimiter) ────────────────────
+
+    [Fact]
+    public async Task DerivePinPersonId_ExceedsEnclaveQuota_ReturnsRateLimited()
+    {
+        // Ele geçirilmiş relay kendi kotasını atlarsa devreye giren ikinci fren.
+        using var rsa = RSA.Create(2048);
+        var service = ServiceWithRealCrypto(rsa, new LocalKmsService(), new PinAttemptLimiter(maxPerWindow: 3));
+
+        for (int i = 0; i < 3; i++)
+        {
+            var (k, b) = BuildPinEnvelope($"11111{i}", "uuid-victim", rsa);
+            Assert.Equal(PinDeriveStatus.Ok, (await service.DerivePinPersonIdAsync(k, b)).Status);
+        }
+
+        // 4. tahmin — aynı uuid, farklı PIN → reddedilmeli.
+        var (encKey, blob) = BuildPinEnvelope("999999", "uuid-victim", rsa);
+        var result = await service.DerivePinPersonIdAsync(encKey, blob);
+        Assert.Equal(PinDeriveStatus.RateLimited, result.Status);
+        Assert.Null(result.PersonId);
+    }
+
+    [Fact]
+    public async Task DerivePinPersonId_QuotaIsPerUuid_OtherUuidUnaffected()
+    {
+        // Bir kullanıcının kotasının dolması başkasınınkini etkilememeli.
+        using var rsa = RSA.Create(2048);
+        var service = ServiceWithRealCrypto(rsa, new LocalKmsService(), new PinAttemptLimiter(maxPerWindow: 2));
+
+        for (int i = 0; i < 2; i++)
+        {
+            var (k, b) = BuildPinEnvelope("123456", "uuid-a", rsa);
+            await service.DerivePinPersonIdAsync(k, b);
+        }
+        var (ka, ba) = BuildPinEnvelope("123456", "uuid-a", rsa);
+        Assert.Equal(PinDeriveStatus.RateLimited, (await service.DerivePinPersonIdAsync(ka, ba)).Status);
+
+        var (kb, bb) = BuildPinEnvelope("123456", "uuid-b", rsa);
+        Assert.Equal(PinDeriveStatus.Ok, (await service.DerivePinPersonIdAsync(kb, bb)).Status);
+    }
+
+    [Fact]
+    public void PinAttemptLimiter_WindowExpiry_RestoresQuota()
+    {
+        // Pencere dolduğunda kota kendiliğinden açılır (kalıcı kilit YOK).
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var limiter = new PinAttemptLimiter(maxPerWindow: 2, windowLength: TimeSpan.FromHours(24),
+            now: () => now);
+
+        Assert.True(limiter.TryConsume("uuid-1"));
+        Assert.True(limiter.TryConsume("uuid-1"));
+        Assert.False(limiter.TryConsume("uuid-1"));
+
+        now = now.AddHours(24).AddSeconds(1);
+        Assert.True(limiter.TryConsume("uuid-1"));
+    }
+
+    [Fact]
+    public void PinAttemptLimiter_TableFull_RejectsNewUuidsButKeepsExistingCounters()
+    {
+        // Kapasite aşımında YENİ uuid reddedilir; MEVCUT sayaçlar tahliye EDİLMEZ. Tahliye olsaydı
+        // saldırgan tabloyu doldurarak kurbanın sayacını sıfırlayabilirdi.
+        var now = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var limiter = new PinAttemptLimiter(maxPerWindow: 5, maxTrackedUuids: 2, now: () => now);
+
+        Assert.True(limiter.TryConsume("uuid-1"));
+        Assert.True(limiter.TryConsume("uuid-2"));
+        Assert.False(limiter.TryConsume("uuid-3")); // tablo dolu → fail-closed
+
+        // uuid-1 hâlâ takip ediliyor ve sayacı korunuyor (sıfırlanmadı).
+        Assert.True(limiter.TryConsume("uuid-1"));
     }
 }
