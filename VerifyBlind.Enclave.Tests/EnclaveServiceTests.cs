@@ -1089,6 +1089,34 @@ public class EnclaveServiceTests
         Assert.Equal(DocumentPolicy.Verdict.UnsupportedCountry, DocumentPolicy.Evaluate("DEU", "P"));
     }
 
+    // ── DG1 okunamadı ≠ belge desteklenmiyor ──────────────────────────────────
+    // Okunamayan DG1 fail-closed reddedilir AMA "belgeniz TC değil" diye raporlanamaz: geçerli bir
+    // TC kimliğinde de NFC/aktarım arızasıyla oluşabilir. Ayrım null dönüşüyle taşınır; çağıran
+    // (EnclaveService Step 5.5) bunu ERR_DG1_PARSE'a çevirir, ERR_UNSUPPORTED_COUNTRY'ye DEĞİL.
+
+    [Theory]
+    [InlineData("")]                    // boş DG1
+    [InlineData("not-base64!!")]        // base64 değil
+    [InlineData("AAECAwQ=")]            // geçerli base64 ama DG1/MRZ değil, çok kısa
+    public void ExtractPolicyFieldsFromDG1_UnreadableDg1_ReturnsNull(string dg1Base64)
+    {
+        Assert.Null(MrzParser.ExtractPolicyFieldsFromDG1(dg1Base64));
+    }
+
+    [Fact]
+    public void ExtractPolicyFieldsFromDG1_ReadableDg1_ReturnsCountryAndDocCode()
+    {
+        // TD1 MRZ satır 1: "I<TUR..." → belge kodu "I", ülke "TUR" (regex fallback yolu yeterli)
+        var mrz = "I<TUR12345678901234567890<<<<" + new string('0', 61);
+        var dg1Base64 = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(mrz));
+
+        var fields = MrzParser.ExtractPolicyFieldsFromDG1(dg1Base64);
+
+        Assert.NotNull(fields);
+        Assert.Equal("TUR", fields!.Value.issuingCountry);
+        Assert.Equal("I", fields.Value.documentCode);
+    }
+
     [Fact]
     public void DocumentPolicy_ErrorCodeFor_MapsVerdicts()
     {

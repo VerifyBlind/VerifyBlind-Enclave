@@ -241,7 +241,21 @@ public class EnclaveService
         try
         {
             diag.Begin("Document Policy");
-            var (polCountry, polDocCode) = MrzParser.ExtractPolicyFieldsFromDG1(payload.DG1);
+            var polFields = MrzParser.ExtractPolicyFieldsFromDG1(payload.DG1);
+            if (polFields == null)
+            {
+                // DG1 hiç çözülemedi. Fail-closed kalıyoruz (kayıt reddedilir) ama bunu "belge
+                // desteklenmiyor" diye RAPORLAMIYORUZ: okunamayan DG1 geçerli bir TC kimliğinde de
+                // olabilir (NFC/aktarım arızası). Kullanıcıya "belgeniz TC değil" demek hem yanlış
+                // hem çıkmaz; ERR_DG1_PARSE "kart okunamadı, tekrar deneyin" mesajına eşlenir.
+                diag.Fail("Document Policy", "DG1 okunamadı — politika alanları çıkarılamadı");
+                Console.WriteLine("[Enclave] Belge politikası: DG1 okunamadı → ERR_DG1_PARSE (fail-closed red).");
+                throw new RegistrationException(
+                    RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.Dg1Parse,
+                    "DG1 okunamadı: politika alanları (ülke/belge kodu) çıkarılamadı.");
+            }
+
+            var (polCountry, polDocCode) = polFields.Value;
             var verdict = DocumentPolicy.Evaluate(polCountry, polDocCode);
             if (verdict != DocumentPolicy.Verdict.Accepted)
             {
@@ -263,7 +277,10 @@ public class EnclaveService
         {
             diag.Fail("Document Policy", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.DocumentPolicy}] adımında başarısız: {ex}");
-            throw new RegistrationException(RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.UnsupportedDocType, ex.Message);
+            // Beklenmedik bir hata, belgenin desteklenmediğinin KANITI değildir — bu adımda
+            // patlayan her şey teşhis olarak "kart okunamadı"dır (ERR_UNSUPPORTED_DOC_TYPE
+            // kullanıcıya "pasaportunuz kabul edilmiyor" derdi; iç arızada bu yanlış ve çıkmaz).
+            throw new RegistrationException(RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.Dg1Parse, ex.Message);
         }
 
         // --- Step 6: Biometric Verification (parallel embedding) ---

@@ -127,10 +127,18 @@ public static class MrzParser
     /// [BelgeKodu2][Ülke3] — TD1 "I&lt;TUR..", TD3 "P&lt;TUR..". Bu yüzden format ayrımı
     /// yapmadan okunabilir; TD3 zaten politikada reddedilecektir.</para>
     ///
-    /// Ayrıştırılamazsa ("", "") döner → politika bunu UnsupportedCountry olarak reddeder
-    /// (fail-closed).
+    /// <returns>
+    /// DG1 okunabildiyse <c>(ülke, belgeKodu)</c>. DG1 hiç çözülemediyse <c>null</c>.
+    /// </returns>
+    ///
+    /// <para><b>null neden ayrı bir sonuç:</b> önceden burada ("", "") dönülüyordu ve politika
+    /// bunu <c>UnsupportedCountry</c> olarak reddediyordu. Karar (fail-closed red) doğruydu ama
+    /// TEŞHİS yanlıştı: okunamayan DG1, "belge Türkiye tarafından verilmemiş" demek DEĞİLDİR —
+    /// geçerli bir TC kimliğinde de NFC/aktarım arızasıyla oluşabilir. Çağıran iki durumu farklı
+    /// hata kodlarına ayırmalı ki kullanıcıya "kartınız okunamadı, tekrar deneyin" densin,
+    /// "belgeniz TC değil" gibi çıkmaz bir mesaj değil.</para>
     /// </summary>
-    internal static (string issuingCountry, string documentCode) ExtractPolicyFieldsFromDG1(string dg1Base64)
+    internal static (string issuingCountry, string documentCode)? ExtractPolicyFieldsFromDG1(string dg1Base64)
     {
         try
         {
@@ -142,12 +150,13 @@ public static class MrzParser
                 var country = mrz.Substring(2, 3).Replace("<", "").Trim().ToUpperInvariant();
                 return (country, docCode);
             }
+            Console.WriteLine($"[Enclave] DG1'den MRZ okundu ama politika için çok kısa (uzunluk={mrz?.Length ?? 0}).");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[Enclave] Politika alanları DG1'den çıkarılamadı: {ex.Message}");
         }
-        return (string.Empty, string.Empty);
+        return null;
     }
 
     /// <summary>
