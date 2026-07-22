@@ -329,7 +329,12 @@ public class EnclaveService
         if (ticketPayload.GecerlilikTarihi < DateTime.UtcNow.Date)
         {
             Console.WriteLine($"[Enclave] Kimlik kartı süresi dolmuş: {ticketPayload.GecerlilikTarihi:yyyy-MM-dd}");
-            throw new RegistrationException(RegistrationStep.Dg1Parsing, "ERR_CARD_EXPIRED", $"Expired: {ticketPayload.GecerlilikTarihi:yyyy-MM-dd}");
+            // detail'e geçerlilik tarihini YAZMA. detail, RegistrationException.Message üzerinden
+            // enclave'in HTTP hata gövdesine, oradan da relay'in Sentry event'ine gider — yani
+            // çipten okunan bir alan enclave güven sınırının dışına, üçüncü taraf bir SaaS'a çıkar.
+            // Kod (ERR_CARD_EXPIRED) teşhis için zaten yeterli; tarih hiçbir şey eklemiyor.
+            // (Yukarıdaki Console satırı enclave stdout'unda kalır — prod EIF'te erişilemez.)
+            throw new RegistrationException(RegistrationStep.Dg1Parsing, "ERR_CARD_EXPIRED");
         }
         Console.WriteLine($"[Enclave] Kart geçerlilik tarihi DOĞRULANDI ✓ ({ticketPayload.GecerlilikTarihi:yyyy-MM-dd})");
 
@@ -804,7 +809,11 @@ string? partnerId = null;
         if (signedTicket.Payload.GecerlilikTarihi < DateTime.UtcNow.Date)
         {
             Console.WriteLine($"[Enclave] Kimlik kartı süresi dolmuş: {signedTicket.Payload.GecerlilikTarihi:yyyy-MM-dd}");
-            throw new CardExpiredException($"Kimlik kartının geçerlilik süresi dolmuş ({signedTicket.Payload.GecerlilikTarihi:dd.MM.yyyy}). Giriş yapılamaz.");
+            // Mesaja geçerlilik tarihini YAZMA: bu metin login hata gövdesine (error alanı) girer ve
+            // relay onu Sentry'ye + verification_logs'a basar → çipten okunan bir alan enclave güven
+            // sınırının dışına çıkar. Kullanıcıya zaten bu metin DEĞİL, relay'in resx'i gösterilir
+            // (error_code=ERR_CARD_EXPIRED → EnclaveErrorCardExpired), yani tarih kimseye lazım değil.
+            throw new CardExpiredException("Kimlik kartının geçerlilik süresi dolmuş. Giriş yapılamaz.");
         }
         Console.WriteLine($"[Enclave] Kart geçerlilik tarihi DOĞRULANDI ✓ ({signedTicket.Payload.GecerlilikTarihi:yyyy-MM-dd})");
 
