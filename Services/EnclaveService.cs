@@ -461,6 +461,20 @@ public class EnclaveService
     internal const string DemoTckn = "00000000000";
 
     /// <summary>
+    /// Login'de user_id (ve diğer kimlik kodları) türetilebilir mi? Gerçek kartlar TCKN format
+    /// kapısından (<see cref="IdentityCodes.IsValidTckn"/>) geçmek zorundadır; demo kart sentinel'i
+    /// (<see cref="DemoTckn"/>) bilinçli olarak muaftır — çıktı zaten "TEST_" ile işaretlenir.
+    ///
+    /// <para><b>Neden ayrı bir kapı:</b> demo sentinel tümü-sıfırdır ve <c>IsValidTckn</c> "gerçek
+    /// TCKN 0 ile başlayamaz" kuralı yüzünden onu (doğru biçimde) reddeder. O kurala dokunmadan
+    /// (gerçek çöp TCKN'ler elenmeye devam etsin) demo'yu burada muaf tutuyoruz. Yalnız login
+    /// yolu bu muafiyete ihtiyaç duyar: gerçek register asla demo sentinel taşımaz (demo kaydın
+    /// kendi ayrı hardcoded yolu vardır).</para>
+    /// </summary>
+    internal static bool DerivesIdentityCodes(string? tckn) =>
+        IdentityCodes.IsValidTckn(tckn) || tckn == DemoTckn;
+
+    /// <summary>
     /// Demo Mode için hardcoded veriyle gerçek imzalı ticket üretir.
     /// NFC/biometrik adımları atlanır; ID üretimi, imza ve şifreleme normal akıştaki gibi gerçek HSM ile yapılır.
     /// Tek farkı: SecurePayload yok, kimlik verisi enklavın içine gömülü.
@@ -742,9 +756,10 @@ string? partnerId = null;
         // UserId HMAC'ı imza doğrulamasından bağımsız — paralel başlat.
         // TCKN formatı BURADA doğrulanır (yalnız "boş mu" değil): geçersizse kod hiç üretilmez ve
         // user_id partner cevabından DÜŞER — eskiden boş string dönüyordu, bu da TCKN'siz tüm
-        // kullanıcıları partner tarafında aynı kimliğe çakıştırıyordu.
+        // kullanıcıları partner tarafında aynı kimliğe çakıştırıyordu. Demo kart sentinel'i muaf
+        // tutulur (bkz. DerivesIdentityCodes) → demo login "TEST_" önekli user_id üretmeye devam eder.
         Task<string>? userIdHmacTask = null;
-        if (IdentityCodes.IsValidTckn(signedTicket.Payload.TCKN))
+        if (DerivesIdentityCodes(signedTicket.Payload.TCKN))
         {
             diag.Begin("UserId+PersonId");
             userIdHmacTask = _kms.ComputeHmacAsync($"{signedTicket.Payload.TCKN}:{partnerId}");

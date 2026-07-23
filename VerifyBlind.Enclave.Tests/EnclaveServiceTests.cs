@@ -1125,6 +1125,28 @@ public class EnclaveServiceTests
         Assert.Null(DocumentPolicy.ErrorCodeFor(DocumentPolicy.Verdict.Accepted));
     }
 
+    // ── DerivesIdentityCodes — login user_id kapısı + demo muafiyeti ──────────
+    // Gerçek kartlar TCKN format kapısından geçmeli; demo kart sentinel'i ("00000000000") bilinçli
+    // muaftır. Sentinel tümü-sıfır olduğu için IsValidTckn onu (doğru biçimde) reddeder — bu kapı
+    // olmadan demo login sessizce user_id ÜRETMEZ ve alan partner cevabından düşer (regresyon).
+
+    [Theory]
+    [InlineData("12345678901")]   // gerçek format
+    [InlineData("98765432109")]   // gerçek format
+    [InlineData(EnclaveService.DemoTckn)]  // demo sentinel — muaf
+    public void DerivesIdentityCodes_ValidTcknOrDemo_IsTrue(string tckn)
+        => Assert.True(EnclaveService.DerivesIdentityCodes(tckn));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]               // boş — TCKN yok
+    [InlineData("01234567890")]    // 0-başlangıçlı: gerçek olamaz ve demo sentinel de değil
+    [InlineData("0000000000")]     // 10 hane — demo sentinel'e benzer ama format tutmuyor
+    [InlineData("1234567890")]     // 10 hane
+    [InlineData("1234567890A")]    // harf içeriyor
+    public void DerivesIdentityCodes_InvalidNonDemo_IsFalse(string? tckn)
+        => Assert.False(EnclaveService.DerivesIdentityCodes(tckn));
+
     // ── VerifyDGHashes — DG15 path (fallback scan) ────────────────────────────
 
     [Fact]
