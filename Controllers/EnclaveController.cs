@@ -28,35 +28,6 @@ public class EnclaveController : ControllerBase
         return Ok(new { public_key = _keyService.GetEnclavePublicKey() });
     }
 
-    /// <summary>
-    /// POST /api/Enclave/derive-pin-person-id
-    /// TCKN'siz kimliklerin bulut yedek KEK'i için PIN → person_id türetir.
-    ///
-    /// Girdi HİBRİT ŞİFRELİ zarftır (enc_key + blob) — PIN relay'e görünmez, yalnız burada açılır.
-    /// Türetim zarfın İÇİNDEKİ uuid ile yapılır (relay'in gördüğü düz metin uuid yalnız kota anahtarı).
-    ///
-    /// Kaba kuvvet freni İKİ katmanlıdır: birincil fren relay'dedir (PinDeriveRateLimiter: UUID
-    /// başına 10/gün + cihaz attestation'ı), ikincil backstop burada (IPinAttemptLimiter) — relay
-    /// ele geçirilip kendi kotasını atlarsa devreye girer. Ayrıca HMAC anahtarı enclave'de kalır
-    /// → saldırgan offline deneyemez, her tahmin bu iki frenden geçmek zorundadır.
-    ///
-    /// Sıfır Bilgi: PIN/UUID saklanmaz, loglanmaz.
-    /// </summary>
-    [HttpPost("derive-pin-person-id")]
-    public async Task<IActionResult> DerivePinPersonId([FromBody] DerivePinPersonIdRequest request)
-    {
-        var result = await _service.DerivePinPersonIdAsync(request.EncKey, request.Blob);
-
-        return result.Status switch
-        {
-            PinDeriveStatus.Ok => Ok(new DerivePinPersonIdResponse { PersonId = result.PersonId! }),
-            // 429 AYRI tutulur: relay bunu altyapı hatası sanıp slot İADE ETMEMELİ — gerçek bir
-            // tahmin oluşmuştur (bkz. BackupController refund mantığı).
-            PinDeriveStatus.RateLimited => StatusCode(429, new { error = "ERR_PIN_RATE_LIMITED" }),
-            _ => BadRequest(new { error = "ERR_PIN_DERIVE_FAILED" })
-        };
-    }
-
     [HttpPost("handshake")]
     public IActionResult Handshake()
     {

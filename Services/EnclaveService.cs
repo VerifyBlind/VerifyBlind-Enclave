@@ -17,71 +17,15 @@ public class EnclaveService
     private readonly IAntiSpoofService _antiSpoof;
     // Ticket'lar enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
     private readonly ITicketMacService _ticketMac;
-    // PIN tahmin backstop'u — relay ele geçirilse bile kaba kuvveti UUID başına N/gün'e indirir.
-    private readonly IPinAttemptLimiter _pinLimiter;
-
-    /// <summary>
-    /// TCKN'siz kimlikler için PIN tabanlı person_id türetir (bulut yedek KEK'ini besler).
-    ///
-    /// <para>Girdi HİBRİT ŞİFRELİ zarftır (kayıt akışıyla aynı kalıp): <paramref name="encKey"/> =
-    /// enclave public key'ine RSA-OAEP-SHA256 ile sarılı AES anahtarı, <paramref name="blob"/> =
-    /// AES-GCM gövde. PIN böylece relay'e HİÇ görünmez — zarf yalnız burada açılır.</para>
-    ///
-    /// <para>Türetim zarfın İÇİNDEKİ uuid ile yapılır: yakalanan bir zarf başka bir uuid'ye
-    /// eşleştirilip kurbanın PIN'i test edilemesin diye. Saf ve deterministik — kaba kuvvet freni
-    /// RELAY'dedir (PinDeriveRateLimiter), burada değil.</para>
-    ///
-    /// <para>Zarf açılamaz/bozuksa ya da pin/uuid boşsa <c>Invalid</c> (ayrıntı sızdırılmaz).
-    /// Enclave-içi kota (<see cref="IPinAttemptLimiter"/>) aşılmışsa <c>RateLimited</c> — çağıran
-    /// bunu 429'a çevirir ve relay slot İADE ETMEZ (gerçek bir tahmin oluşmuştur).</para>
-    /// </summary>
-    public async Task<PinDeriveResult> DerivePinPersonIdAsync(string encKey, string blob)
-    {
-        if (string.IsNullOrEmpty(encKey) || string.IsNullOrEmpty(blob))
-            return PinDeriveResult.Invalid;
-
-        PinDerivePayload? payload;
-        try
-        {
-            var aesKey = _enclaveKeys.DecryptWithEnclaveKey(encKey);
-            var payloadJson = CryptoUtils.AesDecrypt(blob, aesKey);
-            payload = JsonSerializer.Deserialize<PinDerivePayload>(payloadJson);
-        }
-        catch (Exception)
-        {
-            // Bozuk/kurcalanmış zarf ya da yanlış anahtar (GCM tag). PIN içerebileceği için
-            // istisna DETAYI loglanmaz; çağıran taraf yalnız "türetilemedi" görür.
-            Console.WriteLine("[Enclave] PIN zarfı çözülemedi.");
-            return PinDeriveResult.Invalid;
-        }
-
-        if (payload == null || string.IsNullOrEmpty(payload.Pin) || string.IsNullOrEmpty(payload.Uuid))
-            return PinDeriveResult.Invalid;
-
-        // Enclave-içi backstop: ele geçirilmiş bir relay kendi kotasını atlarsa devreye girer.
-        // Anahtar, relay'in beyan ettiği dış uuid DEĞİL, zarftan ÇÖZÜLEN uuid'dir — sahte uuid ile
-        // sayaç dağıtılamaz. Tüketim türetimden ÖNCE yapılır (reddedilen istek KMS'e gitmez).
-        if (!_pinLimiter.TryConsume(payload.Uuid))
-        {
-            Console.WriteLine("[Enclave] PIN türetme enclave-içi kotayı aştı — reddedildi.");
-            return PinDeriveResult.RateLimited;
-        }
-
-        var personId = await IdentityCodes.BuildPinPersonIdAsync(_kms, payload.Pin, payload.Uuid);
-        return string.IsNullOrEmpty(personId)
-            ? PinDeriveResult.Invalid
-            : new PinDeriveResult(PinDeriveStatus.Ok, personId);
-    }
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
-        ITicketMacService ticketMac, IAntiSpoofService antiSpoof, IPinAttemptLimiter pinLimiter)
+        ITicketMacService ticketMac, IAntiSpoofService antiSpoof)
     {
         _enclaveKeys = enclaveKeys;
         _kms = kms;
         _biometricService = biometricService;
         _ticketMac = ticketMac;
         _antiSpoof = antiSpoof;
-        _pinLimiter = pinLimiter;
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
