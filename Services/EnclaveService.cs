@@ -439,7 +439,7 @@ public class EnclaveService
         {
             TCKN = demoTckn,
             Ad = "Demo",
-            Soyad = "Kullanıcı",
+            Soyad = "User",
             DogumTarihi = new DateTime(1992, 1, 1),
             SeriNo = "A12345678",
             GecerlilikTarihi = new DateTime(2030, 12, 31),
@@ -447,7 +447,7 @@ public class EnclaveService
             Uyruk = "TUR",
             UserPubKey = userPubKey,
             CountryIsoCode = "TUR",
-            DocumentType = "ID"
+            DocumentType = "I"
         };
 
         // --- ID Generation (real KMS HMAC — same algorithm as production) ---
