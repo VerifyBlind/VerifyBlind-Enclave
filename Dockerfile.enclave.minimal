@@ -1,0 +1,21 @@
+# Simplified Enclave Dockerfile without ONNX (for isolation)
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY ["VerifyBlind.Enclave/VerifyBlind.Enclave.csproj", "VerifyBlind.Enclave/"]
+COPY ["VerifyBlind.Enclave/VerifyBlind.Core/VerifyBlind.Core.csproj", "VerifyBlind.Enclave/VerifyBlind.Core/"]
+RUN dotnet restore "VerifyBlind.Enclave/VerifyBlind.Enclave.csproj"
+COPY . .
+WORKDIR "/src/VerifyBlind.Enclave"
+RUN dotnet publish -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -o /app/publish
+
+FROM debian:bookworm-slim AS final
+WORKDIR /app
+ENV ASPNETCORE_ENVIRONMENT=Production
+RUN apt-get update && apt-get install -y socat libicu72 && rm -rf /var/lib/apt/lists/*
+COPY --from=build /app/publish .
+COPY VerifyBlind.Enclave/Certificates/ /app/Certificates/
+COPY scripts/enclave-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+EXPOSE 5101
+ENTRYPOINT ["/app/entrypoint.sh"]

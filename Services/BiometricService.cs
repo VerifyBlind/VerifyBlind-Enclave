@@ -1,0 +1,189 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Linq;
+using System.Numerics.Tensors; // Ensure this is present, or for older libs use Microsoft.ML.OnnxRuntime.Tensors
+using Microsoft.ML.OnnxRuntime;
+using Microsoft.ML.OnnxRuntime.Tensors; // ADDED for DenseTensor
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using VerifyBlind.Enclave.Services.FaceAlignment;
+
+namespace VerifyBlind.Enclave.Services
+{
+    public interface IBiometricService
+    {
+        float VerifyFace(byte[] idPhotoBytes, byte[] probePhotoBytes);
+        float VerifyFaceParallel(byte[] idPhotoBytes, byte[] probePhotoBytes);
+        bool IsModelLoaded { get; }
+    }
+
+    public class BiometricService : IBiometricService
+    {
+        private InferenceSession? _session;
+        private readonly string _modelPath;
+        private string _inputName = "input.1";
+        private bool _isLoaded = false;
+        private readonly FaceAligner _aligner;
+
+        public bool IsModelLoaded => _isLoaded;
+
+        public BiometricService()
+        {
+            string basePath = AppDomain.CurrentDomain.BaseDirectory;
+            _modelPath = Path.Combine(basePath, "Models", "w600k_r50.onnx");
+
+            LoadModel();
+            // YuNet 5-nokta hizalama — w600k_r50 bu hizalamayla eğitildi. Yüz bulunamazsa
+            // FaceAligner merkez-kırpmaya düşer (eski SmartFaceCrop davranışı), embedding akışı bozulmaz.
+            _aligner = new FaceAligner();
+        }
+
+        private void LoadModel()
+        {
+            try
+            {
+                if (File.Exists(_modelPath))
+                {
+                    var options = new Microsoft.ML.OnnxRuntime.SessionOptions();
+                    _session = new InferenceSession(_modelPath, options);
+                    _inputName = _session.InputMetadata.Keys.First();
+                    _isLoaded = true;
+                    Console.WriteLine($"[BiometricService] ONNX Model yüklendi: {_modelPath} (girdi: {_inputName})");
+                }
+                else
+                {
+                    Console.WriteLine($"[BiometricService] KRİTİK HATA: YZ Modeli bulunamadı: {_modelPath}. Yüz doğrulaması BAŞARISIZ olacak.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BiometricService] Model yükleme hatası: {ex.Message}");
+            }
+        }
+
+        public float VerifyFace(byte[] idPhotoBytes, byte[] probePhotoBytes)
+        {
+            if (!_isLoaded)
+            {
+                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_r50.onnx) bulunamadı. Sistem durduruldu.");
+            }
+
+            try
+            {
+                var emb1 = GetEmbedding(idPhotoBytes);
+                var emb2 = GetEmbedding(probePhotoBytes);
+                return ComputeCosineSimilarity(emb1, emb2);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BiometricService] Doğrulama hatası: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Paralel embedding hesaplama — iki görüntünün ONNX inference'ı aynı anda çalışır.
+        /// ONNX Runtime InferenceSession thread-safe'tir (dahili mutex ile sıralı erişim sağlar).
+        /// Ön-işleme (JPEG decode + crop + normalize) tam paralel çalışır,
+        /// inference kısmı session lock'a tabi olsa da toplam süre sıralıdan kısadır.
+        /// </summary>
+        public float VerifyFaceParallel(byte[] idPhotoBytes, byte[] probePhotoBytes)
+        {
+            if (!_isLoaded)
+            {
+                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_r50.onnx) bulunamadı. Sistem durduruldu.");
+            }
+
+            try
+            {
+                float[]? emb1 = null, emb2 = null;
+                Parallel.Invoke(
+                    () => emb1 = GetEmbedding(idPhotoBytes),
+                    () => emb2 = GetEmbedding(probePhotoBytes)
+                );
+                return ComputeCosineSimilarity(emb1!, emb2!);
+            }
+            catch (AggregateException ae)
+            {
+                var inner = ae.Flatten().InnerExceptions.First();
+                Console.WriteLine($"[BiometricService] Paralel doğrulama hatası: {inner.Message}");
+                throw inner;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BiometricService] Doğrulama hatası: {ex.Message}");
+                throw;
+            }
+        }
+
+        // internal: offline eşik kalibrasyonu (CalibrationLfwTests) + gelecekteki biyometrik
+        // karşılaştırma/step-up primitifi. VerifyFace bunun üstüne kosinüs ekler.
+        internal float[] GetEmbedding(byte[] imageBytes)
+        {
+            // YuNet 5-nokta hizalama → ArcFace kanonik 112x112. Hem DG2 hem selfie aynı güvenli
+            // enclave-tarafı boru hattından geçer (istemciye güvenilmez). Yüz bulunamazsa
+            // FaceAligner merkez-kare kırpmaya düşer.
+            using (var source = Image.Load<Rgb24>(imageBytes))
+            using (var image = _aligner.Align(source))
+            {
+                var input = new DenseTensor<float>(new[] { 1, 3, 112, 112 });
+
+                image.ProcessPixelRows(accessor =>
+                {
+                    for (int y = 0; y < accessor.Height; y++)
+                    {
+                        var pixelRow = accessor.GetRowSpan(y);
+                        for (int x = 0; x < accessor.Width; x++)
+                        {
+                            var pixel = pixelRow[x];
+                            // InsightFace/ArcFace (w600k_r50) referans normalizasyonu: (x - 127.5) / 127.5 → [-1, 1].
+                            // (Önceki /128.0 referans dışıydı; chip+probe'a tutarlı uygulandığı için fark küçük
+                            //  ama modelin eğitildiği ölçek bu — R50 eşiği kalibre edilirken doğru taban olsun diye düzeltildi.)
+                            input[0, 0, y, x] = (pixel.R - 127.5f) / 127.5f;
+                            input[0, 1, y, x] = (pixel.G - 127.5f) / 127.5f;
+                            input[0, 2, y, x] = (pixel.B - 127.5f) / 127.5f;
+                        }
+                    }
+                });
+
+                var inputs = new NamedOnnxValue[]
+                {
+                    NamedOnnxValue.CreateFromTensor(_inputName, input)
+                };
+
+                if (_session == null) throw new InvalidOperationException("Oturum başlatılmamış.");
+
+                using (var results = _session.Run(inputs))
+                {
+                    // Output shape is Usually [1, 512] for embeddings
+                    var embeddingNode = results.First(); 
+                    var embeddingTensor = embeddingNode.AsTensor<float>();
+                    return embeddingTensor.ToArray();
+                }
+            }
+        }
+
+        private float ComputeCosineSimilarity(float[] vectorA, float[] vectorB)
+        {
+            if (vectorA.Length != vectorB.Length)
+                throw new ArgumentException("Vektörler aynı uzunlukta olmalıdır.");
+
+            float dotProduct = 0.0f;
+            float normA = 0.0f;
+            float normB = 0.0f;
+
+            for (int i = 0; i < vectorA.Length; i++)
+            {
+                dotProduct += vectorA[i] * vectorB[i];
+                normA += vectorA[i] * vectorA[i];
+                normB += vectorB[i] * vectorB[i];
+            }
+
+            if (normA == 0.0f || normB == 0.0f) return 0.0f;
+
+            return dotProduct / ((float)Math.Sqrt(normA) * (float)Math.Sqrt(normB));
+        }
+    }
+}

@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="ro" dir="ltr" prefix="content: http://purl.org/rss/1.0/modules/content/  dc: http://purl.org/dc/terms/  foaf: http://xmlns.com/foaf/0.1/  og: http://ogp.me/ns#  rdfs: http://www.w3.org/2000/01/rdf-schema#  schema: http://schema.org/  sioc: http://rdfs.org/sioc/ns#  sioct: http://rdfs.org/sioc/types#  skos: http://www.w3.org/2004/02/skos/core#  xsd: http://www.w3.org/2001/XMLSchema# ">
+  <head> 
+    <meta charset="utf-8" />
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9C91P11SX7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9C91P11SX7');
+</script>
+<link rel="canonical" href="https://stisc.gov.md/ro" />
+<link rel="shortlink" href="https://stisc.gov.md/ro" />
+<meta property="og:site_name" content="Serviciul Tehnologia Informației și Securitate Cibernetică" />
+<meta property="og:type" content="Website" />
+<meta property="og:url" content="https://stisc.gov.md/ro" />
+<meta property="og:title" content="Serviciul Tehnologia Informației și Securitate Cibernetică" />
+<meta name="MobileOptimized" content="width" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>header .site-branding-logo{max-width:160px!important;}header.header-default .header-main-inner .header-inner{padding-left:160px!important;} header.header-default .header-main-inner .branding{width:160px!important;}</style>
+<link rel="icon" href="/sites/default/files/stisc_m.svg" type="image/svg+xml" />
+<link rel="alternate" hreflang="ro" href="https://stisc.gov.md/ro" />
+<link rel="alternate" hreflang="ru" href="https://stisc.gov.md/ru" />
+
+    <title>Pagina principală | Serviciul Tehnologia Informației și Securitate Cibernetică</title>
+    <link rel="stylesheet" media="all" href="/sites/default/files/css/css_qLD0xvtNmc-xDvBhcZU1hZXXmouf7U0Cxo2bkxCSSPM.css" />
+<link rel="stylesheet" media="all" href="//fonts.googleapis.com/css?family=Hind:wght@400;500;600;700&amp;display=swap" />
+<link rel="stylesheet" media="all" href="/sites/default/files/css/css_-26Q6HIBgu0FjpTwlVYXVxEQVAAt2L0vXYoyBLPW_Wc.css" />
+
+
+    <script type="application/json" data-drupal-selector="drupal-settings-json">{"path":{"baseUrl":"\/","scriptPath":null,"pathPrefix":"ro\/","currentPath":"node\/1","currentPathIsAdmin":false,"isFront":true,"currentLanguage":"ro"},"pluralDelimiter":"\u0003","suppressDeprecationErrors":true,"ajaxTrustedUrl":{"\/ro\/search\/node":true},"my_custom_field":{"encryption_key":"key_2024kHYB_@s"},"user":{"uid":0,"permissionsHash":"f021a8b5148c6d8814c28355f0611acb3d8de16437f87313122249b8fdda44f5"}}</script>
+<script src="/sites/default/files/js/js_efD9ceBWbBZdY9taz40I9bHaLvjIUGRakZ2TwdNK0B8.js"></script>
+
+
+    
+
+    
+          <style class="customize"></style>
+    
+  </head>
+
+  
+  <body class="hidden-title gavias-pagebuilder layout-no-sidebars boxed page-node-1 page-node-type-page frontpage node--type-page">
+
+    <a href="#main-content" class="visually-hidden focusable">
+      Mergi la conţinutul principal
+    </a>
+
+     
+      <div id="gva-preloader" >
+        <div id="preloader-inner" class="cssload-container">
+          <div class="wait-text">Vă rugăm, aşteptaţi... </div> 
+          <div class="cssload-item cssload-moon"></div>
+        </div>
+      </div>
+      
+
+    
+      <div class="dialog-off-canvas-main-canvas" data-off-canvas-main-canvas>
+    <div class="gva-body-wrapper">
+	<div class="body-page gva-body-page">
+	   <header id="header" class="header-default">
+  
+      <div class="topbar">
+      <div class="container">
+        <div class="row">
+          <div class="col-12">
+            <div class="topbar-content-inner clearfix has-language-block"> 
+              <div class="topbar-content">  <div>
+    <div id="block-topbarright" class="block block-block-content block-block-contenta87cb642-bb80-4bd8-9bb0-ed5e2d4da5e0 no-title">
+  
+    
+      <div class="content block-content">
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field__item"><div class="row"><div class="col-xl-8 col-lg-8 col-md-8 col-sm-8 col-6"><div class="topbar-information"><ul class="infor-list"><li class="home-button-element d-xl-block d-lg-block d-md-block d-sm-block"><a href="/"><em><i class="fas fa-home">.</i></em></a></li><li class="sitemap-element d-xl-block d-lg-block d-md-block d-sm-block"><a href="/sitemap"><em><i class="fas fa-sitemap">.</i></em></a></li><li class="phone d-xl-block d-lg-block d-md-block d-sm-block d-none">Asistență tehnică: <a href="tel:022820911">(022) 820 911</a></li></ul></div></div><div class="col-xl-4 col-lg-4 col-md-4 col-sm-4 d-xs-12 col-6 text-right"><div class="social-copyright"><div class="socials"> </div></div></div></div></div>
+      
+    </div>
+  </div>
+
+  </div>
+</div>
+                              <div class="language-region">  <div>
+    <div id="block-dropdownlanguage" class="block block-dropdown-language block-dropdown-languagelanguage-interface no-title">
+  
+    
+      <div class="content block-content">
+        <div class="dropbutton-wrapper"><div class="dropbutton-widget"><ul class="dropdown-language-item dropbutton"><li class="ro"><span class="language-link active-language">RO</span></li><li class="en"><a href="/en" class="language-link" hreflang="en">EN</a></li><li class="ru"><a href="/ru" class="language-link" hreflang="ru">RU</a></li></ul></div></div>
+    </div>
+  </div>
+
+  </div>
+</div>
+                          </div>  
+          </div>
+        </div>
+      </div>
+    </div>
+  
+            
+
+   <div class="header-main gv-sticky-menu">
+      <div class="container header-content-layout">
+         <div class="header-main-inner p-relative">
+            <div class="row">
+              <div class="col-md-12 col-sm-12 col-xs-12 content-inner">
+                <div class="branding">
+                                        <div>
+    
+            <a href="/ro" title="Acasă" rel="home" class="site-branding-logo">
+                            <img class="logo-site" src="/sites/default/files/stisc_m.svg" alt="Acasă"/>
+                    </a>
+                <div class="site-branding__text">
+                            <div class="site-branding__name">
+                    <a href="/ro" title="Acasă" rel="home">Serviciul Tehnologia Informației și Securitate Cibernetică</a>
+                    <div id="footer-flag">
+                        <div class="flag-blue"></div>
+                        <div class="flag-yellow"></div>
+                        <div class="flag-red"></div>
+                    </div>
+                </div>
+                                </div>
+    
+  </div>
+
+                                  </div>
+                
+                <div class="header-inner clearfix ">
+                  <div class="main-menu">
+                    <div class="area-main-menu">
+                      <div class="area-inner">
+                        <div class="gva-offcanvas-mobile">
+                          <div class="close-offcanvas hidden"><i class="fa fa-times"></i></div>
+                          <div class="main-menu-inner">
+                                                            <div>
+    <nav aria-labelledby="block-stiscmenu-menu" id="block-stiscmenu" class="block block-menu navigation menu--meniul-principal">
+          
+  
+  <h2  class="visually-hidden block-title block-title" id="block-stiscmenu-menu"><span>STISC menu </span></h2>
+  
+  <div class="block-content">
+                 
+              <ul class="gva_menu">
+        
+            <li  class="menu-item menu-item--expanded">
+        <a href="/ro/conducerea/radu-vieru" data-drupal-link-system-path="node/1461">Despre</a>
+                                <ul class="menu sub-menu">
+        
+            <li  class="menu-item">
+        <a href="https://stisc.gov.md/conducerea">Conducerea</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/consiliul-institutiei" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/181">Consiliul instituției</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/structura-organizatorica" data-drupal-link-system-path="node/1035">Structura organizatorică</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/directii-de-activitate" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/145">Direcţii de activitate</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/cadrul-legislativ" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/135">Cadrul Normativ</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/declaratii" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/184">Declarații</a>
+        
+      </li>
+        </ul>
+  
+        
+      </li>
+    
+            <li  class="menu-item menu-item--expanded">
+        <a href="/ro/comunicate-de-presa" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="taxonomy/term/50">Informații publice</a>
+                                <ul class="menu sub-menu">
+        
+            <li  class="menu-item">
+        <a href="/ro/comunicate-de-presa" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="taxonomy/term/50">Comunicate de presă</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/functii-vacante" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/73">Funcții vacante</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/evenimente" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="evenimente">Evenimente</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/ghiduri" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="taxonomy/term/53">Ghiduri</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/servicii" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="servicii">Servicii</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/galerie" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="galerie">Galerie foto</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/protectia-datelor-personale" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/191">Protecția datelor personale</a>
+        
+      </li>
+        </ul>
+  
+        
+      </li>
+    
+            <li  class="menu-item menu-item--expanded">
+        <a href="/ro/achizitii" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/172">Transparență</a>
+                                <ul class="menu sub-menu">
+        
+            <li  class="menu-item">
+        <a href="/ro/achizitii" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/172">Achiziții</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/documente" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/1225">Documente</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/nomenclatorul-serviciilor" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/174">Nomenclatorul Serviciilor</a>
+        
+      </li>
+    
+            <li  class="menu-item menu-item--expanded">
+        <a href="/ro/certificatele-cheilor-publice" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/182">Resurse</a>
+                                <ul class="menu sub-menu">
+        
+            <li  class="menu-item">
+        <a href="/ro/certificatele-cheilor-publice" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/182">Certificatele cheilor publice</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="https://www.semnatura.md/instalare/" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about">Descarca mijloace de program</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/lista-certificatelor-revocate" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/173">Lista certificatelor revocate</a>
+        
+      </li>
+        </ul>
+  
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/comunicate-de-presa" data-drupal-link-system-path="taxonomy/term/50">Programe și proiecte de asistență</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/deplasari-de-serviciu-strainatate" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/180">Deplasări de serviciu în străinătate</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/petitii-si-reclamatii" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/192">Petiții și reclamații</a>
+        
+      </li>
+    
+            <li  class="menu-item menu-item--expanded">
+        <span>Solicitări </span>
+                                <ul class="menu sub-menu">
+        
+            <li  class="menu-item">
+        <a href="/ro/restituire-incasari-eronate" data-drupal-link-system-path="node/1445">Restituire încasări eronate</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/solicita-act-de-verificare" data-drupal-link-system-path="node/1446">Act de verificare </a>
+        
+      </li>
+        </ul>
+  
+        
+      </li>
+        </ul>
+  
+        
+      </li>
+    
+            <li  class="menu-item menu-item--expanded">
+        <a href="/ro/constientizare" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="taxonomy/term/66">Securitatea Cibernetică</a>
+                                <ul class="menu sub-menu">
+        
+            <li  class="menu-item">
+        <a href="/ro/constientizare" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="taxonomy/term/66">Conștientizare</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/noutati" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="taxonomy/term/67">Noutăți </a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/alerte" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="taxonomy/term/70">Alerte</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/raporteaza-un-incident-de-securitate-cibernetica" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/858">Raportează un incident de securitate cibernetică</a>
+        
+      </li>
+        </ul>
+  
+        
+      </li>
+    
+            <li  class="menu-item menu-item--expanded">
+        <a href="/ro/call-centru" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/140">Suport clienți</a>
+                                <ul class="menu sub-menu">
+        
+            <li  class="menu-item">
+        <a href="/ro/call-centru" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/140">Call centru</a>
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/intrebari-frecvente" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/189">Întrebări frecvente</a>
+        
+      </li>
+        </ul>
+  
+        
+      </li>
+    
+            <li  class="menu-item">
+        <a href="/ro/contacte" gva_layout="menu-list" gva_layout_columns="3" gva_block="daudo_subtheme_about" gva_block_en="daudo_subtheme_about" gva_block_ro="daudo_subtheme_about" gva_block_ru="daudo_subtheme_about" data-drupal-link-system-path="node/139">Contacte</a>
+        
+      </li>
+        </ul>
+  
+
+
+        </div>  
+</nav>
+
+  </div>
+
+                                                      </div>
+
+                                                  </div>
+                        
+                        <div id="menu-bar" class="menu-bar menu-bar-mobile d-lg-none d-xl-none">
+                          <span class="one"></span>
+                          <span class="two"></span>
+                          <span class="three"></span>
+                        </div>
+
+                                                  <div class="gva-search-region search-region">
+                            <span class="icon"><i class="fas fa-search"></i></span>
+                            <div class="search-content">  
+                                <div>
+    <div class="search-block-form block block-search container-inline" data-drupal-selector="search-block-form" id="block-daudo-subtheme-searchform" role="search">
+  
+    
+      <form action="/ro/search/node" method="get" id="search-block-form" accept-charset="UTF-8" class="search-form search-block-form">
+  <div class="js-form-item form-item js-form-type-search form-item-keys js-form-item-keys form-no-label">
+      <label for="edit-keys" class="visually-hidden">Căutare</label>
+        <input title="Introduceţi termenii doriţi pentru căutare." data-drupal-selector="edit-keys" type="search" id="edit-keys" name="keys" value="" size="15" maxlength="128" class="form-search" />
+
+        </div>
+<div data-drupal-selector="edit-actions" class="form-actions js-form-wrapper form-wrapper" id="edit-actions"><input class="search-form__submit button js-form-submit form-submit" data-drupal-selector="edit-submit" type="submit" id="edit-submit" value="Căutare" />
+</div>
+
+</form>
+
+  </div>
+
+  </div>
+
+                            </div>  
+                          </div>
+                                                  
+
+                      </div>
+                    </div>
+                  </div>  
+                </div> 
+              </div>
+
+            </div>
+         </div>
+      </div>
+   </div>
+
+</header>
+
+		
+		
+		<div role="main" class="main main-page">
+		
+			<div class="clearfix"></div>
+				
+
+							<div class="help gav-help-region">
+					<div class="container">
+						<div class="content-inner">
+							  <div>
+    <div data-drupal-messages-fallback class="hidden"></div>
+
+  </div>
+
+						</div>
+					</div>
+				</div>
+						
+			<div class="clearfix"></div>
+						
+			<div class="clearfix"></div>
+			
+			<div id="content" class="content content-full">
+				<div class="container-full container-bg">
+					<div class="content-main-inner">
+	<div id="page-main-content" class="main-content">
+		<div class="main-content-inner">
+			
+							<div class="content-main">
+					  <div>
+    <div id="block-daudo-subtheme-content" class="block block-system block-system-main-block no-title">
+  
+    
+      <div class="content block-content">
+      <!-- Start Display article for detail page -->
+
+<div data-history-node-id="1" role="article" typeof="schema:WebPage" class="node node--type-page node--view-mode-full">
+  <div class="header-title">
+
+    <div class="container">
+      <h2 class="title"><span>
+<span property="schema:name">Pagina principală</span>
+</span></h2>
+    </div>
+  </div>
+
+  <div class="node__content clearfix">
+    <div class="gavias-builder--content">		  	<div class="gbb-row-wrapper section row-first-level gbb-row bg-size-cover"  style=""  data-onepage-title="Slider">
+		  			    	<div class="bb-inner remove_padding">  
+		      	<div class="bb-container container-fw">
+			        	<div class="row row-wrapper">
+							
+		<div  class="gsc-column col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12" >
+	      <div class="column-inner bg-size-cover">
+	         <div class="column-content-inner">
+	           <div class=" clearfix widget gsc-block-drupal title-align-left  hidden-title-on remove-margin-on text-dark" ><div id="block-daudo-subtheme-gaviassliderlayerslidermain" class="block block-gavias-sliderlayer block-gavias-sliderlayer-blockgavias-sliderlayer-block____1 no-title">
+  
+    
+      <div class="content block-content">
+      <div class="gavias_sliderlayer rev_slider_wrapper fullwidthbanner-container" style="height:450px"  data-source="gallery">
+   <div id="slider-2v5ev" class="rev_slider fullwidthabanner" data-version="5.4.8.1">
+      <ul>
+         <li data-transition="slidingoverlayright" data-easein="Power0.easeIn" data-easeout="Power1.easeOut" data-slotamount="default" data-kenburns="off" data-masterspeed="800" data-index="rs-1" data-saveperformance="off" >
+   	<img class="rev-slidebg" src="/sites/default/files/30D85D9D-8C95-4B91-B78C-A9C1064BE699.png" alt=""  data-bgcolor="#fff" data-duration="15000" data-bgparallax="8"  data-scalestart="0" data-scaleend="0" data-kenburns="off"  data-bgrepeat="no-repeat" style="background-color:#f2f2f2" data-bgfit="cover" data-bgposition="center top" /><div id="slide-7-layer-1" class="tp-caption tp-resizeme text " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['255','255','50','50']" data-y="['-200', '-200', '-200', '235']" data-color="['rgb(255,255,255)','rgb(255,255,255)','rgb(0,0,0)','rgb(255,255,255)']" data-textalign="left" data-responsive_offset="on" style="z-index:3"   data-type="text" data-frames='[{"delay":0,"speed":"600","frame":0,"from":"","mask":"x:0;y:0;s:500;","ease":"Power1.easeOut"},{"delay":"wait","speed":"600","frame":999,"to":"auto:auto;","ease":"Power0.easeIn","mask":"x:0;y:0;s:500;"}]'>
+  <a href="https://moldovaeuropeana.md">Europa pentru tine</a></div>
+
+<div id="slide-7-layer-2" class="tp-caption tp-resizeme " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['center','center','center','center']" data-y="['0', '0', '0', '-999']" data-fontsize="['70','70','45','38']" data-lineheight="['80','80','48','40']" data-color="['rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)']" data-textalign="center" data-responsive_offset="on" style="z-index:2" data-width="['1440','1440','1440','1440']" data-height="['auto','auto','auto','auto']"   data-type="text" data-frames='[{"delay":0,"speed":"600","frame":0,"from":"","mask":"x:0;y:0;s:500;","ease":"easeOutExpo"},{"delay":"wait","speed":"300","frame":999,"to":"auto:auto;","ease":"nothing","mask":"x:0;y:0;s:500;"}]'>
+  <a href="https://moldovaeuropeana.md"><img alt="" src="/sites/default/files/gva-sliderlayer-upload/30D85D9D-8C95-4B91-B78C-A9C1064BE699-4oe0v8.png"/></a></div>
+
+</li>
+
+<li data-transition="slidingoverlayright" data-easein="Power0.easeIn" data-easeout="Power1.easeOut" data-slotamount="default" data-kenburns="off" data-masterspeed="800" data-index="rs-2" data-saveperformance="off" >
+   	<img class="rev-slidebg" src="/sites/default/files/gva-sliderlayer-upload/operator_tehnico_tehnologic_2.png" alt=""  data-bgcolor="#fff" data-duration="11000" data-bgparallax="8"  data-scalestart="0" data-scaleend="0" data-kenburns="off"  data-bgrepeat="no-repeat" style="background-color:#ff0000" data-bgfit="cover" data-bgposition="center top" /><div id="slide-8-layer-1" class="tp-caption tp-resizeme text text-white slide-style-1 " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['50','50','35','35']" data-y="['75', '75', '60', '40']" data-fontsize="['56','56','46','30']" data-lineheight="['64','64','46','40']" data-color="['rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)']" data-textalign="left" data-responsive_offset="on" style="z-index:4"   data-type="text" data-frames='[{"delay":1000,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"300","frame":999,"to":"auto:auto;","ease":"nothing"}]'>
+  Operator tehnico-tehnologic<br>al serviciilor electronice <br>guvernamentale</div>
+
+<div id="slide-8-layer-2" class="tp-caption tp-resizeme text btn-slide " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['55','55','35','35']" data-y="['310', '310', '250', '180']" data-textalign="left" data-responsive_offset="on" style="z-index:3"   data-type="text" data-frames='[{"delay":2520,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"300","frame":999,"to":"auto:auto;","ease":"nothing"}]'>
+  <a href="/servicii"><span>Servicii</span></a></div>
+
+<div id="slide-8-layer-3" class="tp-caption tp-resizeme " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['25','25','25','25']" data-y="['80', '80', '60', '20']" data-fontsize="['30','30','30','20']" data-lineheight="['38','38','38','28']" data-textalign="left" data-responsive_offset="on" style="z-index:2" data-width="['10','10','10','10']" data-height="['auto','auto','auto','auto']"   data-type="text" data-frames='[{"delay":2010,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"600","frame":999,"to":"auto:auto;","ease":"Power0.easeIn"}]'>
+  <img alt="" src="/sites/default/files/gva-sliderlayer-upload/line.png"/></div>
+
+</li>
+
+<li data-transition="slidingoverlayright" data-easein="Power0.easeIn" data-easeout="Power1.easeOut" data-slotamount="default" data-kenburns="off" data-masterspeed="800" data-index="rs-3" data-saveperformance="off" >
+   	<img class="rev-slidebg" src="/sites/default/files/gva-sliderlayer-upload/inregistrare-domenii.png" alt=""  data-bgcolor="#fff" data-duration="11000" data-bgparallax="8"  data-scalestart="0" data-scaleend="0" data-kenburns="off"  data-bgrepeat="no-repeat" style="background-color:#f2f2f2" data-bgfit="cover" data-bgposition="center top" /><div id="slide-11-layer-1" class="tp-caption tp-resizeme text text-white slide-style-1 " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['50','50','35','35']" data-y="['75', '75', '60', '40']" data-fontsize="['56','56','46','30']" data-lineheight="['64','64','46','40']" data-color="['rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)']" data-textalign="left" data-responsive_offset="on" style="z-index:4"   data-type="text" data-frames='[{"delay":1000,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"300","frame":999,"to":"auto:auto;","ease":"nothing"}]'>
+  Registrator național<br>al domeniului de nivel superior <br>".md"</div>
+
+<div id="slide-11-layer-2" class="tp-caption tp-resizeme text btn-slide " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['55','55','35','35']" data-y="['315', '315', '250', '180']" data-textalign="left" data-responsive_offset="on" style="z-index:3"   data-type="text" data-frames='[{"delay":2520,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"300","frame":999,"to":"auto:auto;","ease":"nothing"}]'>
+  <a href="https://nic.md/ro"><span>Înregistrează Domenii</span></a></div>
+
+<div id="slide-11-layer-3" class="tp-caption tp-resizeme " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['25','25','25','25']" data-y="['80', '80', '60', '20']" data-fontsize="['30','30','30','20']" data-lineheight="['38','38','38','28']" data-textalign="left" data-responsive_offset="on" style="z-index:2" data-width="['10','10','10','10']" data-height="['auto','auto','auto','auto']"   data-type="text" data-frames='[{"delay":2010,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"600","frame":999,"to":"auto:auto;","ease":"Power0.easeIn"}]'>
+  <img alt="" src="/sites/default/files/gva-sliderlayer-upload/line.png"/></div>
+
+</li>
+
+<li data-transition="slidingoverlayright" data-easein="Power0.easeIn" data-easeout="Power1.easeOut" data-slotamount="default" data-kenburns="off" data-masterspeed="800" data-index="rs-4" data-saveperformance="off" >
+   	<img class="rev-slidebg" src="/sites/default/files/gva-sliderlayer-upload/semnatura-electronica.png" alt=""  data-bgcolor="#fff" data-duration="11000" data-bgparallax="8"  data-scalestart="0" data-scaleend="0" data-kenburns="off"  data-bgrepeat="no-repeat" style="background-color:#f2f2f2" data-bgfit="cover" data-bgposition="center top" /><div id="slide-12-layer-1" class="tp-caption tp-resizeme text text-white slide-style-1 " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['50','50','35','35']" data-y="['75', '75', '60', '40']" data-fontsize="['56','56','46','30']" data-lineheight="['64','64','46','40']" data-color="['rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)','rgb(255,255,255)']" data-textalign="left" data-responsive_offset="on" style="z-index:4"   data-type="text" data-frames='[{"delay":1000,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"300","frame":999,"to":"auto:auto;","ease":"nothing"}]'>
+  Gestionar<br>al infrastructurii <br>unice (PKI) a Guvernului</div>
+
+<div id="slide-12-layer-2" class="tp-caption tp-resizeme text btn-slide " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['55','55','35','35']" data-y="['315', '315', '250', '180']" data-textalign="left" data-responsive_offset="on" style="z-index:3"   data-type="text" data-frames='[{"delay":2520,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"300","frame":999,"to":"auto:auto;","ease":"nothing"}]'>
+  <a href="https://semnatura.md/"><span>Obține semnătura electronică</span></a></div>
+
+<div id="slide-12-layer-3" class="tp-caption tp-resizeme " data-paddingtop="[0,0,0,0]" data-paddingright="[0,0,0,0]" data-paddingbottom="[0,0,0,0]" data-paddingleft="[0,0,0,0]" data-voffset="[0,0,0,0]" data-hoffset="[0,0,0,0]" data-x="['25','25','25','25']" data-y="['80', '80', '60', '20']" data-fontsize="['30','30','30','20']" data-lineheight="['38','38','38','28']" data-textalign="left" data-responsive_offset="on" style="z-index:2" data-width="['10','10','10','10']" data-height="['auto','auto','auto','auto']"   data-type="text" data-frames='[{"delay":2010,"speed":"600","frame":0,"from":"y:[-100%];z:0;rX:0deg;rY:0;rZ:0;sX:1;sY:1;skX:0;skY:0;","mask":"x:0px;y:0px;","ease":"easeOutExpo"},{"delay":"wait","speed":"600","frame":999,"to":"auto:auto;","ease":"Power0.easeIn"}]'>
+  <img alt="" src="/sites/default/files/gva-sliderlayer-upload/line.png"/></div>
+
+</li>
+
+         
+      </ul>
+      <div class="tp-bannertimer tp-top"></div>
+   </div>
+</div>
+
+
+<script type="text/javascript">
+
+jQuery(document).ready(function($){
+    jQuery("#slider-2v5ev").show().revolution({
+      sliderType:"standard",
+      sliderLayout:"auto",
+      dottedOverlay:"none",
+      delay: 9000,
+      minHeight: 0,
+      fullScreenAutoWidth: "auto",
+      fullScreenAlignForce: "off",
+      fullScreenOffset: "0",
+      visibilityLevels:[1240,1240,778,480],
+              responsiveLevels:[1240,1240,778,480],
+            gridwidth:[1170,1170,778,480],
+      gridheight:[450,450,350,350],
+      lazyType:"none",
+      shadow:0,
+      spinner:"spinner0",
+      stopLoop:"off",
+      stopAfterLoops:-1,
+      stopAtSlide:-1,
+      shuffle:"off",
+      autoHeight:"off",
+      disableProgressBar:"off",
+      hideThumbsOnMobile:"off",
+      hideSliderAtLimit:0,
+      hideCaptionAtLimit:0,
+      hideAllCaptionAtLimit: 0,
+      debugMode:false,
+      parallax:{
+        type: 'mouse',
+        origo: 'slidercenter',
+        speed: 2000,
+        levels: [4,5,6,7,12,16,10,50,46,47,48,49,50,55],
+      },
+      navigation: {
+        keyboardNavigation:"off",
+        keyboard_direction: "horizontal",
+        mouseScrollNavigation:"off",
+        mouseScrollReverse:"default",
+        onHoverStop:"on",
+        touch:{
+          touchenabled:"on",
+          touchOnDesktop:"on",
+          swipe_threshold: 75,
+          swipe_min_touches: 50,
+          swipe_direction: "horizontal",
+          drag_block_vertical: false
+        },
+        arrows: {
+          style:"gyges",
+          enable: true,
+          hide_delay:200,
+          hide_delay_mobile: 1200,
+          tmp:'',
+          left: {
+            h_align:"left",
+            v_align:"center",
+            h_offset:20,
+            v_offset:0          },
+          right: {
+            h_align:"right",
+            v_align:"center",
+            h_offset:20,
+            v_offset:0          }
+        },
+        bullets: {
+          enable:true,
+          hide_onmobile:false,
+          hide_onleave:false,
+          direction:"horizontal",
+          h_align:"center",
+          v_align:"bottom",
+          h_offset:0,
+          v_offset:20,
+          space: 10
+        }
+      },
+      fallbacks: {
+        simplifyAll: "off",
+        nextSlideOnWindowFocus: "off",
+        disableFocusListener: true,
+      }
+    });
+});
+
+</script>
+
+
+    </div>
+  </div>
+</div>	         </div>  
+	      </div>
+        
+	    </div>
+	   	     	 			</div>
+    				</div>
+  				</div>  
+			  				</div>  
+				  	<div class="gbb-row-wrapper section row-first-level servicii-block-index gbb-row bg-size-cover" id="overview_servicii_block" style="padding-top:35px; padding-left:50px; padding-bottom:30px; padding-right:50px"  data-onepage-title="Overview">
+		  			    	<div class="bb-inner remove_padding_top">  
+		      	<div class="bb-container container-fw">
+			        	<div class="row row-wrapper">
+							
+		<div id="servicii-tabs" class="gsc-column col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12" >
+	      <div class="column-inner bg-size-cover">
+	         <div class="column-content-inner">
+	           
+         <div class="widget gsc-heading  align-center style-1 " style="max-width: 800px;" >
+            
+            <div class="heading-content clearfix">
+                              <h2 class="title fweight-600 text-black">
+                  <span>Servicii</span>
+               </h2>                           </div>
+            
+            
+         </div>
+         <div class="clearfix"></div>
+                  <div class="gsc-tabs-content  style-1 wowzoomIn"  data-wow-delay="0.2s">
+            <div class="tabs_wrapper">
+               <ul class="nav nav-tabs">
+                                                                                    <li><a class="active show" data-toggle="tab" href="#vrxkc-1">  <span class="servicii-tab-img"><img src="/sites/default/files/services-icons/semnatura.svg" alt="semnatura-icon"></span> <span class="servicii-tab-title">Semnătura electronică</span> </a></li>
+                                                                                                         <li><a  data-toggle="tab" href="#vrxkc-2">  <span class="servicii-tab-img"><img src="/sites/default/files/services-icons/domenii_web.svg" alt="dns-icon"></span> <span class="servicii-tab-title">Înregistrare domenii (nic.md)</span> </a></li>
+                                                                                                         <li><a  data-toggle="tab" href="#vrxkc-3">  <span class="servicii-tab-img"><img src="/sites/default/files/services-icons/web_hosting.jpg" alt="hosting-icon"></span> <span class="servicii-tab-title">Găzduire web</span> </a></li>
+                                                                                                         <li><a  data-toggle="tab" href="#vrxkc-4">  <span class="servicii-tab-img"><img src="/sites/default/files/services-icons/PRODUSE_SOFTWARE.svg" alt="produse-soft-icon"></span> <span class="servicii-tab-title">Produse Software</span> </a></li>
+                                                                                                         <li><a  data-toggle="tab" href="#vrxkc-5">  <span class="servicii-tab-img"><img src="/sites/default/files/services-icons/iaas.svg" alt="mcloud-icon"></span> <span class="servicii-tab-title">Serviciul IaaS (MCloud)</span> </a></li>
+                                                                                                         <li><a  data-toggle="tab" href="#vrxkc-6">  <span class="servicii-tab-img"><img src="/sites/default/files/services-icons/posta_electronica.svg" alt="posta-icon"></span><span class="servicii-tab-title">Poșta Electronică</span> </a></li>
+                                                                                                                                                                              </ul>
+               <div class="tab-content clearfix">
+                                                                                    <div id="vrxkc-1" class="tab-pane fade in active show">
+                                                         <div class="images"><div class="content-inner"><span><img src="https://stisc.gov.md/sites/default/files/banner/banner-servicii/signature.jpg" /></span></div></div>
+                                                      <div class="content-inner"><h3>Semnătura electronică</h3>
+<p>Serviciul Tehnologia Informației și Securitate Cibernetică, &icirc;n calitate de prestator de servicii de certificare, creează certificatul cheii publice, suspendă/restabilește valabilitatea acestuia sau &icirc;l revocă &icirc;n baza unei cereri. De asemenea, STISC asigură eliberarea semnăturii electronice avansate calificate, subiecților declarării averii și a intereselor personale din cadrul organizațiilor publice, &icirc;n baza cererii prezentate de către organizațiile publice și conform listei actualizate a organizațiilor publice, deținute de către Autoritatea Națională de Integritate.</p>
+<p>Pentru a obține, prelungi, revoca semnătura electronica accesați pagina <a href="https://www.semnatura.md/">www.semnatura.md</a></p></div>
+                        </div>
+                                                                                                         <div id="vrxkc-2" class="tab-pane fade in ">
+                                                         <div class="images"><div class="content-inner"><span><img src="https://stisc.gov.md/sites/default/files/banner/banner-servicii/dns2.jpg" /></span></div></div>
+                                                      <div class="content-inner"><h3>&Icirc;nregistrare domenii (nic.md)</h3>
+<p>Serviciul Tehnologia Informației și Securitate Cibernetică pune la dispoziție aplicații şi servicii informatice de cea mai bună calitate şi &icirc;n cele mai bune condiții, oferind suport tehnic şi logistic. Tarifele pentru sistemele informatice includ cheltuielile de licenţă, instalare şi mentenanță &icirc;n funcţie de complexitatea, funcționalitățile, numărul şi rolurile utilizatorilor, capacitatea reţelei şi a sistemelor de operare.</p></div>
+                        </div>
+                                                                                                         <div id="vrxkc-3" class="tab-pane fade in ">
+                                                         <div class="images"><div class="content-inner"><span><img src="https://stisc.gov.md/sites/default/files/banner/banner-servicii/data-center2.jpg" /></span></div></div>
+                                                      <div class="content-inner"><h3>Găzduire web</h3>
+<p>Serviciul Tehnologia Informației și Securitate Cibernetică pune la dispoziție aplicații şi servicii informatice de cea mai bună calitate şi &icirc;n cele mai bune condiții, oferind suport tehnic şi logistic. Tarifele pentru sistemele informatice includ cheltuielile de licenţă, instalare şi mentenanță &icirc;n funcţie de complexitatea, funcționalitățile, numărul şi rolurile utilizatorilor, capacitatea reţelei şi a sistemelor de operare.</p></div>
+                        </div>
+                                                                                                         <div id="vrxkc-4" class="tab-pane fade in ">
+                                                         <div class="images"><div class="content-inner"><span><img src="https://stisc.gov.md/sites/default/files/banner/banner-servicii/software2.jpg" /></span></div></div>
+                                                      <div class="content-inner"><h3>Produse software</h3>
+<p>Serviciul Tehnologia Informației și Securitate Cibernetică pune la dispoziție aplicații şi servicii informatice de cea mai bună calitate şi &icirc;n cele mai bune condiții, oferind suport tehnic şi logistic. Tarifele pentru sistemele informatice includ cheltuielile de licenţă, instalare şi mentenanță &icirc;n funcţie de complexitatea, funcționalitățile, numărul şi rolurile utilizatorilor, capacitatea reţelei şi a sistemelor de operare.</p></div>
+                        </div>
+                                                                                                         <div id="vrxkc-5" class="tab-pane fade in ">
+                                                         <div class="images"><div class="content-inner"><span><img src="https://stisc.gov.md/sites/default/files/banner/banner-servicii/cloud23.jpg" /></span></div></div>
+                                                      <div class="content-inner"><h3>Serviciul IaaS (MCloud)</h3>
+<p>Serviciul de tip IaaS este un model de livrare a serviciilor TI din platforma MCloud, &icirc;n care prestatorul (I.P. &ldquo;Serviciul Tehnologia Informației și Securitate Cibernetică&rdquo;) pune la dispoziția Beneficiarului (APC) resursele TI solicitate, iar beneficiarul este responsabil de administrarea sistemelor informatice.</p></div>
+                        </div>
+                                                                                                         <div id="vrxkc-6" class="tab-pane fade in ">
+                                                         <div class="images"><div class="content-inner"><span><img src="https://stisc.gov.md/sites/default/files/services/email.png" /></span></div></div>
+                                                      <div class="content-inner"><h3>Poșta electronică</h3>
+<p><span style="font-size: 12pt;"><a title="Servicii ale Sistemului de poștă electronică al autorităților administrației publice" href="../../servicii/posta-electronica">Servicii ale Sistemului de poștă electronică ale autorităților administrației publice</a></span></p></div>
+                        </div>
+                                                                                                                                                                              </div>
+            </div>
+         </div>
+         
+         <div class="widget gsc-call-to-action servicii-all-button button-center text-light wow fadeInUp"   data-wow-delay="0.2s">
+            <div class="content-inner clearfix" >
+                
+               <div class="content">
+                                    <h2 class="title fsize-00 fw-700"><span></span></h2>
+                                    <div class="desc"></div>
+               </div>
+               <div class="button-action">
+                                       <a href="/servicii" class="btn-theme" >Toate serviciile</a>   
+                                                   </div>
+            </div>
+         </div>
+         	         </div>  
+	      </div>
+        
+	    </div>
+	   	     	 			</div>
+    				</div>
+  				</div>  
+			  				</div>  
+				  	<div class="gbb-row-wrapper section row-first-level gbb-row bg-size-default" id="news-block" style="padding-top:50px; padding-left:50px; padding-bottom:30px; padding-right:50px; background-color:#F5F5F5"  data-onepage-title="News & Videos">
+		  			    	<div class="bb-inner remove_padding">  
+		      	<div class="bb-container container-fw">
+			        	<div class="row row-wrapper">
+							
+		<div  class="gsc-column col-xl-4 col-lg-4 col-md-4 col-sm-12 col-12" >
+	      <div class="column-inner bg-size-cover">
+	         <div class="column-content-inner">
+	           
+         <div class="widget gsc-heading  align-left style-1 " style="max-width: 800px;" >
+            
+            <div class="heading-content clearfix">
+               <div class="sub-title fweight-500 text-gray"><span>Comunicate de presă</span></div>               <h2 class="title fweight-600 text-black">
+                  <span>Ultimele informații</span>
+               </h2>                           </div>
+            
+                           <div class="heading-action clearfix margin-top-30">
+                  <a href="/comunicate-de-presa" class="btn-theme"><span>Vezi toate articolele</span></a>
+               </div>
+            
+         </div>
+         <div class="clearfix"></div>
+         	         </div>  
+	      </div>
+        
+	    </div>
+	   
+		<div  class="gsc-column col-xl-8 col-lg-8 col-md-8 col-sm-12 col-12" >
+	      <div class="column-inner bg-size-cover">
+	         <div class="column-content-inner">
+	           <div><div class="widget block clearfix gsc-block-view  gsc-block-drupal block-view title-align-left  text-dark remove-margin-off" ><div class="views-element-container"><div class="post-style-grid post-slideset gva-view js-view-dom-id-a3662d263ec8e2d92d3484c6bbd4a6fd464564668e47cd4bc248242221c42bbb">
+  
+  
+  
+
+  
+  
+  
+
+  <div class="owl-carousel init-carousel-owl" data-items="2" data-items_lg="2" data-items_md="2" data-items_sm="2" data-items_xs="1" data-loop="1" data-speed="200" data-auto_play="1" data-auto_play_speed="1000" data-auto_play_timeout="3000" data-auto_play_hover="1" data-navigation="1" data-rewind_nav="0" data-pagination="0" data-mouse_drag="1" data-touch_drag="1">
+   
+   
+             <div class="item">
+            <div>
+<!-- Start Display article for teaser page -->
+    <div class="post-block">
+        <div class="post-image">
+            
+            <div class="field field--name-field-image field--type-image field--label-hidden field__item">
+<div class="item-image">
+  <a href="/ro/comunicate-de-presa/anunt-important-pentru-utilizatorii-serviciilor-de-incredere"><img property="schema:image" src="/sites/default/files/styles/medium/public/2026-03/anunt_0.png?itok=-Tbjy0st" alt="anunt " loading="lazy" typeof="foaf:Image" />
+
+</a>
+</div>
+</div>
+      
+        </div>
+        <div class="post-content text-left">
+            <div class="post-meta">
+                <span class="post-categories">    <span class="post-categories"><a href="/ro/comunicate-de-presa" hreflang="ro">Comunicate de presă</a></span>
+    <span class="post-categories-delimit">,</span>
+</span><span class="line">-</span><span
+                        class="post-created"> 24 Mar, 2026 </span>
+            </div>
+            <h3 class="post-title"><a href="/ro/comunicate-de-presa/anunt-important-pentru-utilizatorii-serviciilor-de-incredere" rel="bookmark">
+<span property="schema:name">Anunț important pentru utilizatorii serviciilor de încredere</span>
+</a></h3>
+        </div>
+    </div>
+
+</div>
+         </div>
+             <div class="item">
+            <div>
+<!-- Start Display article for teaser page -->
+    <div class="post-block">
+        <div class="post-image">
+            
+            <div class="field field--name-field-image field--type-image field--label-hidden field__item">
+<div class="item-image">
+  <a href="/ro/comunicate-de-presa/noi-reguli-de-valabilitate-certificatelor-ssl"><img property="schema:image" src="/sites/default/files/styles/medium/public/2026-03/tls_0.png?itok=FzqxVaRp" alt="tls" loading="lazy" typeof="foaf:Image" />
+
+</a>
+</div>
+</div>
+      
+        </div>
+        <div class="post-content text-left">
+            <div class="post-meta">
+                <span class="post-categories">    <span class="post-categories"><a href="/ro/comunicate-de-presa" hreflang="ro">Comunicate de presă</a></span>
+    <span class="post-categories-delimit">,</span>
+</span><span class="line">-</span><span
+                        class="post-created"> 19 Mar, 2026 </span>
+            </div>
+            <h3 class="post-title"><a href="/ro/comunicate-de-presa/noi-reguli-de-valabilitate-certificatelor-ssl" rel="bookmark">
+<span property="schema:name">Noi reguli de valabilitate a certificatelor SSL</span>
+</a></h3>
+        </div>
+    </div>
+
+</div>
+         </div>
+             <div class="item">
+            <div>
+<!-- Start Display article for teaser page -->
+    <div class="post-block">
+        <div class="post-image">
+            
+            <div class="field field--name-field-image field--type-image field--label-hidden field__item">
+<div class="item-image">
+  <a href="/ro/comunicate-de-presa/atentia-utilizatorilor-serviciilor-de-incredere"><img property="schema:image" src="/sites/default/files/styles/medium/public/2026-03/anunt.png?itok=jGKwLIXG" alt="Anunț informativ" loading="lazy" typeof="foaf:Image" />
+
+</a>
+</div>
+</div>
+      
+        </div>
+        <div class="post-content text-left">
+            <div class="post-meta">
+                <span class="post-categories">    <span class="post-categories"><a href="/ro/comunicate-de-presa" hreflang="ro">Comunicate de presă</a></span>
+    <span class="post-categories-delimit">,</span>
+    <span class="post-categories"><a href="/ro/noutati" hreflang="ro">Noutăți</a></span>
+    <span class="post-categories-delimit">,</span>
+</span><span class="line">-</span><span
+                        class="post-created"> 18 Mar, 2026 </span>
+            </div>
+            <h3 class="post-title"><a href="/ro/comunicate-de-presa/atentia-utilizatorilor-serviciilor-de-incredere" rel="bookmark">
+<span property="schema:name">În atenția utilizatorilor serviciilor de încredere!</span>
+</a></h3>
+        </div>
+    </div>
+
+</div>
+         </div>
+             <div class="item">
+            <div>
+<!-- Start Display article for teaser page -->
+    <div class="post-block">
+        <div class="post-image">
+            
+            <div class="field field--name-field-image field--type-image field--label-hidden field__item">
+<div class="item-image">
+  <a href="/ro/comunicate-de-presa/notificare-actualizarea-conditiilor-de-utilizare-pentru-aplicatia-moldsign"><img property="schema:image" src="/sites/default/files/styles/medium/public/2026-03/windows7.png?itok=O_zH6WRB" alt="windows7" loading="lazy" typeof="foaf:Image" />
+
+</a>
+</div>
+</div>
+      
+        </div>
+        <div class="post-content text-left">
+            <div class="post-meta">
+                <span class="post-categories">    <span class="post-categories"><a href="/ro/comunicate-de-presa" hreflang="ro">Comunicate de presă</a></span>
+    <span class="post-categories-delimit">,</span>
+</span><span class="line">-</span><span
+                        class="post-created"> 02 Mar, 2026 </span>
+            </div>
+            <h3 class="post-title"><a href="/ro/comunicate-de-presa/notificare-actualizarea-conditiilor-de-utilizare-pentru-aplicatia-moldsign" rel="bookmark">
+<span property="schema:name">Notificare: Actualizarea condițiilor de utilizare pentru aplicația MoldSign Desktop Suite (MSDS)</span>
+</a></h3>
+        </div>
+    </div>
+
+</div>
+         </div>
+             <div class="item">
+            <div>
+<!-- Start Display article for teaser page -->
+    <div class="post-block">
+        <div class="post-image">
+            
+            <div class="field field--name-field-image field--type-image field--label-hidden field__item">
+<div class="item-image">
+  <a href="/ro/comunicate-de-presa/modificare-de-program-pentru-serviciile-de-certificare"><img property="schema:image" src="/sites/default/files/styles/medium/public/2026-02/anunt.png?itok=41WI-veU" alt="cod" loading="lazy" typeof="foaf:Image" />
+
+</a>
+</div>
+</div>
+      
+        </div>
+        <div class="post-content text-left">
+            <div class="post-meta">
+                <span class="post-categories">    <span class="post-categories"><a href="/ro/comunicate-de-presa" hreflang="ro">Comunicate de presă</a></span>
+    <span class="post-categories-delimit">,</span>
+</span><span class="line">-</span><span
+                        class="post-created"> 17 Feb, 2026 </span>
+            </div>
+            <h3 class="post-title"><a href="/ro/comunicate-de-presa/modificare-de-program-pentru-serviciile-de-certificare" rel="bookmark">
+<span property="schema:name">Modificare de program pentru serviciile de certificare</span>
+</a></h3>
+        </div>
+    </div>
+
+</div>
+         </div>
+    
+</div>
+
+    
+
+  
+  
+
+  
+  
+</div>
+</div>
+</div></div>	         </div>  
+	      </div>
+        
+	    </div>
+	   	     	 			</div>
+    				</div>
+  				</div>  
+			  				</div>  
+				  	<div class="gbb-row-wrapper section row-first-level gbb-row bg-size-cover" id="support-block" style="padding-top:60px; padding-bottom:50px"  data-onepage-title="Image Content">
+		  			    	<div class="bb-inner remove_margin remove_padding remove_padding_col">  
+		      	<div class="bb-container container">
+			        	<div class="row row-wrapper">
+							
+		<div  class="gsc-column col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12 support-icon-block" >
+	      <div class="column-inner bg-size-cover">
+	         <div class="column-content-inner">
+	           
+ <div class="widget gsc-images-parallax customer-support-block left style-v1 ">
+ <div class="widget-content">
+ <div class="images">
+
+ 
+ <div class="image-1" >
+ <a href="#" > <img src="https://stisc.gov.md/sites/default/files/suport.svg" alt="" />
+ </a> </div> 
+ 
+ 
+
+ </div>
+ </div>
+ </div>
+ 	         </div>  
+	      </div>
+        
+	    </div>
+	   
+		<div id="support-text-block" class="gsc-column col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12" >
+	      <div class="column-inner bg-size-cover">
+	         <div class="column-content-inner">
+	           
+         <div class="widget gsc-heading  align-left style-1 padding-bottom-0 wow bounceInRight" style="max-width: 800px;"  data-wow-delay="0.2s">
+            
+            <div class="heading-content clearfix">
+                              <h2 class="title fweight-600 text-black">
+                  <span>Suport Informațional</span>
+               </h2>                                 <div class="title-desc text-gray"><p>Call Centru STISC acordă suport tehnic și informațional de luni p&acirc;nă vineri, de la 8:00 la 17:00!</p></div>
+                           </div>
+            
+            
+         </div>
+         <div class="clearfix"></div>
+                  
+         
+            
+
+                     <div class="widget gsc-icon-box-new style-5 text-dark call-center-block-widget1 wow bounceInRight"   data-wow-delay="0.2s">
+                                 <div class="icon-inner">
+                                             <span class="icon flaticon-viber"></span>                                                                </div>
+                              <div class="content-inner">
+                  <h3 class="title"></h3>
+                  <div class="desc "><div class="content-inner">
+<h3 class="title"><a href="tel:+37322820911">(022) 820 911</a></h3>
+</div></div>
+               </div>
+            </div> 
+         
+         	         </div>  
+	      </div>
+        
+	    </div>
+	   	     	 			</div>
+    				</div>
+  				</div>  
+			  				    <div style="background-repeat: no-repeat;background-position:center top;" class="gva-parallax-inner skrollable skrollable-between bg-size-cover" data-bottom-top="top: -40%;" data-top-bottom="top: 20%;"></div>
+			  			</div>  
+		</div>
+  </div>
+</div>
+
+
+    </div>
+  </div>
+
+  </div>
+
+				</div>
+			
+							<div class="content-bottom">
+					
+				</div>
+					</div>
+	</div>
+</div>
+
+				</div>
+			</div>
+
+			
+						
+		</div>
+	</div>
+
+	
+<footer id="footer" class="footer">
+  <div class="footer-inner">
+    
+         
+     <div class="footer-center">
+        <div class="container">      
+           <div class="row">
+                              <div class="footer-first col-xl-4 col-lg-4 col-md-12 col-sm-12 col-xs-12 footer-column">
+                    <div>
+    <div id="block-footeraboutus" class="block block-block-content block-block-content24cdca97-3735-41fd-8693-bc438693ee7d no-title">
+  
+    
+      <div class="content block-content">
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field__item"><div class="footer-first">
+    <div class="column-inner bg-size-cover">
+        <div class="column-content-inner">
+            <div class="widget gsc-icon-box-new style-5">
+                <div class="icon-inner">
+                    <a href="/ro" title="Acasă" rel="home" class="site-branding-logo">
+                        <img class="logo-site" src="/sites/default/files/stisc_m_white.svg" alt="Acasă" /></a>
+                </div>
+                <div class="content-inner">
+                    <a href="/ro">
+                        <h3 class="title">Serviciul Tehnologia Informației</h3>
+                        <h3 class="title">și Securitate Cibernetică</h3>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div></div>
+      
+    </div>
+  </div>
+
+  </div>
+
+                </div> 
+              
+                             <div class="footer-second col-xl-4 col-lg-4 col-md-12 col-sm-12 col-xs-12 footer-column">
+                    <div>
+    <div id="block-contact2" class="block block-block-content block-block-contentc2d90cf9-5a6f-47a7-8e82-08a237e9dbdb no-title">
+  
+    
+      <div class="content block-content">
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field__item"><div class="contact-info"><ul class="contact-info-list"><li><span>MD-2012, Republica Moldova, mun.Chișinău Piața Marii Adunări Naționale 1</span></li><li><a href="tel:+37322820911"><span>(022) 820 911</span></a></li><li><a href="tel:+37322250522"><span>(022) 250 522</span></a></li><li><img data-entity-uuid="b210de09-4c80-4ee9-b32b-77586c17b909" data-entity-type="file" src="/sites/default/files/inline-images/stisc_email2.png" width="143" height="22" loading="lazy" /></li></ul></div></div>
+      
+    </div>
+  </div>
+
+  </div>
+
+                </div> 
+              
+                              <div class="footer-third col-xl-2 col-lg-2 col-md-12 col-sm-12 col-xs-12 footer-column">
+                    <div>
+    <div id="block-cotactmediablock" class="block block-block-content block-block-contenta075f0d5-1ceb-4321-8548-fe6fe351199d no-title">
+  
+    
+      <div class="content block-content">
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field__item"><div class="contact-info"><ul class="contact-info-list"><li><a href="https://www.facebook.com/stisc.gov.md/" target="_blank"><span>Facebook</span></a></li><li><a href="https://www.linkedin.com/company/stisc/" target="_blank"><span>Linkedin</span></a></li><li><a href="https://www.youtube.com/channel/UCL6rBeB03Y0JcZXFelP78cw" target="_blank"><span>Youtube</span></a></li></ul></div></div>
+      
+    </div>
+  </div>
+
+  </div>
+
+                </div> 
+              
+                               <div class="footer-four col-xl-2 col-lg-2 col-md-12 col-sm-12 col-xs-12 footer-column">
+                    <div>
+    <div id="block-footerlinks3" class="block block-block-content block-block-contente1be0f3c-b24d-42f9-ad29-0410a8690411 no-title">
+  
+    
+      <div class="content block-content">
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field__item"><div class="contact-info"><ul class="contact-info-list"><li><a href="https://cyberevent.gov.md" target="_blank"><span>cyberevent.gov.md</span></a></li><li><a href="https://servicii.gov.md" target="_blank"><span>servicii.gov.md</span></a></li><li><a href="https://semnatura.md/" target="_blank"><span>semnatura.md</span></a></li><li><a href="https://nic.md" target="_blank"><span>nic.md</span></a></li><li><a href="https://rsi.gov.md/" target="_blank"><span>rsi.gov.md</span></a></li></ul></div></div>
+      
+    </div>
+  </div>
+
+  </div>
+
+                </div> 
+                         </div>   
+        </div>
+    </div>  
+
+    
+  </div>   
+
+      <div class="copyright">
+      <div class="container">
+        <div class="copyright-inner">
+              <div>
+    <div id="block-daudo-subtheme-copyright" class="block block-block-content block-block-content61f17841-749f-436d-9799-1dfeefd7ad43 no-title">
+  
+    
+      <div class="content block-content">
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field__item"><div class="row">
+    <div class="col-xl-8 col-lg-8 col-md-8 col-sm-6 col-xs-12">
+        © Copyright <a href="#">STISC</a> 2025. All Rights Reserved.
+    </div>
+</div></div>
+      
+    </div>
+  </div>
+<div id="block-userway" class="block block-block-content block-block-contentef10242b-a396-4240-adb8-5aa30711a43a no-title">
+  
+    
+      <div class="content block-content">
+      
+            <div class="field field--name-body field--type-text-with-summary field--label-hidden field__item"><script src="https://cdn.userway.org/widget.js" data-account="CcDr9ExqhP"></script></div>
+      
+    </div>
+  </div>
+
+  </div>
+
+        </div>   
+      </div>   
+    </div>
+  
+</footer>
+</div>
+
+
+  </div>
+
+    
+    <script src="/sites/default/files/js/js_AtLJoZ72wd3WxV78Kr6VeFdcQTWH1Crk2q-AGS7TQ1M.js"></script>
+
+    
+        <div id="gva-overlay"></div>
+  </body>
+</html>

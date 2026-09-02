@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Accept Terms and Conditions</title>
+    <link rel="stylesheet" href="/static/application.css" />
+    <link rel="stylesheet" href="/static/common.css" />
+    <link
+      rel="shortcut icon"
+      href="/static/favicon.ico"
+      type="image/vnd.microsoft.icon"
+    />
+  </head>
+  <body>
+    <header>
+      <header>
+        <a id="idLogo" href="https://www.icao.int/"
+          ><img
+            alt="International Civil Aviation Organization"
+            title="International Civil Aviation Organization"
+            src="/static/Logo_EN.png"
+        /></a>
+
+        <div id="menu-holder">
+          <div id="menu">
+            <ul>
+              <li class="topmenu-img">
+                <a id="id-home" href="https://www.icao.int/"
+                  ><img src="/static/Home.png" alt="Home"
+                /></a>
+              </li>
+              <li class="topmenu">
+                <a href="https://www.icao.int/about-icao/">About ICAO</a>
+              </li>
+              <li class="topmenu">
+                <a
+                  class="additional-background"
+                  href="https://www.icao.int/about-icao/Council/Pages/Strategic-Objectives.aspx"
+                  >Strategic Objectives</a
+                >
+                <ul>
+                  <li class="submenu">
+                    <a href="https://www.icao.int/safety">Safety</a>
+                  </li>
+                  <li class="submenu">
+                    <a href="https://www.icao.int/airnavigation"
+                      >Air Navigation Capacity And Efficiency</a
+                    >
+                  </li>
+                  <li class="submenu">
+                    <a href="https://www.icao.int/Security"
+                      >Security And Facilitation</a
+                    >
+                  </li>
+                  <li class="submenu">
+                    <a href="https://www.icao.int/sustainability"
+                      >Economic Development Of Air Transport</a
+                    >
+                  </li>
+                  <li class="submenu">
+                    <a href="https://www.icao.int/environmental-protection"
+                      >Environmental Protection</a
+                    >
+                  </li>
+                </ul>
+              </li>
+              <li class="topmenu">
+                <a href="https://www.icao.int/Meetings"
+                  >Meetings &amp; Events</a
+                >
+              </li>
+              <li class="topmenu">
+                <a href="https://www.icao.int/publications">Publications</a>
+              </li>
+              <li class="topmenu">
+                <a href="https://store.icao.int/">Online Store</a>
+              </li>
+              <li class="topmenu">
+                <a href="https://careers-new.icao.int/">Employment</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </header>
+    </header>
+
+    <div id="infoPanel">
+      <div class="panelHeader">
+        <img src="/static/info-circle.svg" alt="Information" />
+      </div>
+      <div class="panelContent">
+        <div>
+          <h2>Note:</h2>
+          <p>
+            The new ICAO-PKD supported features are Bar Code Signer certificate
+            (BCSC), and Bar Code Signer for non-constrained environments
+            certificate (BCSC-NC).
+          </p>
+          <p>For more information, please check below:</p>
+          <ul>
+            <li>
+              ICAO Doc9303 Edition 8:
+              <a
+                href="https://www.icao.int/publications/Documents/9303_p13_cons_en.pdf"
+                >ICAO Doc9303 Edition 8 Part 13</a
+              >
+            </li>
+            <li>
+              Visible Digital Seals for Non-Electronic Documents:
+              <a
+                href="https://www.icao.int/Security/FAL/TRIP/Documents/Technical%20Report%20-%20Visible%20Digital%20Seal-NC%20V1.4.pdf"
+                >ICAO TECHNICAL REPORT, VDS-NC, Visible Digital Seal for
+                non-constrained environments, Version – 1.4</a
+              >
+              Digital Seals
+            </li>
+          </ul>
+          <p>
+            In addition, the LDIF collection 001 files contain the following:
+          </p>
+          <ul>
+            <li>o=bcsc : organization entry for BCSC certificate</li>
+            <li>o=bcsc-nc : organization entry for BCSC-NC certificate</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <table id="status-table">
+      <caption>
+        Status List
+      </caption>
+      <tbody>
+        <tr>
+          <th scope="col">LDIF</th>
+          <th scope="col">Version Number</th>
+          <th scope="col">Release Time</th>
+        </tr>
+        
+        <tr>
+          <td>The latest collection of eMRTD PKI Objects - CRL,DSC,BCSC,BCSC-NC</td>
+          <td>10313</td>
+          <td>N/A</td>
+        </tr>
+        
+        <tr>
+          <td>The latest collection of eMRTD CSCA ML</td>
+          <td>529</td>
+          <td>02-09-2026 07:23:13 AM</td>
+        </tr>
+        
+        <tr>
+          <td>The latest collection of eHealth PKI Objects - CRL,DSC</td>
+          <td>10</td>
+          <td>02-09-2026 07:21:51 AM</td>
+        </tr>
+        
+        <tr>
+          <td>The latest collection of eMRTD DL</td>
+          <td>10</td>
+          <td>02-09-2026 07:21:49 AM</td>
+        </tr>
+        
+        <tr>
+          <td>The latest collection of eHealth CSCA ML</td>
+          <td>11</td>
+          <td>02-09-2026 07:20:59 AM</td>
+        </tr>
+        
+      </tbody>
+    </table>
+
+    <div id="termsAndConditions">
+      <h1>Terms &amp; Conditions</h1>
+      <p>
+        The ICAO PKD (Public Key Directory) data download (the "Service") is an
+        online information service provided by ICAO, subject to your compliance
+        with the Terms and Conditions set forth below.
+      </p>
+      <p class="remark">
+        Please read the Terms and Conditions carefully before accessing or using
+        the Service. By accessing or using the Service, you agree to be bound by
+        the Terms and Conditions set forth below. If you do not wish to be bound
+        by these Terms and Conditions, you may not access or use the Service. If
+        you utilize the Service in a manner inconsistent with these Terms and
+        Conditions, ICAO may terminate your access, block your future access
+        and/or seek such additional relief as the circumstances of your misuse
+        indicate is proper. ICAO may modify the Terms and Conditions at any
+        time, and such modifications shall be effective immediately upon posting
+        of the modified Terms and Conditions. You agree to review the Terms and
+        Conditions periodically to be aware of such modifications and your
+        continued access or use of the Service shall be deemed your conclusive
+        acceptance of the modified Terms and Conditions.
+      </p>
+
+      <div id="termsAndConditionsEnumeration">
+        <h2>Authorised and Prohibited Uses.</h2>
+
+        <ol>
+          <li>
+            You may not copy, reproduce, republish, download, post, broadcast,
+            transmit, make available to the public, or otherwise use ICAO PKD
+            content in any way except for your own personal/ organizational
+            non-commercial use. You also agree not to adapt, alter or create a
+            derivative work from any content except for your own personal,
+            non-commercial use. Any other use of the content requires the prior
+            written permission of ICAO.
+          </li>
+          <li>
+            You agree to use the content only for lawful purposes. You will
+            comply with all applicable laws in connection with your use of this
+            Service.
+          </li>
+          <li>
+            You may not otherwise, directly or indirectly, resell, publish,
+            repackage or otherwise disseminate the ICAO PKD content or the
+            Website, or any portion thereof, in any medium in any manner
+            whatsoever. You shall not use any such content in any manner that
+            may or does infringe any proprietary or intellectual property rights
+            of ICAO, or those of any third party.
+          </li>
+          <li>
+            You shall not, and shall procure that the users of the PKD data
+            shall not, intentionally:
+            <ul>
+              <li>
+                attempt to access any information on the Website of the ICAO PKD
+                that is denied to it by the normal operation thereof;
+              </li>
+              <li>
+                use the Website of the ICAO PKD in any manner intended to cause
+                damage or disable the Website, or the ICAO PKD, or interfere
+                with any other person's use of the Website or the ICAO PKD;
+                and/or
+              </li>
+              <li>
+                use any robot, spider or other automatic device or software
+                program to monitor, copy or interfere with any web pages on the
+                Website giving rise to the actions in the foregoing Clauses
+                above.
+              </li>
+            </ul>
+          </li>
+        </ol>
+
+        <h2>Use of the Service and Disclaimers.</h2>
+
+        <ol start="5">
+          <li>
+            You understand that ICAO cannot and does not guarantee or warrant
+            that files available for downloading through the Service will be
+            free of infection or viruses, worms, Trojan horses or other code
+            that manifest contaminating or destructive properties. You are
+            responsible for implementing sufficient procedures and checkpoints
+            to satisfy your particular requirements for accuracy of data input
+            and output, and for maintaining a means external to the Service for
+            the reconstruction of any lost data.
+          </li>
+          <li>
+            You assume total responsibility and risk for your use of the
+            Service. ICAO does not make any express or implied warranties,
+            representations or endorsements whatsoever (including without
+            limitation warranties of title or noninfringement, or the implied
+            warranties of merchantability or fitness for a particular purpose)
+            with regard to the Service, any merchandise, information or service
+            provided through the Service , and ICAO shall not be liable for any
+            cost or damage arising either directly or indirectly from the use or
+            inability to use the Service. It is solely your responsibility to
+            evaluate the accuracy, completeness and usefulness of all opinions,
+            advice, services, merchandise and other information provided through
+            the Service. ICAO does not warrant that the Service will be
+            uninterrupted or error-free or that defects in the Service will be
+            corrected. The Service and any software made available on the
+            Service are provided on an "as is, as available" basis.
+          </li>
+          <li>
+            ICAO may in its discretion modify, edit, translate, suspend,
+            restrict access to or terminate the Service, this Website, these
+            Terms and Conditions, the content or any link at any time without
+            liability or prior notice. ICAO may in its discretion terminate your
+            browsing and use of this Website at any time without liability or
+            prior notice for any reason, including for any breach of these Terms
+            and Conditions.
+          </li>
+          <li>
+            ICAO disclaims all liability, direct or indirect, for any claim
+            relating to the use of or the inability to use the Service or any
+            information therein, including without limitation claims arising
+            from product liability, personal or bodily injury, or infringement
+            of any proprietary rights. In no event shall ICAO be liable for any
+            loss, damage, liability or expense incurred that is claimed to have
+            resulted from the use of or the inability to use the Service or any
+            information therein, including without limitation, any errors or
+            omissions, other inaccuracies, interruption or delay with respect
+            thereto. Under no circumstances shall ICAO be liable for any direct,
+            incidental, consequential or indirect damages (including, but not
+            limited to loss of profits, business interruption, loss of programs
+            or information and the like) arising out of the use of or inability
+            to use the Service or the information therein, even if ICAO has been
+            advised of the possibility of such damages.
+          </li>
+        </ol>
+
+        <h2>Indemnification.</h2>
+
+        <ol start="9">
+          <li>
+            You agree to indemnify, defend and hold harmless ICAO, its officers,
+            directors, employees, agents, licensors, suppliers, contractors and
+            any third party information providers to the Service from and
+            against all demands, claims, losses, expenses, damages and costs,
+            including reasonable attorneys' fees, resulting from any violation
+            of this Agreement by you. You will defend, indemnify and hold
+            harmless ICAO officers, directors, employees and contractors from
+            any demands, claims, damages, liabilities, expenses or harms,
+            including attorneys' fees, arising in connection with your use of
+            the Service or of the content from this Website, online conduct,
+            dealings or transactions with other persons resulting from use of
+            the Service or from the content of this Website.
+          </li>
+        </ol>
+
+        <h2>Miscellaneous.</h2>
+
+        <ol start="10">
+          <li>
+            You represent and warrant that you are authorized to enter into
+            these Terms and Conditions on behalf of any entity that you
+            represent. These Terms and Conditions may only be modified by ICAO,
+            at its sole discretion. If any provision of these Terms and
+            Conditions is held to be invalid or unenforceable for any reason,
+            then the remaining provisions will remain in full force and effect.
+            Your obligations pursuant to these Terms and Conditions shall
+            survive termination of this Web Site, any use by you of this Web
+            Site and any Content, or these Terms and Conditions.
+          </li>
+        </ol>
+
+        <h2>Disputes.</h2>
+
+        <ol start="11">
+          <li>
+            Disputes relating to or arising from the use of or the inability to
+            use the Service shall be submitted to arbitration in accordance with
+            the UNCITRAL Arbitration Rules then prevailing to be conducted by a
+            sole arbiter in Montreal.
+          </li>
+        </ol>
+
+        <h2>Privileges and Immunities.</h2>
+
+        <ol start="12">
+          <li>
+            Nothing herein or related hereto shall be deemed to be a waiver of
+            the privileges and immunities enjoyed by ICAO, which are
+            specifically reserved.
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <div id="showIpAddress">
+      Please note that for security reasons your IP
+      <span id="ipAddress">88.248.109.150</span> will be recorded.
+    </div>
+    <div id="termsAndConditionsOuterBox">
+      <form action="/verify" method="post">
+        <input type="hidden" name="csrf_token" value="HPfxkxdfJvIYI2alG3nPHoC8oF9VaJQmA_55qfe8bjE=" />
+        <div id="termsAndConditionsInnerBox">
+          <div class="titleBanner">Terms &amp; Conditions</div>
+          <div id="termsAndConditionsContent">
+            
+            <p>
+              <label class="form-check-label">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="accepted1"
+                  name="accepted"
+                  value="true"
+                />
+                Please tick if you agree to the above terms &amp; conditions.
+              </label>
+            </p>
+
+            <p>
+              <label class="form-check-label">
+                Enter code shown below:
+                <input
+                  id="captchaEntered"
+                  name="captchaEntered"
+                  value=""
+                  autocomplete="off"
+                />
+              </label>
+            </p>
+            <p>
+              <img src="/captcha" alt="captcha" width="300" height="50" />
+            </p>
+          </div>
+        </div>
+        <input id="downloadSubmit" type="submit" value="Download" />
+      </form>
+    </div>
+
+    <footer>
+      <footer>
+        <div id="bottom-elements">
+          <div>
+            <h3>Help</h3>
+            <ul>
+              <li>
+                <a href="https://www.icao.int/Pages/Disclaimer.aspx"
+                  >Terms &amp; Conditions</a
+                >
+              </li>
+              <li><a href="https://www.icao.int/SiteIndex/">Site Index</a></li>
+              <li><a href="https://www.icao.int/Pages/Links.aspx">Links</a></li>
+              <li><a href="https://www.icao.int/about-icao/FAQ/">FAQ</a></li>
+              <li><a href="mailto:web@icao.int">Web Support</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3>Contact Us</h3>
+            <ul>
+              <li>
+                <a href="https://www.icao.int/Pages/contact_us.aspx"
+                  >Headquarters</a
+                >
+              </li>
+              <li>
+                <a href="https://www.icao.int/Pages/contact_us.aspx"
+                  >Regional Offices</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3>Regional Offices Websites</h3>
+            <ul>
+              <li>
+                <a href="https://www.icao.int/apac/"
+                  >Asia and Pacific (APAC) Office, Bangkok</a
+                >
+              </li>
+              <li>
+                <a href="https://www.icao.int/esaf/"
+                  >Eastern and Southern African (ESAF) Office, Nairobi</a
+                >
+              </li>
+              <li>
+                <a href="https://www.icao.int/EURNAT"
+                  >European and North Atlantic (EUR/NAT) Office, Paris</a
+                >
+              </li>
+              <li>
+                <a href="https://www.icao.int/mid/"
+                  >Middle East (MID) Office, Cairo</a
+                >
+              </li>
+              <li>
+                <a href="https://www.icao.int/NACC/"
+                  >North American, Central American and Caribbean (NACC) Office,
+                  Mexico City</a
+                >
+              </li>
+              <li>
+                <a href="https://www.icao.int/SAM/"
+                  >South American (SAM) Office, Lima</a
+                >
+              </li>
+              <li>
+                <a href="https://www.icao.int/wacaf/"
+                  >Western and Central African (WACAF) Office, Dakar</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div id="footer-logo">
+            <a href="https://www.icao.int/">
+              <img title="ICAO" src="/static/bg-footer.png" alt="ICAO" />
+            </a>
+          </div>
+
+          <address>
+            <a href="https://www.icao.int/Pages/copyright.aspx"
+              >© International Civil Aviation Organization - ICAO</a
+            >
+          </address>
+        </div>
+      </footer>
+    </footer>
+  </body>
+</html>
