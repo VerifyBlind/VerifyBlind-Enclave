@@ -29,14 +29,14 @@
 <meta name="twitter:image" content="https://www.imigrasi.go.id/images/thumbnail_1200x630_seo.jpg">
 <meta name="google-site-verification" content="9oGmMCllhGyHkLsou-mO9ce3Z0P-tW0KhmfMlBUNAZ4">
 <meta name="csrf-param" content="dirjen_imigrasi-FRONTEND-CSRF">
-<meta name="csrf-token" content="6RDpCmZWRqpc6zpP_KKfudYxmwDQG0CDun574Xdx1WGKSJtICwAW5zq8QCi51_ePsQT3UZMqCNbpS02qBRa8Aw==">
+<meta name="csrf-token" content="0IjR6tv3PKLQ7_AcWdXNunM9Cz1v_n6CZ4OgjkuY_rOm5uCIjJJk4eGhpXMDs6X3RnFMUSK1Ne4o9ta6BfWLwQ==">
 
-<link href="/assets/4b14ca55/fe/slider/keen-slider.min.css?v=1788035513" rel="stylesheet">
+<link href="/assets/a4296fb5/fe/slider/keen-slider.min.css?v=1788035573" rel="stylesheet">
 <link href="/assets/345aa491/themes/smoothness/jquery-ui.css?v=1757531572" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="/assets/faf8a3b2/css/flaticon.min.css?v=1788035513" rel="stylesheet">
+<link href="/assets/15c50652/css/flaticon.min.css?v=1788035573" rel="stylesheet">
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/glightbox@3.2.0/dist/css/glightbox.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" rel="stylesheet">
@@ -44,12 +44,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bellerose" rel="stylesheet">
-<link href="/assets/faf8a3b2/main.css?v=1788035513" rel="stylesheet">
-<link href="/assets/faf8a3b2/css/styles.css?v=1788035513" rel="stylesheet">
-<link href="/assets/faf8a3b2/css/hyperlink-popup.css?v=1788035513" rel="stylesheet">
-<link href="/assets/faf8a3b2/css/ai-loading.css?v=1788035513" rel="stylesheet">
-<link href="/assets/faf8a3b2/css/search-ai-ui2.css?v=1788035513" rel="stylesheet">
-<link href="/assets/4b14ca55/frontend.css?v=1788035513" rel="stylesheet">
+<link href="/assets/15c50652/main.css?v=1788035573" rel="stylesheet">
+<link href="/assets/15c50652/css/styles.css?v=1788035573" rel="stylesheet">
+<link href="/assets/15c50652/css/hyperlink-popup.css?v=1788035573" rel="stylesheet">
+<link href="/assets/15c50652/css/ai-loading.css?v=1788035573" rel="stylesheet">
+<link href="/assets/15c50652/css/search-ai-ui2.css?v=1788035573" rel="stylesheet">
+<link href="/assets/a4296fb5/frontend.css?v=1788035573" rel="stylesheet">
 <style>
     @media (max-width: 1000px) {
         #search-ai-result{
@@ -706,7 +706,7 @@
 			<a href="https://www.imigrasi.go.id"><img alt=""></a>
 			
 									<div>
-						<img src="/assets/faf8a3b2/img/logo_header_2025.webp" style="height: 40px;">	
+						<img src="/assets/15c50652/img/logo_header_2025.webp" style="height: 40px;">	
 					</div>
 					<div style="white-space: nowrap;">
 						<p class="m-0 user-select-none" style="font-size: 12px;">Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia</p><p class="m-0 user-select-none" style="font-size: 16px;">Direktorat Jenderal Imigrasi</p>					</div>
@@ -882,7 +882,7 @@
 	</div> -->
 	<div class="container pt-5 d-none d-print-block">
 		<div class="d-flex align-items-center justify-content-between">
-			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/faf8a3b2//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
+			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/15c50652//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
 	</div>
 
 	
@@ -1424,7 +1424,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                 <div class="bubble">
                     <div class="left">
                         <div class="logo">
-                            <img style="width: 24px;" src="/assets/4b14ca55/logos/imtell-icon.svg" alt="">
+                            <img style="width: 24px;" src="/assets/a4296fb5/logos/imtell-icon.svg" alt="">
                         </div>
                         <div class="brand">Imtelligence</div>
                     </div>
@@ -1727,6 +1727,23 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                             <div class="keen-slider__slide">
                             <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
                                 <div class="position-relative">
+                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Amankan 55 WN Tiongkok Dalam Operasi Pengawasan di BSD" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/Imigrasi%20Amankan%2055%20WN%20Tiongkok%20Dalam%20Operasi%20Pengawasan%20di%20BSD.jpeg?width=400" style="height: 200px !important;">                                <div
+                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
+                                    Siaran Pers                                </div>
+                                </div>
+                                <div class="card-body m-0 mt-0">
+                                    <p class="text-muted mb-1" style="font-size: 12px;">
+                                        4 Sep 2026                                    </p>    
+                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Imigrasi Amankan 55 WN Tiongkok Dalam Operasi Pengawasan di BSD</h5>
+                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
+                                        TANGERANG SELATAN — Tim penyidik Direktorat Jenderal Imigrasi mengamankan 55 warga negara Republik Rakyat Tiongkok (WN RRT) dalam sebuah operasi pengawasan yang berlangsung pada Kamis (3/9/2026), di kawasan pembangunan gedung data center Sinarmas Plus, Galeri Smartfren BSD, Tangerang Selatan.Operasi ini bermula dari hasil patroli siber yang mendeteksi indikasi penyalahgunaan izin tinggal oleh sejumlah WNA di lokasi proyek pembangunan tersebut. Petugas mengantongi identitas sejumlah WNA yang beraktivitas di sekitar lokasi. Di antaranya adalah FZ, HL, JY, SY , dan ZZ; lima orang pria pemegang izin tinggal kunjungan (ITK) dengan penjamin PT BOS. Selain itu, ditemukan pula satu orang berinisial XX pemegang visa kunjungan multipel dengan PT WD sebagai penjamin. Di lokasi, Imigrasi juga mengidentifikasi SJ, XB, dan ZP; tiga orang WN Tiongkok pemegang visa kunjungan tanpa penjamin.“Ada dugaan penyalahgunaan izin tinggal di proyek tersebut. Karena itu kami lakukan penyelidikan, kami dapati sejumlah nama, barulah tim kami bergerak untuk melakukan operasi [pengawasan]," jelas Direktur Jenderal Imigrasi, Hendarsam Marantoko.Ditjen Imigrasi mengidentifikasi sebanyak 55 WN RRT yang diduga menyalahgunakan izin tinggal untuk bekerja di lokasi pembangunan Data Center SM+ dan Galeri Smartfren HQ, BSD, Tangerang Selatan. Dari jumlah tersebut, 17 orang pemegang Izin Tinggal Kunjungan (ITK) berdasarkan Visa on Arrival (VoA) telah didetensi dan dititipkan di Rumah Detensi Imigrasi (Rudenim) Jakarta untuk proses lebih lanjut.Sementara itu, 27 WN RRT pemegang ITK yang juga diduga melakukan aktivitas bekerja tidak dilakukan detensi, namun paspor mereka telah dikenakan tindakan administratif berupa penahanan paspor (STP) untuk kepentingan pemeriksaan lebih lanjut. Selanjutnya, terdapat empat WN RRT pemegang ITK yang diduga bekerja dan paspornya telah diamankan dari pihak perusahaan, namun keberadaan orang yang bersangkutan belum ditemukan. Keempatnya telah dimasukkan ke dalam daftar Subject of Interest (SOI) untuk mendukung proses pengawasan dan penelusuran lebih lanjut.Adapun tujuh WN RRT lainnya yang juga diduga melakukan aktivitas bekerja telah dikenakan tindakan administratif berupa penahanan paspor saat ditemukan di lokasi. Ketujuh orang tersebut tidak dilakukan detensi dan dijadwalkan hadir untuk memberikan keterangan kepada petugas Imigrasi pada Rabu, 9 September 2026."Operasi pengawasan kami lakukan secara berkala untuk menjaga ketertiban, memberikan efek cegah agar tidak terjadi pelanggaran, serta menjaga kepercayaan publik terhadap Imigrasi," tutup Dirjen Imigrasi.                                    </div>
+                                    <a href="/siaran_pers/imigrasi-amankan-55-wn-tiongkok-dalam-operasi-pengawasan-di-bsd" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                                            <div class="keen-slider__slide">
+                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
+                                <div class="position-relative">
                                 <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Petugas Imigrasi Denpasar Amankan 2 WN Nigeria yang Kabur Saat Pemeriksaan" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/5593ca24-91cc-4197-a555-085c4847aeca.jpeg?width=400" style="height: 200px !important;">                                <div
                                     class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
                                     Siaran Pers                                </div>
@@ -1877,23 +1894,6 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                 </div>
                             </div>
                         </div>
-                                            <div class="keen-slider__slide">
-                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
-                                <div class="position-relative">
-                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="BPK Tegaskan Peran Imigrasi dalam Menjaga Kedaulatan Negara" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/BPK%20Tegaskan%20Peran%20Imigrasi%20dalam%20Menjaga%20Kedaulatan%20Negara.jpeg?width=400" style="height: 200px !important;">                                <div
-                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
-                                    Siaran Pers                                </div>
-                                </div>
-                                <div class="card-body m-0 mt-0">
-                                    <p class="text-muted mb-1" style="font-size: 12px;">
-                                        5 Agu 2026                                    </p>    
-                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">BPK Tegaskan Peran Imigrasi dalam Menjaga Kedaulatan Negara</h5>
-                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
-                                        JAKARTA - Anggota | BPK RI, Nyoman Adhi Suryadnyana, menegaskan bahwa fungsi keimigrasian tidak hanya berkaitan dengan penerimaan negara bukan pajak (PNBP), tetapi juga berperan strategis dalam menyaring orang asing yang masuk ke wilayah Indonesia."Kemenimipas telah menunjukkan bagaimana peran keimigrasian menyaring wisatawan masukke negara kita. Ini tidak hanya tentang PNBP, tetapi juga tentang kedaulatan negara kita, jauh lebih penting dari sekadar penerimaan," ujar Nyoman saat penyerahan Laporan HasilPemeriksaan atas Laporan Keuangan Kementerian Imigrasi dan Pemasyarakatan Tahun Anggaran 2025, Senin (03/08/2026).Pernyataan tersebut sejalan dengan kebijakan Direktorat Jenderal (Ditjen) Imigrasi dalam menerapkan kebijakan visa secara selektif, terukur, dan berbasis kepentingan nasional.Kemudahan keimigrasian tetap diberikan untuk mendukung pariwisata, investasi, dan mobilitas internasional. Namun demikian, asas timbal balik, manfaat ekonomi, risiko keamanan, serta kualitas orang asing yang masuk ke Indonesia juga menjadi pertimbangan.Dukungan BPK terhadap arah kebijakan tersebut juga tercermin dalam rekomendasi mengenai penataan Bebas Visa Kunjungan (BVK). BPK sebelumnya menilai pemberlakuan bebas visa secara luas kepada 169 negara berpotensi mengurangi penerimaan negara hingga Rp3,02 triliun setiap tahun.Hasil pemantauan BPK juga menunjukkan bahwa penghentian sementara kebijakan Bebas Visa Kunjungan secara luas berdampak positif terhadap penerimaan negara. Pada 2023, PNBP sektor keimigrasian mencapai Rp7,61 triliun atau 327,03 persen dari target yang ditetapkan.Pada periode yang sama, jumlah kunjungan warga negara asing ke Indonesia tetap meningkat hingga lebih dari 10,6 juta orang. Capaian tersebut menunjukkan bahwa penerapan kebijakan visa yang lebih selektif tidak serta-merta menghambat mobilitas internasional maupun pertumbuhan sektor pariwisata.BPK merekomendasikan agar rencana pemberlakuan kembali BVK secara luas ditinjau secara menyeluruh dengan melibatkan kementerian dan lembaga terkait. Evaluasi diperlukan untuk memastikan fasilitas tersebut diberikan kepada negara yang memberikan manfaat nyata, menerapkan asas resiprositas, serta memiliki tingkat risiko keimigrasian yang dapat dikendalikan.Direktur Jenderal Imigrasi, Hendarsam Marantoko menegaskan bahwa peningkatan PNBP merupakan salah satu manfaat dari kebijakan visa, namun bukan satu-satunya ukuran keberhasilan. Kebijakan keimigrasian harus memastikan negara memiliki kendali terhadap setiap orang asing yang masuk, tinggal, dan berkegiatan di wilayah Indonesia."Dengan dukungan dan pengawasan BPK, Ditjen Imigrasi akan terus mengevaluasi dan meningkatkan kebijakan visa, pemeriksaan perlintasan, pengawasan orang asing, serta integrasi data lintas kementerian dan lembaga. Langkah tersebut dilakukan untuk memastikan kemudahan keimigrasian tetap berjalan seiring dengan perlindungan kepentingan nasional, keamanan, dan kedaulatan Indonesia," pungkas Dirjen Imigrasi.                                    </div>
-                                    <a href="/siaran_pers/bpk-tegaskan-peran-imigrasi-dalam-menjaga-kedaulatan-negara" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
                                     </div>
             </div>
                     </div>
@@ -1954,7 +1954,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
     <div class="container-fluid px-0" data-aos="fade-up">
         <div class="row gy-4 align-items-center">
             <div class="col-lg-6 text-lg-end text-center">
-                <img class="img-fluid app_img" src="/assets/faf8a3b2//img/phone_mockup.png" alt="">            </div>
+                <img class="img-fluid app_img" src="/assets/15c50652//img/phone_mockup.png" alt="">            </div>
             <div class="col-lg-6">
                 <div class="section-title mb-3">
                     <h1 class="fw-semibold text-start">
@@ -1967,8 +1967,8 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                         <h4 class="mb-lg-5 mb-4 text-center text-lg-start unduh_desc">
                             Ajukan permohonan paspor baru atau penggantian secara daring. Mudah dan nyaman.                        </h4>
                         <div class="d-flex gap-3 justify-content-lg-start justify-content-center">
-                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/faf8a3b2//img/pstore.png" alt=""></a>
-                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/faf8a3b2//img/appstore.png" alt=""></a>                        </div>
+                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/15c50652//img/pstore.png" alt=""></a>
+                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/15c50652//img/appstore.png" alt=""></a>                        </div>
                     </div>
                 </div>
             </div>
@@ -2080,7 +2080,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
 	<div class="container mb-md-5 mb-2 footer-top">
 		<div class="row justify-content-between g-4">
 			<div class="col-lg-5 col-md-12 mb-3 mb-md-0 footer-about">
-				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/faf8a3b2/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
+				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/15c50652/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
 					Jl. H.R. Rasuna Said, Kav. X6, No. 8,
 Kuningan, Jakarta Selatan,
 DKI Jakarta, Indonesia				</p>
@@ -2187,7 +2187,7 @@ DKI Jakarta, Indonesia				</p>
 	<script id="sessionFlashes" type="application/json">
 		{}	</script>
 
-	<script src="/assets/4b14ca55/fe/slider/keen-slider.js?v=1788035513"></script>
+	<script src="/assets/a4296fb5/fe/slider/keen-slider.js?v=1788035573"></script>
 <script src="/assets/58a3f682/jquery.js?v=1757531562"></script>
 <script src="/assets/345aa491/jquery-ui.js?v=1757531580"></script>
 <script src="/assets/54f7976c/yii.js?v=1757532998"></script>
@@ -2200,13 +2200,13 @@ DKI Jakarta, Indonesia				</p>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
-<script src="/assets/faf8a3b2/main.js?v=1788035513"></script>
-<script src="/assets/faf8a3b2/js/main.min.js?v=1788035513"></script>
-<script src="/assets/faf8a3b2/js/hyperlink-popup.js?v=1788035513"></script>
-<script src="/assets/faf8a3b2/js/marked.min.js?v=1788035513"></script>
-<script src="/assets/faf8a3b2/js/search-ai-ui2.js?v=1788035513"></script>
-<script src="/assets/faf8a3b2/js/sitebar-sticky.js?v=1788035513"></script>
-<script src="/assets/4b14ca55/frontend.js?v=1788035513"></script>
+<script src="/assets/15c50652/main.js?v=1788035573"></script>
+<script src="/assets/15c50652/js/main.min.js?v=1788035573"></script>
+<script src="/assets/15c50652/js/hyperlink-popup.js?v=1788035573"></script>
+<script src="/assets/15c50652/js/marked.min.js?v=1788035573"></script>
+<script src="/assets/15c50652/js/search-ai-ui2.js?v=1788035573"></script>
+<script src="/assets/15c50652/js/sitebar-sticky.js?v=1788035573"></script>
+<script src="/assets/a4296fb5/frontend.js?v=1788035573"></script>
 <script>jQuery(function ($) {
     $("#keEvisa").click(function() {
         let posisiEvisa = $("#evisaForm").position();
