@@ -1210,9 +1210,24 @@ string? partnerId = null;
         }
 
         // Cihaz ölçüleri DOĞRULANMAZ — yalnız teşhis satırına düşer (uç kimlik doğrulaması istemez,
-        // gövdeden gelen sayıya güvenilmez). Cihaz skoru enclave skoruyla KIYASLANAMAZ: farklı model.
-        if (proof.DeviceMetrics?.DeviceMatchScore is int dms)
-            diag.Info($"Login Device: match={dms}% (doğrulanmadı, yalnız ölçüm)");
+        // gövdeden gelen sayıya güvenilmez).
+        //
+        // ⚠️ Satırın koşulu DeviceMatchScore OLAMAZ: girişte cihaz benzerlik ölçmüyor (bloklamıyor),
+        // o alan bilerek null geliyor. Koşul ona bağlanınca satır HİÇ yazılmadı ve ilk canlı
+        // doğrulamalarda kadraj/ışık ölçüsü elimize geçmedi — tam da girişin neden yavaş olduğunu
+        // açıklayacak sayılar. Kadraj (face_width_ratio) ve netlik burada birinci derece teşhistir.
+        if (proof.DeviceMetrics is { } dm)
+        {
+            var parts = new List<string>();
+            if (dm.DeviceMatchScore is int dms) parts.Add($"match={dms}%");
+            if (dm.FaceWidthRatio is int fw)    parts.Add($"faceW={fw}%");
+            if (dm.Sharpness is int sh)         parts.Add($"sharp={sh}");
+            if (dm.Luma is int lu)              parts.Add($"luma={lu}");
+            if (dm.Quality is int q)            parts.Add($"quality={q}");
+            if (dm.ElapsedMs is int el)         parts.Add($"elapsed={el}ms");
+            if (parts.Count > 0)
+                diag.Info($"Login Device: {string.Join(" ", parts)} (doğrulanmadı, yalnız ölçüm)");
+        }
 
         float score;
         diag.Begin("Biometric Login");
