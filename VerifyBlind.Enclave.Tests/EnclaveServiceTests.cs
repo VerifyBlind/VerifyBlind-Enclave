@@ -1576,7 +1576,8 @@ public class EnclaveServiceTests
     /// burada gerçek bir RSA-PSS imzası üretilir (UserPubKey bilete yazılır) — yoksa akış yüz
     /// kapısından ÖNCE holder-of-key adımında kırılır ve testler yanlış sebeple yeşil/kırmızı olur.
     /// </summary>
-    private LoginRequest BuildLoginRequestReachingFaceGate(string tckn, string faceRefB64)
+    private LoginRequest BuildLoginRequestReachingFaceGate(
+        string tckn, string faceRefB64, LoginFaceProof? faceProof = null)
     {
         var (_, reqPublicKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
         var (userPrivKey, userPubKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
@@ -1600,7 +1601,9 @@ public class EnclaveServiceTests
                 Signature = "sig"
             },
             nonce   = sharedNonce,
-            pk_hash = pkHash
+            pk_hash = pkHash,
+            // Kare zarfın İÇİNDE — üretimde de öyle gider (relay biyometriyi görmez).
+            face_proof = faceProof,
         });
 
         var (aesCipher, aesKey, _) = VerifyBlind.Core.Crypto.CryptoUtils.AesEncrypt(inner);
@@ -1645,8 +1648,7 @@ public class EnclaveServiceTests
         _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("kms-reached"));
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = ValidFaceProof();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1661,8 +1663,7 @@ public class EnclaveServiceTests
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
                    .Returns(0.05f);   // 0.20 eşiğinin altında
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = ValidFaceProof();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
         var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1676,8 +1677,7 @@ public class EnclaveServiceTests
     {
         // Vaka 3: bilet referans taşıyor ama istek kare getirmiyor → eski istemci ya da kapıyı
         // atlama denemesi. Sessizce geçmek, kapıyı hiç eklememekle aynı şeydir.
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = null;
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: null);
 
         var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1696,8 +1696,7 @@ public class EnclaveServiceTests
         _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
             .ThrowsAsync(new InvalidOperationException("kms-reached"));
 
-        var request = BuildLoginRequestReachingFaceGate("00000000000", faceRefB64: "");
-        request.FaceProof = null;
+        var request = BuildLoginRequestReachingFaceGate("00000000000", faceRefB64: "", faceProof: null);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1714,8 +1713,7 @@ public class EnclaveServiceTests
         // Biri onu ileride "demo ise atla" biçimine çevirirse varsayılan davranış ATLAMAK olur ve
         // referanssız her gerçek bilet kapıyı SESSİZCE geçer. Bu testin görevi o anda kırılmaktır —
         // fail-closed kuralı yalnız yorum satırıyla korunamaz.
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, faceRefB64: "");
-        request.FaceProof = ValidFaceProof();   // kare GÖNDERSE bile geçmemeli
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, faceRefB64: "", faceProof: ValidFaceProof());   // kare GÖNDERSE bile geçmemeli
 
         var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1731,8 +1729,7 @@ public class EnclaveServiceTests
                    .Returns(0.80f);
         _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0.9f, 0.1f, 0f }); // pLive=0.1
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = ValidFaceProof();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
         var ex = await Assert.ThrowsAsync<RegistrationException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1748,8 +1745,7 @@ public class EnclaveServiceTests
                    .Returns(0.80f);
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(false);
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = ValidFaceProof();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
         var ex = await Assert.ThrowsAsync<RegistrationException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1764,12 +1760,11 @@ public class EnclaveServiceTests
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
                    .Returns(0.80f);
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = new LoginFaceProof
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: new LoginFaceProof
         {
             UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
             AntiSpoofCrop = "!!!not-valid-base64!!!",
-        };
+        });
 
         var ex = await Assert.ThrowsAsync<RegistrationException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1784,8 +1779,7 @@ public class EnclaveServiceTests
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
                    .Throws(new InvalidOperationException("model yok"));
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = ValidFaceProof();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
         var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
             () => _service.LoginAsync(request, new DiagLog()));
@@ -1805,8 +1799,7 @@ public class EnclaveServiceTests
             .ThrowsAsync(new InvalidOperationException("kms-reached"));
 
         var diag = new DiagLog();
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
-        request.FaceProof = ValidFaceProof();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.LoginAsync(request, diag));
 

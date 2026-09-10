@@ -333,15 +333,10 @@ public class LoginRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? RevocationRules { get; set; }
 
-    /// <summary>
-    /// Girişte tazeliği kanıtlayan kare. Ticket'ın <see cref="TicketPayload.FaceRefJpegB64"/>
-    /// alanı DOLU ise ZORUNLUDUR; demo ticket'larda (referans yapısal olarak boş) null gelir.
-    /// Selfie ve anti-spoof kırpması AYNI KAREDEN olmak zorundadır (K6) — benzerlik bir kareden,
-    /// canlılık başkasından alınırsa gerçek bir açık doğar.
-    /// </summary>
-    [JsonPropertyName("face_proof")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public LoginFaceProof? FaceProof { get; set; }
+    // ⚠️ CANLI YÜZ KARESİ BURADA DEĞİL: face_proof, EncrSignedTicket zarfının İÇİNDE taşınır
+    // ({signed_ticket, nonce, pk_hash, face_proof} — enclave public key ile şifreli). Gövdeye düz
+    // alan olarak konsaydı relay kullanıcının canlı selfie'sini ve 2,7× kırpmasını görürdü; kayıt
+    // akışı da tam bu yüzden biyometriyi aes_blob içinde taşıyor. Kare böylece nonce'a da bağlanır.
 
     // --- Internal API-only fields (not sent to Enclave) ---
     [JsonIgnore]

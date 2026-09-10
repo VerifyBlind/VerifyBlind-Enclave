@@ -592,6 +592,10 @@ public class EnclaveService
         SignedTicket? signedTicket = null;
         string? innerNonce = null;
         string? innerPkHash = null;
+        // Canlı yüz karesi zarfın İÇİNDEDİR (gövdede düz alan DEĞİL): relay biyometrik görüntüyü
+        // görmez ve kare bu login'in nonce'una bağlanmış olur. Kayıt akışı da biyometriyi aynı
+        // sebeple aes_blob içinde taşıyor.
+        LoginFaceProof? faceProof = null;
 
         try
         {
@@ -602,6 +606,8 @@ public class EnclaveService
             // Extract inner properties
             if (root.TryGetProperty("nonce", out var nonceEl)) innerNonce = nonceEl.GetString();
             if (root.TryGetProperty("pk_hash", out var pkHashEl)) innerPkHash = pkHashEl.GetString();
+            if (root.TryGetProperty("face_proof", out var fpEl) && fpEl.ValueKind == JsonValueKind.Object)
+                faceProof = JsonSerializer.Deserialize<LoginFaceProof>(fpEl.GetRawText());
 
             // Extract signed ticket
             if (root.TryGetProperty("signed_ticket", out var ticketEl))
@@ -831,7 +837,7 @@ string? partnerId = null;
         // yapılandırmadır ve zayıftır. Hem FaceRefJpegB64 hem TCKN, MAC ile mühürlü bilet
         // payload'ının içindedir → "bu demo bir bilettir" istemci beyanı değil, enclave'in
         // mühürden okuduğu otoriter olgudur.
-        EnforceLoginFaceProof(signedTicket.Payload, request.FaceProof, diag);
+        EnforceLoginFaceProof(signedTicket.Payload, faceProof, diag);
 
         if (userIdHmacTask != null)
         {
