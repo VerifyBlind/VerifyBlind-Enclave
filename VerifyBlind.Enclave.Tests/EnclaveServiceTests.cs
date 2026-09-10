@@ -30,7 +30,7 @@ public class EnclaveServiceTests
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
         _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0f, 1.0f, 0f });
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object);
+        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object, new FlowEmbeddingCache());
     }
 
     // ── Handshake ─────────────────────────────────────────────────────────────

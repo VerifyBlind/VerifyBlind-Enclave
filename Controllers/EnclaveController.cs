@@ -89,6 +89,9 @@ public class EnclaveController : ControllerBase
                 encrypted_ticket = result.ticket,
                 face_similarity_score = Math.Round(result.faceScore * 100, 1),
                 relay_card_id = result.cardId,         // plaintext for relay block check only
+                // Aday sonuçları — relay ölçüm tablosuna yazar. Kişiye bağlanamaz: yalnız skaler
+                // skorlar ve sabit kümeli sonuç etiketi taşır.
+                candidate_outcomes = result.candidates,
                 enclave_diag = diag.Entries
             });
         }
@@ -107,9 +110,85 @@ public class EnclaveController : ControllerBase
                 // Belge politikası reddinde SOD-doğrulanmış ihraç ülkesi — relay bunu Sentry'ye
                 // basar. İstemcinin beyan ettiği CountryIsoCode'un aksine GÜVENİLİRDİR.
                 issuing_country = (ex as RegistrationException)?.IssuingCountry,
+                // Reddedilen adaylar da ölçüm tablosuna yazılır — yalnız geçeni loglamak,
+                // eşiğin doğru yerde olup olmadığını çözecek dağılımı yok ederdi.
+                candidate_outcomes = (ex as RegistrationException)?.CandidateOutcomes,
                 enclave_diag = diag.Entries
             });
         }
+    }
+
+    /// <summary>
+    /// POST /api/Enclave/streaming-prepare — akış başı: DG2'nin gömme vektörünü RAM'e alır.
+    ///
+    /// ⚠️ Bu yol ÖLÇÜM içindir; hiçbir ticket imzalamaz ve register akışını etkilemez.
+    /// Final register bu önbelleğe ASLA bakmaz (K4).
+    /// </summary>
+    [HttpPost("streaming-prepare")]
+    public IActionResult StreamingPrepare([FromBody] StreamingPrepareRequest request)
+    {
+        var diag = new VerifyBlind.Enclave.Services.DiagLog();
+        try
+        {
+            _service.StreamingPrepare(request, diag);
+            return Ok(new { prepared = true, enclave_diag = diag.Entries });
+        }
+        catch (Exception ex)
+        {
+            diag.Fail("StreamingPrepare", ex.Message);
+            Console.WriteLine($"[Enclave Controller] STREAMING-PREPARE ERROR: {ex.Message}");
+            return BadRequest(new { error = ex.Message, enclave_diag = diag.Entries });
+        }
+    }
+
+    /// <summary>
+    /// POST /api/Enclave/streaming-check — tek kare: benzerlik + canlılık ölçümü.
+    ///
+    /// Cevap yalnız benzerlik kararını taşır; kayıt kararı burada VERİLMEZ.
+    /// </summary>
+    [HttpPost("streaming-check")]
+    public IActionResult StreamingCheck([FromBody] StreamingCheckRequest request)
+    {
+        var diag = new VerifyBlind.Enclave.Services.DiagLog();
+        try
+        {
+            var result = _service.StreamingCheck(request, diag);
+            return Ok(new
+            {
+                similarity_passed = result.SimilarityPassed,
+                match_score = result.MatchScore,
+                p_live = result.PLive,
+                c0 = result.C0,
+                c1 = result.C1,
+                c2 = result.C2,
+                outcome = result.Outcome,
+                enclave_diag = diag.Entries
+            });
+        }
+        catch (Exception ex)
+        {
+            diag.Fail("StreamingCheck", ex.Message);
+            Console.WriteLine($"[Enclave Controller] STREAMING-CHECK ERROR: {ex.Message}");
+            return BadRequest(new { error = ex.Message, enclave_diag = diag.Entries });
+        }
+    }
+
+    /// <summary>
+    /// POST /api/Enclave/streaming-release — akış bitti, gömme vektörünü RAM'den sil.
+    ///
+    /// Best-effort: çağrılmasa da TTL (15 dk) girdiyi zaten düşürür.
+    /// </summary>
+    [HttpPost("streaming-release")]
+    public IActionResult StreamingRelease([FromBody] StreamingReleaseRequest request)
+    {
+        _service.StreamingRelease(request.FlowId ?? string.Empty);
+        return Ok(new { released = true });
+    }
+
+    public class StreamingReleaseRequest
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("flow_id")]
+        public string? FlowId { get; set; }
     }
 
     [HttpPost("demo-register")]

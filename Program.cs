@@ -1,4 +1,4 @@
-var builder = WebApplication.CreateBuilder(args);
+﻿var builder = WebApplication.CreateBuilder(args);
 
 // Enclave için Unix Socket desteği (Lokal TCP'yi bozmadan) 
 var socketPath = "/tmp/enclave.sock";
@@ -48,6 +48,9 @@ builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IAntiSpoofService, Ve
 // Ticket Forgery fix: ticket'ı enclave-içi MAC ile imzala/doğrula. Singleton — secret boot başına
 // 1 kez attestation-bound Decrypt ile yüklenip RAM'de cache'lenir (TICKET_FORGERY_FIX_PLAN.md).
 builder.Services.AddSingleton<VerifyBlind.Enclave.Services.ITicketMacService, VerifyBlind.Enclave.Services.TicketMacService>();
+// Canlı benzerlik akışı — akış başına DG2 gömme vektörü (RAM, TTL'li). Singleton olmalı:
+// önbellek istekler ARASINDA yaşar (prepare bir istekte, kareler başka isteklerde gelir).
+builder.Services.AddSingleton<VerifyBlind.Enclave.Services.FlowEmbeddingCache>();
 builder.Services.AddScoped<VerifyBlind.Enclave.Services.EnclaveService>();
 
 // Metrik toplama servisi (Admin portal için)

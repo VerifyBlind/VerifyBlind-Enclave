@@ -17,6 +17,19 @@ namespace VerifyBlind.Enclave.Services
         float VerifyFace(byte[] idPhotoBytes, byte[] probePhotoBytes);
         float VerifyFaceParallel(byte[] idPhotoBytes, byte[] probePhotoBytes);
         bool IsModelLoaded { get; }
+
+        /// <summary>
+        /// Tek bir görüntünün ArcFace gömme vektörü (512 boyut, normalize EDİLMEMİŞ).
+        ///
+        /// Canlı benzerlik akışı için: akış başında DG2'nin gömmesi bir kez hesaplanıp RAM'de
+        /// tutulur (<see cref="FlowEmbeddingCache"/>), sonraki her karede yalnız selfie'nin
+        /// gömmesi hesaplanır. VerifyFace her çağrıda İKİ görüntüyü birden işlediği için
+        /// streaming'de kimlik fotoğrafını kare başına yeniden çıkarmak gerekirdi.
+        /// </summary>
+        float[] ComputeEmbedding(byte[] imageBytes);
+
+        /// <summary>İki gömme vektörü arasındaki kosinüs benzerliği (0-1 aralığına kırpılmaz).</summary>
+        float CosineSimilarity(float[] a, float[] b);
     }
 
     public class BiometricService : IBiometricService
@@ -117,6 +130,21 @@ namespace VerifyBlind.Enclave.Services
                 throw;
             }
         }
+
+        /// <summary>
+        /// <see cref="IBiometricService.ComputeEmbedding"/> — aynı boru hattı (YuNet hizalama +
+        /// ArcFace), yalnız arayüz üzerinden erişilebilir hâli. Model yüklü değilse fırlatır
+        /// (fail-closed: sessiz sıfır vektör "benzemiyor" değil "ölçemedik" demektir).
+        /// </summary>
+        public float[] ComputeEmbedding(byte[] imageBytes)
+        {
+            if (!_isLoaded)
+                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_r50.onnx) bulunamadı.");
+            return GetEmbedding(imageBytes);
+        }
+
+        /// <summary><see cref="IBiometricService.CosineSimilarity"/>.</summary>
+        public float CosineSimilarity(float[] a, float[] b) => ComputeCosineSimilarity(a, b);
 
         // internal: offline eşik kalibrasyonu (CalibrationLfwTests) + gelecekteki biyometrik
         // karşılaştırma/step-up primitifi. VerifyFace bunun üstüne kosinüs ekler.

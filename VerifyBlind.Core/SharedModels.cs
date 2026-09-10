@@ -85,6 +85,23 @@ public class SecurePayload
 
     // Anti-spoof: 2.7x enlarged face crop (80x80 JPEG, Base64) — MiniFASNetV2 input
     public string AntiSpoofCrop { get; set; } = string.Empty;
+
+    /// <summary>
+    /// En fazla İKİ aday kare (canlı benzerlik akışı). Doluysa <see cref="UserSelfie"/> /
+    /// <see cref="AntiSpoofCrop"/> yerine bunlar değerlendirilir.
+    ///
+    /// Sıra: 1 = istemcinin en iyi seçtiği kare, 2 = enclave'in streaming'de onayladığı kare
+    /// (yalnız 1'den FARKLIYSA gönderilir). Enclave her adayı normal kapıdan geçirir ve ilk
+    /// GEÇEN kazanır — "önceden onaylanmış" diye bir kavram YOKTUR (K4): enclave streaming'de
+    /// neyi onayladığını bilmez ve önbelleğe güvenmez.
+    ///
+    /// ⚠️ Neden sıra bu (K5): hep sınırdaki kareyi gönderirsek loglar "herkes kıl payı geçiyor"
+    /// gibi görünür ve eşik kararlarını bozuk bir dağılıma bakarak veririz.
+    ///
+    /// ⚠️ Her aday KENDİ selfie'si + KENDİ kırpmasıyla bir bütün olarak değerlendirilir (K6).
+    /// Boşsa eski tek-fotoğraf yolu çalışır (geriye dönük uyumlu).
+    /// </summary>
+    public List<RegistrationCandidate>? Candidates { get; set; }
 }
 
 // Registration Request (Phone -> Relay -> Enclave)
@@ -98,6 +115,30 @@ public class RegistrationRequest
 
     [JsonPropertyName("country_iso_code")]
     public string CountryIsoCode { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Akış izleme numarası (GUID) — ölçüm satırlarını streaming kareleriyle birleştirir.
+    ///
+    /// ⚠️ Şifreli yükün DIŞINDA taşınır ve enclave'e GİTMEZ: relay'in ölçüm satırını yazabilmesi
+    /// için görmesi gerekir, enclave'in ise bilmesine gerek yoktur (bilmesi, kayıt kararını bir
+    /// akış numarasına bağlamaya kapı aralardı). Kimlikle bağ taşımaz.
+    ///
+    /// Yoksa ölçüm satırı yazılmaz, kayıt normal tamamlanır.
+    /// </summary>
+    [JsonPropertyName("flow_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? FlowId { get; set; }
+
+    /// <summary>
+    /// Adayların cihaz ölçüleri (rank sırasına göre) — ölçüm satırına yazılır.
+    ///
+    /// ⚠️ Şifreli yükün DIŞINDA: relay bunları tabloya yazar, enclave kullanmaz. Fotoğrafların
+    /// kendisi (aday selfie + kırpma) şifreli yükün İÇİNDEDİR ve relay onları GÖREMEZ.
+    /// DOĞRULANMAZ — aralık kontrolünden geçirilir.
+    /// </summary>
+    [JsonPropertyName("candidate_metrics")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<DeviceFrameMetrics>? CandidateMetrics { get; set; }
 
     /// <summary>
     /// Relay API tarafından set edilir. KMS wrapping CMK ile sarılmış ticket-MAC secret'ı

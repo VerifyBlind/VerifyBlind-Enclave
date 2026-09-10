@@ -17,15 +17,27 @@ public class EnclaveService
     private readonly IAntiSpoofService _antiSpoof;
     // Ticket'lar enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
     private readonly ITicketMacService _ticketMac;
+    // Canlı benzerlik akışı — YALNIZ streaming içindir. Register buraya ASLA bakmaz (K4).
+    private readonly FlowEmbeddingCache _flowEmbeddings;
+
+    /// <summary>
+    /// ArcFace (w600k_r50) kosinüs eşiği — YuNet 5-nokta hizalı boru hattı için kalibre edildi.
+    /// Gerekçe ve kalibrasyon notları için bkz. <see cref="VerifyBiometricMatchParallel"/>.
+    ///
+    /// Streaming ve final register AYNI sayıyı kullanır: streaming "geçti" deyip register'ın
+    /// aynı kareyi reddetmesi kullanıcıyı açıklanamaz bir duvara çarptırırdı.
+    /// </summary>
+    public const float BiometricThreshold = 0.20f;
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
-        ITicketMacService ticketMac, IAntiSpoofService antiSpoof)
+        ITicketMacService ticketMac, IAntiSpoofService antiSpoof, FlowEmbeddingCache flowEmbeddings)
     {
         _enclaveKeys = enclaveKeys;
         _kms = kms;
         _biometricService = biometricService;
         _ticketMac = ticketMac;
         _antiSpoof = antiSpoof;
+        _flowEmbeddings = flowEmbeddings;
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
@@ -76,7 +88,12 @@ public class EnclaveService
         return new LoginHandshakeResponse { AttestationDocument = attestDoc };
     }
 
-    public async Task<(string ticket, float faceScore, string cardId)> RegisterAsync(RegistrationRequest request, DiagLog diag)
+    /// <returns>
+    /// Ticket, kazanan adayın benzerlik skoru, kart numarası ve HER adayın sonucu.
+    /// Aday sonuçları relay tarafından ölçüm tablosuna yazılır — kazanan da kaybeden de
+    /// (cihazın "en iyi" hükmü ile enclave'in hükmü arasındaki sapmanın etiketli örneği).
+    /// </returns>
+    public async Task<(string ticket, float faceScore, string cardId, List<CandidateOutcome> candidates)> RegisterAsync(RegistrationRequest request, DiagLog diag)
     {
         diag.Info($"Kayıt başladı. EncKey={request.EncryptedKey.Length}ch, Blob={request.AesBlob.Length}ch");
         Console.WriteLine($"[Enclave] Kayıt isteği alındı. Şifreli Anahtar Uzunluğu: {request.EncryptedKey.Length}, Blob Uzunluğu: {request.AesBlob.Length}");
@@ -251,27 +268,10 @@ public class EnclaveService
             throw new RegistrationException(RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.Dg1Parse, ex.Message);
         }
 
-        // --- Step 6: Biometric Verification (parallel embedding) ---
-        float faceScore;
-        try
-        {
-            diag.Begin("Biometric");
-            faceScore = VerifyBiometricMatchParallel(payload);
-            diag.Ok("Biometric", $"Score={Math.Round(faceScore * 100, 1)}%");
-        }
-        catch (Exception ex)
-        {
-            diag.Fail("Biometric", ex.Message);
-            Console.WriteLine($"[Enclave] [{RegistrationStep.BiometricVerification}] adımında başarısız: {ex}");
-            var bioCode = !_biometricService.IsModelLoaded ? "ERR_BIOMETRIC_MODEL_MISSING" : "ERR_BIOMETRIC_MISMATCH";
-            throw new RegistrationException(RegistrationStep.BiometricVerification, bioCode, ex.Message)
-            {
-                FaceScore = (ex as BiometricMismatchException)?.Score
-            };
-        }
-
-        // --- Step 7: Anti-Spoof (passive liveness) — FAIL-CLOSED (bkz. EnforceAntiSpoof) ---
-        EnforceAntiSpoof(payload, diag);
+        // --- Step 6+7: Biyometrik eşleşme + pasif canlılık (aday aday, TAM KAPI) ---
+        // Adaylar sırayla TAM kapıdan geçirilir ve ilk GEÇEN kazanır. Enclave streaming'de neyi
+        // onayladığını BİLMEZ ve önbelleğe GÜVENMEZ (K4) — burada her şey baştan hesaplanır.
+        var (faceScore, candidateOutcomes) = EvaluateCandidates(payload, diag);
 
         // --- Step 8: DG1 Parsing ---
         TicketPayload ticketPayload;
@@ -412,7 +412,7 @@ public class EnclaveService
             };
             
             diag.Ok("Response Encrypt");
-            return (JsonSerializer.Serialize(hybridResponse), faceScore, cardId);
+            return (JsonSerializer.Serialize(hybridResponse), faceScore, cardId, candidateOutcomes);
         }
         catch (Exception ex)
         {
@@ -1049,35 +1049,49 @@ string? partnerId = null;
     //   • model yüklü değil → REDDET (biyometrik adımla simetrik; startup/readiness backstop)
     //   • crop boş / bozuk base64 / çözülemeyen JPEG / çıkarım hatası → REDDET
     //   • P(live) eşiğin altında → REDDET
-    internal void EnforceAntiSpoof(SecurePayload payload, DiagLog diag)
+    /// <summary>MiniFASNetV2 çıktısı — 3-sınıf softmax + P(live). Ölçüm satırına yazılır.</summary>
+    internal readonly record struct AntiSpoofResult(float PLive, float C0, float C1, float C2);
+
+    /// <param name="crop">
+    /// Değerlendirilecek adayın KENDİ 2,7× kırpması. Benzerliğin geldiği kareyle AYNI kareden
+    /// olmalıdır (K6) — çağıran taraf bunu garanti eder.
+    /// </param>
+    /// <param name="label">Teşhis satırındaki aday etiketi (çok adaylı akışta hangisi olduğu).</param>
+    internal AntiSpoofResult EnforceAntiSpoof(SecurePayload payload, DiagLog diag, string? crop = null, string? label = null)
     {
-        diag.Begin("AntiSpoof");
+        var step = label is null ? "AntiSpoof" : $"AntiSpoof {label}";
+        crop ??= payload.AntiSpoofCrop;
+
+        diag.Begin(step);
 
         if (!_antiSpoof.IsModelLoaded)
         {
-            diag.Fail("AntiSpoof", "model yüklü değil");
+            diag.Fail(step, "model yüklü değil");
             throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING_MODEL_MISSING",
                 "Pasif canlılık modeli yüklü değil — kayıt güvenli şekilde tamamlanamaz.");
         }
 
-        if (string.IsNullOrEmpty(payload.AntiSpoofCrop))
+        if (string.IsNullOrEmpty(crop))
             throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
                 "Anti-spoof crop eksik — pasif canlılık doğrulaması atlanamaz.");
 
-        float pLive;
+        float pLive, c0 = 0f, c1 = 0f, c2 = 0f;
         try
         {
-            byte[] cropBytes = Convert.FromBase64String(payload.AntiSpoofCrop);
+            byte[] cropBytes = Convert.FromBase64String(crop);
             float[] probs = _antiSpoof.Predict(cropBytes);
             // Live = indeks 1 (etiketli referansla doğrulandı: ham-BGR girdide real→idx1≈0.99, fake→≈0.00).
             pLive = probs.Length > 1 ? probs[1] : 0f;
+            c0 = probs.Length > 0 ? probs[0] : 0f;
+            c1 = probs.Length > 1 ? probs[1] : 0f;
+            c2 = probs.Length > 2 ? probs[2] : 0f;
             string breakdown = probs.Length >= 3 ? $" [c0={probs[0]:P1} c1={probs[1]:P1} c2={probs[2]:P1}]" : "";
-            diag.Ok("AntiSpoof", $"P(live)={Math.Round(pLive * 100, 1)}%{breakdown}");
+            diag.Ok(step, $"P(live)={Math.Round(pLive * 100, 1)}%{breakdown}");
         }
         catch (Exception ex)
         {
             // Bozuk base64 / çözülemeyen JPEG / çıkarım hatası → FAIL-CLOSED (eskiden yutuluyordu).
-            diag.Fail("AntiSpoof", ex.Message);
+            diag.Fail(step, ex.Message);
             Console.WriteLine($"[Enclave] Anti-spoof girdi/çıkarım hatası — kayıt REDDEDİLDİ: {ex.Message}");
             throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
                 "Pasif canlılık doğrulaması yapılamadı (geçersiz veya işlenemeyen anti-spoof verisi).");
@@ -1085,7 +1099,12 @@ string? partnerId = null;
 
         if (pLive < AntiSpoofService.LiveThreshold)
             throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_ANTISPOOFING",
-                $"Canlı yüz tespit edilemedi (P={pLive:F3}).");
+                $"Canlı yüz tespit edilemedi (P={pLive:F3}).")
+            {
+                PLive = pLive, C0 = c0, C1 = c1, C2 = c2,
+            };
+
+        return new AntiSpoofResult(pLive, c0, c1, c2);
     }
 
     // --- ACTIVE AUTHENTICATION (Chip Clone Protection) ---
@@ -1339,14 +1358,299 @@ string? partnerId = null;
         return dg15Bytes;
     }
     
+    // --- ADAY DEĞERLENDİRME (final register) ---
+
+    /// <summary>
+    /// Yükteki adayları sırayla TAM kapıdan geçirir; ilk GEÇEN kazanır.
+    ///
+    /// <para><b>Sıra (K5):</b> önce istemcinin en iyi seçtiği kare (rank 1), sonra enclave'in
+    /// streaming'de onayladığı kare (rank 2). Gerekçe VERİ KALİTESİ: hep sınırdaki kareyi
+    /// değerlendirirsek loglar "herkes kıl payı geçiyor" gibi görünür ve eşik kararlarını bozuk
+    /// bir dağılıma bakarak veririz.</para>
+    ///
+    /// <para><b>Tam kapı (K6):</b> her aday KENDİ selfie'si ve KENDİ 2,7× kırpmasıyla bir bütün
+    /// olarak değerlendirilir. Benzerliği bir adaydan, canlılığı başkasından almak gerçek bir
+    /// açıktır: saldırgan gerçek yüzü benzerliğe, canlı kırpmayı anti-spoof'a verirdi.</para>
+    ///
+    /// <para><b>Kontrol kaldırılmadı (K3):</b> geçen aday hem benzerliği hem canlılığı KENDİ
+    /// geçer; ikisi de bugünkü eşikler ve bugünkü fail-closed davranışla uygulanır. Hiçbir aday
+    /// geçemezse akış bugünkü gibi reddedilir.</para>
+    ///
+    /// <para>Aday listesi boşsa eski tek-fotoğraf yolu çalışır (geriye dönük uyumlu: streaming
+    /// göndermeyen eski istemciler aynen kayıt olur).</para>
+    /// </summary>
+    /// <returns>Kazanan adayın benzerlik skoru + HER adayın sonucu (ölçüm satırları için).</returns>
+    internal (float faceScore, List<CandidateOutcome> outcomes) EvaluateCandidates(SecurePayload payload, DiagLog diag)
+    {
+        var candidates = BuildCandidateList(payload);
+        var outcomes = new List<CandidateOutcome>(candidates.Count);
+
+        // Son başarısızlık saklanır: hiçbir aday geçmezse kullanıcıya dönecek hata budur.
+        // 1. aday reddi 2. adayın da reddiyle sonuçlanırsa kullanıcı yine tek ve net bir hata
+        // görür — "iki fotoğraf denendi" ayrıntısı ona bir şey söylemez.
+        RegistrationException? lastFailure = null;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            var candidate = candidates[i];
+            var label = $"Aday {candidate.Rank}";
+
+            float score;
+            try
+            {
+                diag.Begin($"Biometric {label}");
+                score = VerifyBiometricMatchParallel(payload, candidate.UserSelfie);
+                diag.Ok($"Biometric {label}", $"Score={Math.Round(score * 100, 1)}%");
+            }
+            catch (Exception ex)
+            {
+                diag.Fail($"Biometric {label}", ex.Message);
+                Console.WriteLine($"[Enclave] [{RegistrationStep.BiometricVerification}] {label} başarısız: {ex.Message}");
+                var bioCode = !_biometricService.IsModelLoaded ? "ERR_BIOMETRIC_MODEL_MISSING" : "ERR_BIOMETRIC_MISMATCH";
+                var rejectScore = (ex as BiometricMismatchException)?.Score;
+                outcomes.Add(new CandidateOutcome
+                {
+                    Rank = candidate.Rank,
+                    MatchScore = rejectScore.HasValue ? Math.Round(rejectScore.Value, 4) : 0,
+                    Outcome = FrameOutcomes.FailSimilarity,
+                });
+                lastFailure = new RegistrationException(RegistrationStep.BiometricVerification, bioCode, ex.Message)
+                {
+                    FaceScore = rejectScore
+                };
+                continue;
+            }
+
+            // Canlılık AYNI adayın kırpmasıyla — fail-closed davranış aynen korunur.
+            AntiSpoofResult live;
+            try
+            {
+                live = EnforceAntiSpoof(payload, diag, candidate.AntiSpoofCrop, label);
+            }
+            catch (RegistrationException ex)
+            {
+                outcomes.Add(new CandidateOutcome
+                {
+                    Rank = candidate.Rank,
+                    MatchScore = Math.Round(score, 4),
+                    PLive = Math.Round(ex.PLive ?? 0, 4),
+                    C0 = Math.Round(ex.C0 ?? 0, 4),
+                    C1 = Math.Round(ex.C1 ?? 0, 4),
+                    C2 = Math.Round(ex.C2 ?? 0, 4),
+                    Outcome = FrameOutcomes.FailLiveness,
+                });
+                lastFailure = ex;
+                continue;
+            }
+
+            // Bu aday HER İKİ kapıyı da KENDİ geçti → kazanan.
+            outcomes.Add(new CandidateOutcome
+            {
+                Rank = candidate.Rank,
+                MatchScore = Math.Round(score, 4),
+                PLive = Math.Round(live.PLive, 4),
+                C0 = Math.Round(live.C0, 4),
+                C1 = Math.Round(live.C1, 4),
+                C2 = Math.Round(live.C2, 4),
+                Outcome = FrameOutcomes.Pass,
+            });
+
+            // ⚠️ Kalan adaylar DEĞERLENDİRİLMEZ ama ölçüm kaybı yok: sıra gereği kalan aday
+            // sınırdaki karedir ve zaten streaming satırlarında kare kare kayıtlıdır.
+            if (i < candidates.Count - 1)
+                diag.Info($"{label} geçti — kalan aday değerlendirilmedi.");
+
+            return (score, outcomes);
+        }
+
+        // Hiçbir aday geçemedi → bugünkü davranış: reddet. Aday sonuçları istisnayla TAŞINIR:
+        // reddedilen kareler ölçümün asıl konusudur, red yolunda düşürülemezler.
+        if (lastFailure is not null)
+            throw new RegistrationException(lastFailure.Step, lastFailure.ErrorCode, lastFailure.TechnicalDetail)
+            {
+                FaceScore = lastFailure.FaceScore,
+                PLive = lastFailure.PLive,
+                C0 = lastFailure.C0,
+                C1 = lastFailure.C1,
+                C2 = lastFailure.C2,
+                IssuingCountry = lastFailure.IssuingCountry,
+                Diagnostic = lastFailure.Diagnostic,
+                CandidateOutcomes = outcomes,
+            };
+
+        throw new RegistrationException(
+            RegistrationStep.BiometricVerification, "ERR_BIOMETRIC_MISMATCH", "Değerlendirilebilir aday yok.")
+        {
+            CandidateOutcomes = outcomes,
+        };
+    }
+
+    /// <summary>
+    /// Yükten aday listesini kurar: en fazla İKİ aday, rank sırasına göre.
+    ///
+    /// Aday yoksa eski tek-fotoğraf alanlarından (<see cref="SecurePayload.UserSelfie"/> +
+    /// <see cref="SecurePayload.AntiSpoofCrop"/>) tek adaylık liste üretilir — streaming
+    /// göndermeyen istemciler için davranış birebir aynı kalır.
+    ///
+    /// ⚠️ TAVAN İKİ: uç kimlik doğrulaması istemez ve her aday iki ONNX çıkarımı demektir;
+    /// sınırsız aday, register'ı ucuz bir CPU tüketim yüzeyine çevirirdi.
+    /// </summary>
+    internal static List<RegistrationCandidate> BuildCandidateList(SecurePayload payload)
+    {
+        const int maxCandidates = 2;
+
+        if (payload.Candidates is { Count: > 0 })
+        {
+            var list = payload.Candidates
+                .Where(c => !string.IsNullOrEmpty(c.UserSelfie))
+                .OrderBy(c => c.Rank)
+                .Take(maxCandidates)
+                .ToList();
+
+            if (list.Count > 0) return list;
+        }
+
+        return
+        [
+            new RegistrationCandidate
+            {
+                Rank = 1,
+                UserSelfie = payload.UserSelfie,
+                AntiSpoofCrop = payload.AntiSpoofCrop,
+            }
+        ];
+    }
+
+    // --- CANLI BENZERLİK AKIŞI (streaming) ---
+    //
+    // ⚠️ Bu bölüm ÖLÇÜM içindir ve register akışını HİÇBİR şekilde etkilemez. Register durumsuz
+    // kalır: buradaki önbelleğe bakmaz, buradaki "geçti" kararına güvenmez. Streaming tamamen
+    // kapatılsa kayıt aynen çalışır (K4).
+
+    /// <summary>
+    /// Akış başı hazırlık: DG2'den ArcFace gömme vektörünü hesaplayıp akış numarasıyla RAM'de
+    /// önbelleğe alır. Sonraki karelerde DG2 bir daha gönderilmez.
+    ///
+    /// ⚠️ Burada PASSIVE AUTH YAPILMAZ ve YAPILMASI GEREKMEZ: bu yol yalnız bir SAYI üretir,
+    /// hiçbir ticket imzalamaz. Doğrulanmamış bir DG2 gönderen istemci yalnız kendi kendine
+    /// yanlış bir benzerlik skoru gösterir; final register DG2'yi SOD'a karşı bugünkü gibi
+    /// yeniden doğrular ve o kapıdan geçemez.
+    /// </summary>
+    public void StreamingPrepare(StreamingPrepareRequest request, DiagLog diag)
+    {
+        if (!Guid.TryParse(request.FlowId, out _))
+            throw new InvalidOperationException("Geçersiz akış numarası.");
+
+        var aesKeyBase64 = _enclaveKeys.DecryptWithEnclaveKey(request.EncryptedKey);
+        var payloadJson = CryptoUtils.AesDecrypt(request.AesBlob, aesKeyBase64);
+        var payload = JsonSerializer.Deserialize<StreamingPreparePayload>(payloadJson)
+            ?? throw new InvalidOperationException("Prepare yükü çözülemedi.");
+
+        if (string.IsNullOrEmpty(payload.DG2))
+            throw new InvalidOperationException("DG2 eksik.");
+
+        // Register ile AYNI boru hattı: ham DG2'den gömülü JPEG çıkarılır, YuNet ile hizalanır.
+        // Aynı olması şart — farklı bir çıkarma yolu, streaming'in "geçti" dediği kareyi
+        // register'ın reddetmesine yol açardı.
+        var faceBytes = Dg2FaceExtractor.ExtractFaceImage(Convert.FromBase64String(payload.DG2));
+        var embedding = _biometricService.ComputeEmbedding(faceBytes);
+
+        _flowEmbeddings.Store(request.FlowId, embedding);
+        diag.Ok("StreamingPrepare", $"embedding={embedding.Length}d, önbellek={_flowEmbeddings.Count}");
+    }
+
+    /// <summary>
+    /// Tek kare değerlendirmesi: benzerlik (selfie ↔ önbellekteki DG2 gömmesi) + canlılık
+    /// (aynı karenin 2,7× kırpması). İkisi de AYNI kareden gelir (K6).
+    ///
+    /// Register'dan farkı: burada hiçbir şey reddedilmez, yalnız ÖLÇÜLÜR. Anti-spoof düşse bile
+    /// istisna fırlatılmaz — sonuç <c>fail_liveness</c> olarak döner ve satır yazılır. Kare kare
+    /// P(live) yörüngesi, 24 Ağustos'taki %46,2 anomalisinin hangi koşulda oluştuğunu
+    /// gösterebilecek TEK veri.
+    /// </summary>
+    public StreamingCheckResponse StreamingCheck(StreamingCheckRequest request, DiagLog diag)
+    {
+        if (!Guid.TryParse(request.FlowId, out _))
+            throw new InvalidOperationException("Geçersiz akış numarası.");
+
+        var chipEmbedding = _flowEmbeddings.Get(request.FlowId)
+            ?? throw new InvalidOperationException("Akış referansı yok ya da süresi doldu (prepare gerekli).");
+
+        var aesKeyBase64 = _enclaveKeys.DecryptWithEnclaveKey(request.EncryptedKey);
+        var payloadJson = CryptoUtils.AesDecrypt(request.AesBlob, aesKeyBase64);
+        var payload = JsonSerializer.Deserialize<StreamingCheckPayload>(payloadJson)
+            ?? throw new InvalidOperationException("Kare yükü çözülemedi.");
+
+        if (string.IsNullOrEmpty(payload.UserSelfie))
+            throw new InvalidOperationException("Selfie eksik.");
+
+        var selfieEmbedding = _biometricService.ComputeEmbedding(Convert.FromBase64String(payload.UserSelfie));
+        var similarity = _biometricService.CosineSimilarity(chipEmbedding, selfieEmbedding);
+        var similarityPassed = similarity >= BiometricThreshold;
+
+        // Canlılık ölçümü — register'dan farklı olarak FIRLATMAZ. Girdi bozuksa ya da model
+        // yüklü değilse P(live)=0 ile "ölçülemedi" kaydedilir; streaming bir kapı değil bir
+        // ölçüm aracıdır ve telemetri asla akışı bozmaz.
+        float pLive = 0f, c0 = 0f, c1 = 0f, c2 = 0f;
+        try
+        {
+            if (_antiSpoof.IsModelLoaded && !string.IsNullOrEmpty(payload.AntiSpoofCrop))
+            {
+                var probs = _antiSpoof.Predict(Convert.FromBase64String(payload.AntiSpoofCrop));
+                c0 = probs.Length > 0 ? probs[0] : 0f;
+                c1 = probs.Length > 1 ? probs[1] : 0f;
+                c2 = probs.Length > 2 ? probs[2] : 0f;
+                pLive = c1;
+            }
+        }
+        catch (Exception ex)
+        {
+            diag.Info($"StreamingCheck anti-spoof ölçülemedi: {ex.GetType().Name}");
+        }
+
+        var livePassed = pLive >= AntiSpoofService.LiveThreshold;
+
+        // Sonuç sırası benzerlik önce: "yüz tutmadı" ile "canlı değil" bambaşka iki düzeltme ve
+        // ikisi aynı anda düştüğünde önce sorulan soru benzerliktir.
+        var outcome = !similarityPassed ? FrameOutcomes.FailSimilarity
+                    : !livePassed       ? FrameOutcomes.FailLiveness
+                                        : FrameOutcomes.Pass;
+
+        diag.Ok("StreamingCheck",
+            $"seq={request.Seq} match={similarity * 100:0.0}% P(live)={pLive * 100:0.0}% → {outcome}");
+
+        return new StreamingCheckResponse
+        {
+            // ⚠️ Cihaza YALNIZ benzerlik kararı bildirilir. Anti-spoof kararı submit kapısına
+            // GİRMEZ: register'daki canlılık kontrolü fail-closed ve orada zaten uygulanıyor;
+            // burada uygulamak, ölçmek için eklediğimiz yolu ikinci bir kapıya çevirirdi.
+            SimilarityPassed = similarityPassed,
+            MatchScore = Math.Round(similarity, 4),
+            PLive = Math.Round(pLive, 4),
+            C0 = Math.Round(c0, 4),
+            C1 = Math.Round(c1, 4),
+            C2 = Math.Round(c2, 4),
+            Outcome = outcome,
+        };
+    }
+
+    /// <summary>Akış bitti — gömme vektörünü RAM'den hemen sil (TTL'i bekleme).</summary>
+    public void StreamingRelease(string flowId) => _flowEmbeddings.Remove(flowId);
+
     // --- BIOMETRIC VERIFICATION ---
 
-    internal float VerifyBiometricMatchParallel(SecurePayload payload)
+    /// <param name="selfieBase64">
+    /// Değerlendirilecek adayın KENDİ selfie'si. Verilmezse yükün tek-fotoğraf alanı kullanılır
+    /// (streaming göndermeyen istemciler).
+    /// </param>
+    internal float VerifyBiometricMatchParallel(SecurePayload payload, string? selfieBase64 = null)
     {
         Console.WriteLine("[Enclave] Biyometrik Kimlik Eşleşmesi başlatılıyor (paralel)...");
 
+        selfieBase64 ??= payload.UserSelfie;
+
         if (string.IsNullOrEmpty(payload.DG2)) throw new Exception("Biyometrik Hata: Kimlik veri grubu (DG2) eksik.");
-        if (string.IsNullOrEmpty(payload.UserSelfie)) throw new Exception("Biyometrik Hata: Kullanıcı selfie'si eksik.");
+        if (string.IsNullOrEmpty(selfieBase64)) throw new Exception("Biyometrik Hata: Kullanıcı selfie'si eksik.");
 
         // Kimlik fotoğrafı, Passive Authentication'ın SOD/CSCA'ya karşı doğruladığı HAM DG2'den
         // çıkarılır — telefonun ayrı gönderdiği (hiçbir şeye bağlı OLMAYAN) yeniden-kodlanmış görüntüye
@@ -1354,7 +1658,7 @@ string? partnerId = null;
         // dolayısıyla payload.DG2 bu noktada kriptografik olarak doğrulanmıştır. Çıkarım başarısızsa
         // fail-closed (Dg2FaceExtractor fırlatır) — asla istemci görüntüsüne geri düşülmez.
         byte[] idPhotoBytes = Dg2FaceExtractor.ExtractFaceImage(Convert.FromBase64String(payload.DG2));
-        byte[] probePhotoBytes = Convert.FromBase64String(payload.UserSelfie);
+        byte[] probePhotoBytes = Convert.FromBase64String(selfieBase64);
 
         Console.WriteLine($"[Enclave] Kimlik Fotoğrafı Boyutu: {idPhotoBytes.Length} bayt");
         Console.WriteLine($"[Enclave] Selfie Fotoğrafı Boyutu: {probePhotoBytes.Length} bayt");
@@ -1367,7 +1671,7 @@ string? partnerId = null;
         // skorları daha düşük → muhafazakâr başlangıç; canlı histogram (biometric_face_score_percent,
         // BiometricScoreDriftLow alert) gerçek dağılımı gösterince ince ayar. Bkz
         // tools/biometric/yunet_frr_ref.py + CalibrationLfwTests (LFW_DIR gated).
-        const float THRESHOLD = 0.20f;
+        const float THRESHOLD = BiometricThreshold;
 
         Console.WriteLine($" > [AI] Benzerlik Puanı (paralel): {similarity * 100:0.0}%");
 

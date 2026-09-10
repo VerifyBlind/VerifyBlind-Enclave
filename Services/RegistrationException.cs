@@ -14,6 +14,27 @@ public class RegistrationException : Exception
     public float? FaceScore { get; init; }
 
     /// <summary>
+    /// Pasif canlılık reddinde MiniFASNetV2 çıktısı — ölçüm satırına yazılır (ZK-güvenli skaler).
+    /// Reddedilen kareyi de kaydetmek şart: yalnız geçeni loglamak, eşiğin doğru yerde olup
+    /// olmadığını çözecek dağılımı yok eder. Diğer hatalarda null.
+    /// </summary>
+    public float? PLive { get; init; }
+
+    /// <summary>3-sınıf softmax kırılımı — %46,2 anomalisi yalnız buradan görülebilir.</summary>
+    public float? C0 { get; init; }
+    public float? C1 { get; init; }
+    public float? C2 { get; init; }
+
+    /// <summary>
+    /// Değerlendirilen HER adayın sonucu — red yolunda da taşınır.
+    ///
+    /// ⚠️ Reddedilen adayları kaydetmek işin ASIL amacıdır: yalnız geçeni loglamak, cihazın "en
+    /// iyi" hükmü ile enclave'in hükmü arasındaki sapmayı yok eder ve 0.65'in doğru sayı olup
+    /// olmadığını çözecek dağılım hiç oluşmaz.
+    /// </summary>
+    public List<VerifyBlind.Core.Models.CandidateOutcome>? CandidateOutcomes { get; init; }
+
+    /// <summary>
     /// Belge politikası reddinde SOD-doğrulanmış ihraç eden ülke kodu (ör. "DEU"). Relay bunu
     /// Sentry'ye yapısal alan olarak basar — istemcinin beyan ettiği CountryIsoCode'dan farklı
     /// olarak GÜVENİLİRDİR. ZK-güvenli: düşük kardinaliteli ISO kodu, kişisel veri değil.
