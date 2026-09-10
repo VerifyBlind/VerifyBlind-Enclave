@@ -240,7 +240,7 @@ public class EnclaveService
                     "DG1 okunamadı: politika alanları (ülke/belge kodu) çıkarılamadı.");
             }
 
-            var (polCountry, polDocCode) = polFields.Value;
+            var (polCountry, polDocCode, polDob) = polFields.Value;
             var verdict = DocumentPolicy.Evaluate(polCountry, polDocCode);
             if (verdict != DocumentPolicy.Verdict.Accepted)
             {
@@ -255,6 +255,29 @@ public class EnclaveService
                     IssuingCountry = string.IsNullOrEmpty(polCountry) ? "UNKNOWN" : polCountry
                 };
             }
+            // Yaş kapısı: belge TC kimlik kartı olarak KABUL EDİLDİKTEN sonra. Mobil taraf aynı
+            // kuralı erken mesaj için uygular ama değiştirilmiş bir istemci onu atlayabilir;
+            // otorite burasıdır. Doğum tarihi ASLA loglanmaz — yalnız verdict.
+            var ageVerdict = AgePolicy.Evaluate(polDob);
+            if (ageVerdict == AgePolicy.Verdict.Unparseable)
+            {
+                // DG1 çözüldü ama doğum tarihi alanı okunamadı → "yaşınız küçük" demek YANLIŞ
+                // teşhis olurdu. Fail-closed kalıyoruz ama kullanıcıya "kart okunamadı" denir.
+                diag.Fail("Document Policy", "Doğum tarihi MRZ'den çözülemedi");
+                Console.WriteLine("[Enclave] Yaş politikası: doğum tarihi çözülemedi → ERR_DG1_PARSE (fail-closed red).");
+                throw new RegistrationException(
+                    RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.Dg1Parse,
+                    "DG1 okundu ancak doğum tarihi alanı çözülemedi.");
+            }
+            if (ageVerdict == AgePolicy.Verdict.BelowMinimumAge)
+            {
+                diag.Fail("Document Policy", $"Asgari yaş ({AgePolicy.MinimumAge}) karşılanmıyor");
+                Console.WriteLine($"[Enclave] Yaş politikası reddi: kullanıcı {AgePolicy.MinimumAge} yaşını doldurmamış.");
+                throw new RegistrationException(
+                    RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.AgeBelowMinimum,
+                    $"Kullanıcı asgari yaşı ({AgePolicy.MinimumAge}) doldurmamış.");
+            }
+
             diag.Ok("Document Policy", $"Country={polCountry}, DocCode={polDocCode}");
         }
         catch (RegistrationException) { throw; }

@@ -138,7 +138,7 @@ public static class MrzParser
     /// hata kodlarına ayırmalı ki kullanıcıya "kartınız okunamadı, tekrar deneyin" densin,
     /// "belgeniz TC değil" gibi çıkmaz bir mesaj değil.</para>
     /// </summary>
-    internal static (string issuingCountry, string documentCode)? ExtractPolicyFieldsFromDG1(string dg1Base64)
+    internal static (string issuingCountry, string documentCode, string dateOfBirth)? ExtractPolicyFieldsFromDG1(string dg1Base64)
     {
         try
         {
@@ -148,7 +148,11 @@ public static class MrzParser
             {
                 var docCode = mrz.Substring(0, 2).Replace("<", "").Trim().ToUpperInvariant();
                 var country = mrz.Substring(2, 3).Replace("<", "").Trim().ToUpperInvariant();
-                return (country, docCode);
+                // TD1'de doğum tarihi satır 2'nin ilk 6 hanesidir (mutlak konum 30-35). Ülke/belge
+                // kodu için MRZ'nin 5 karakteri yeterliyken yaş için tam TD1 uzunluğu gerekir;
+                // kısa MRZ'de tarih boş döner ve çağıran bunu ERR_DG1_PARSE'a eşler.
+                var dob = mrz.Length >= 36 ? mrz.Substring(30, 6) : string.Empty;
+                return (country, docCode, dob);
             }
             Console.WriteLine($"[Enclave] DG1'den MRZ okundu ama politika için çok kısa (uzunluk={mrz?.Length ?? 0}).");
         }

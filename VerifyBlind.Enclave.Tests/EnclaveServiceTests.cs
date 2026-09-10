@@ -1307,6 +1307,62 @@ public class EnclaveServiceTests
         Assert.Null(DocumentPolicy.ErrorCodeFor(DocumentPolicy.Verdict.Accepted));
     }
 
+    // ── AgePolicy — asgari yaş kapısı (enclave OTORİTE) ───────────────────────
+    //
+    // Mobil taraftaki AgePolicy.kt / AgePolicy.swift ile aynı vakalar; sabit "bugün"
+    // (2026-09-11) kullanılır ki takvim ilerledikçe testler kırılmasın.
+
+    private static readonly DateTime AgeToday = new DateTime(2026, 9, 11);
+
+    [Theory]
+    [InlineData("160520")]  // 2016 → 10 yaşında
+    [InlineData("120101")]  // 2012 → 14 yaşında
+    [InlineData("110912")]  // doğum günü yarın → henüz 14
+    [InlineData("260105")]  // bu yıl doğan
+    [InlineData("120229")]  // 2012-02-29 artık yıl → 14
+    [InlineData("120101<")] // MRZ dolgu karakteri temizlenir
+    public void AgePolicy_UnderFifteen_IsRejected(string dob)
+    {
+        Assert.Equal(AgePolicy.Verdict.BelowMinimumAge, AgePolicy.Evaluate(dob, AgeToday));
+    }
+
+    [Theory]
+    [InlineData("110911")]  // bugün tam 15 oldu
+    [InlineData("100315")]  // 16 yaşında
+    [InlineData("900101")]  // 1990 doğumlu
+    [InlineData("270101")]  // yüzyıl kuralı: 2027 gelecekte → 1927
+    public void AgePolicy_FifteenOrOlder_IsAccepted(string dob)
+    {
+        Assert.Equal(AgePolicy.Verdict.Accepted, AgePolicy.Evaluate(dob, AgeToday));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("1105")]    // eksik hane
+    [InlineData("11AB11")]  // rakam değil
+    [InlineData("991332")]  // 13. ay / 32. gün yok — sessizce kaydırılmamalı
+    public void AgePolicy_UnparseableDate_IsReportedSeparately(string? dob)
+    {
+        // Enclave'de fail-open YOK: çözülemeyen tarih ayrı verdict'tir ve çağıran bunu
+        // ERR_DG1_PARSE'a eşler ("kart okunamadı"), "yaşınız küçük" DEMEZ.
+        Assert.Equal(AgePolicy.Verdict.Unparseable, AgePolicy.Evaluate(dob, AgeToday));
+    }
+
+    [Fact]
+    public void ExtractPolicyFieldsFromDG1_ReturnsDateOfBirth()
+    {
+        // TD1: satır 1 (30) + satır 2'nin ilk 6 hanesi doğum tarihidir → mutlak konum 30-35.
+        var line1 = "I<TUR12345678901234567890<<<<";      // 29 karakter
+        var mrz = line1 + "<" + "120101" + new string('0', 54);
+        var dg1Base64 = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes(mrz));
+
+        var fields = MrzParser.ExtractPolicyFieldsFromDG1(dg1Base64);
+
+        Assert.NotNull(fields);
+        Assert.Equal("120101", fields!.Value.dateOfBirth);
+    }
+
     // ── DerivesIdentityCodes — login user_id kapısı + demo muafiyeti ──────────
     // Gerçek kartlar TCKN format kapısından geçmeli; demo kart sentinel'i ("00000000000") bilinçli
     // muaftır. Sentinel tümü-sıfır olduğu için IsValidTckn onu (doğru biçimde) reddeder — bu kapı

@@ -20,6 +20,9 @@ public static class EnclaveErrorCodes
     public const string PassiveAuth           = "ERR_PASSIVE_AUTH";
     public const string UnsupportedCountry    = "ERR_UNSUPPORTED_COUNTRY";
     public const string UnsupportedDocType    = "ERR_UNSUPPORTED_DOC_TYPE";
+    /// <summary>Kullanıcı asgari yaşı (15) doldurmamış — Kullanım Şartları gereği hizmet kapsamı
+    /// dışında. Mobil taraf (AgePolicy) aynı kuralı erken mesaj için uygular; burası otoritedir.</summary>
+    public const string AgeBelowMinimum       = "ERR_AGE_BELOW_MINIMUM";
     public const string BiometricMismatch     = "ERR_BIOMETRIC_MISMATCH";
     public const string BiometricModelMissing = "ERR_BIOMETRIC_MODEL_MISSING";
     public const string Dg1Parse              = "ERR_DG1_PARSE";
