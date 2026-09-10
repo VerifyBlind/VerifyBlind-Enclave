@@ -810,6 +810,29 @@ string? partnerId = null;
         }
         diag.Ok("Revocation Check");
 
+        // 5.5 CANLI YÜZ KAPISI — giriş anında kişinin kendisi orada mı?
+        //
+        // Buraya kadarki her kontrol TELEFONUN meşru olduğunu kanıtlar (bilet, bağlama, nonce,
+        // MAC, holder-of-key). Hiçbiri telefonu TUTAN kişiyi kanıtlamaz: cihaz anahtarı
+        // AUTH_DEVICE_CREDENTIAL ile de açılır, yani PIN'i bilen aile ferdi kart sahibi adına
+        // doğrulanabilirdi. Bu kapı kayıt anında SOD-doğrulanmış DG2'den çıkarılıp bilete mühürlenen
+        // yüz referansını giriş anındaki canlı kareyle karşılaştırarak o boşluğu kapatır.
+        //
+        // Konum gerekçesi: ucuz kapılar (binding/nonce/MAC/HoK/kart vadesi/iptal) GEÇİLDİKTEN sonra
+        // → geçersiz bir bilet için ONNX maliyeti ödenmez; validation işlemeden ÖNCE
+        // → reddedilecek bir giriş için kimlik kodu türetilip KMS çağrılmaz.
+        //
+        // FAIL-CLOSED: kural "referans varsa zorunlu, yoksa yalnız demo bileti muaf" biçiminde
+        // yazılır — "demo ise atla" biçiminde DEĞİL. İkincisinde varsayılan davranış atlamak olurdu
+        // ve ileride FaceRef'i boş bırakan bir yol kontrolü SESSİZCE kaldırırdı. Burada varsayılan
+        // reddetmektir; boşluk gürültülü şekilde ortaya çıkar.
+        //
+        // ⚠️ Karar demo BUTONUNUN kapısına (sürüm eşleşmesi) ASLA dayandırılmaz: o yalnız
+        // yapılandırmadır ve zayıftır. Hem FaceRefJpegB64 hem TCKN, MAC ile mühürlü bilet
+        // payload'ının içindedir → "bu demo bir bilettir" istemci beyanı değil, enclave'in
+        // mühürden okuduğu otoriter olgudur.
+        EnforceLoginFaceProof(signedTicket.Payload, request.FaceProof, diag);
+
         if (userIdHmacTask != null)
         {
             userId = await userIdHmacTask;
@@ -1057,10 +1080,14 @@ string? partnerId = null;
     /// olmalıdır (K6) — çağıran taraf bunu garanti eder.
     /// </param>
     /// <param name="label">Teşhis satırındaki aday etiketi (çok adaylı akışta hangisi olduğu).</param>
-    internal AntiSpoofResult EnforceAntiSpoof(SecurePayload payload, DiagLog diag, string? crop = null, string? label = null)
+    /// <param name="payload">
+    /// Kayıt akışının yükü — YALNIZ <paramref name="crop"/> verilmediğinde okunur. Giriş yolunda
+    /// SecurePayload YOKTUR (referans ticket'tan gelir, K4) → null geçilir, crop zorunlu olur.
+    /// </param>
+    internal AntiSpoofResult EnforceAntiSpoof(SecurePayload? payload, DiagLog diag, string? crop = null, string? label = null)
     {
         var step = label is null ? "AntiSpoof" : $"AntiSpoof {label}";
-        crop ??= payload.AntiSpoofCrop;
+        crop ??= payload?.AntiSpoofCrop;
 
         diag.Begin(step);
 
@@ -1105,6 +1132,97 @@ string? partnerId = null;
             };
 
         return new AntiSpoofResult(pLive, c0, c1, c2);
+    }
+
+
+    // ── GİRİŞ: CANLI YÜZ KAPISI ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Giriş anında canlı yüz kanıtını zorlar: bilete mühürlü yüz referansı ile gelen selfie'nin
+    /// benzerliği + AYNI karenin pasif canlılık kontrolü. Kayıt yolundaki kapının giriş karşılığıdır
+    /// ve ondan HİÇBİR eşik farkı taşımaz (<see cref="BiometricThreshold"/> / 0.55 ortaktır).
+    ///
+    /// Atlama yolu YALNIZ demo biletleri içindir ve bir istemci beyanına değil, MAC ile mühürlenmiş
+    /// payload'a dayanır: <see cref="DemoRegisterAsync"/> gerçek çip görmediği için FaceRefJpegB64'ü
+    /// hiç set etmez, dolayısıyla demo biletlerin referansı YAPISAL olarak boştur.
+    ///
+    /// 🔴 K6: selfie ile anti-spoof kırpması AYNI KAREDEN gelmek zorundadır — benzerlik bir kareden,
+    /// canlılık başkasından alınırsa (fotoğraf tut + kendi yüzünü göster) gerçek bir açık doğar.
+    /// Enclave bunu doğrulayamaz; garantiyi istemci verir ve tek gövdede tek kare taşıyan kontrat
+    /// (<see cref="LoginFaceProof"/>) bunu yapısal olarak dayatır.
+    ///
+    /// 🔴 K4: referans BİLETTEN okunur, FlowEmbeddingCache'ten DEĞİL — giriş yolu durumsuzdur.
+    /// </summary>
+    internal void EnforceLoginFaceProof(TicketPayload ticket, LoginFaceProof? proof, DiagLog diag)
+    {
+        var hasFaceRef = !string.IsNullOrEmpty(ticket.FaceRefJpegB64);
+
+        if (!hasFaceRef)
+        {
+            // Referans yok. TEK meşru sebep demo bilettir; gerçek TCKN taşıyan referanssız bir bilet
+            // ya eski bir kayıttan ya da bir hatadan gelir → kontrol sessizce kalkmasın diye REDDET.
+            if (ticket.TCKN == DemoTckn)
+            {
+                diag.Ok("Login Face", "atlandı (demo bileti — yüz referansı yapısal olarak yok)");
+                return;
+            }
+
+            diag.Fail("Login Face", "bilette yüz referansı yok (demo değil)");
+            throw new LoginFaceMismatchException(
+                "Bu kimlik kaydı canlı yüz doğrulamasını desteklemiyor. Lütfen kimliğinizi yeniden ekleyin.");
+        }
+
+        if (proof == null || string.IsNullOrEmpty(proof.UserSelfie))
+        {
+            // Bilet referans taşıyor ama istek kare getirmedi → eski istemci veya kapıyı atlama denemesi.
+            diag.Fail("Login Face", "face_proof eksik (bilette referans VAR)");
+            throw new LoginFaceMismatchException(
+                "Giriş için canlı yüz doğrulaması gerekiyor. Lütfen uygulamayı güncelleyin ve tekrar deneyin.");
+        }
+
+        // Cihaz ölçüleri DOĞRULANMAZ — yalnız teşhis satırına düşer (uç kimlik doğrulaması istemez,
+        // gövdeden gelen sayıya güvenilmez). Cihaz skoru enclave skoruyla KIYASLANAMAZ: farklı model.
+        if (proof.DeviceMetrics?.DeviceMatchScore is int dms)
+            diag.Info($"Login Device: match={dms}% (doğrulanmadı, yalnız ölçüm)");
+
+        float score;
+        diag.Begin("Biometric Login");
+        try
+        {
+            var refBytes = Convert.FromBase64String(ticket.FaceRefJpegB64);
+            var probeBytes = Convert.FromBase64String(proof.UserSelfie);
+
+            // Referans, kayıt anında SOD-doğrulanmış DG2'den ÇIKARILMIŞ yüz görüntüsüdür
+            // (bkz. RegisterAsync — Dg2FaceExtractor sonucu bilete yazılır) → tekrar çıkarma YOK.
+            score = _biometricService.VerifyFaceParallel(refBytes, probeBytes);
+        }
+        catch (Exception ex)
+        {
+            // Bozuk base64 / çözülemeyen görüntü / çıkarım hatası → FAIL-CLOSED.
+            diag.Fail("Biometric Login", ex.GetType().Name);
+            var reason = !_biometricService.IsModelLoaded
+                ? "Biyometrik model yüklü değil — giriş güvenli şekilde tamamlanamaz."
+                : "Canlı yüz doğrulaması yapılamadı (geçersiz veya işlenemeyen görüntü verisi).";
+            throw new LoginFaceMismatchException(reason);
+        }
+
+        // Biçim register'daki "Biometric: Score=..%" satırıyla AYNI: bu satırlar relay loguna düşüyor
+        // ve şu an giriş kapısının TEK ölçüm kaynağı — biçimi değiştirmek mevcut sorguları kırar.
+        diag.Ok("Biometric Login", $"Score={Math.Round(score * 100, 1)}%");
+
+        if (score < BiometricThreshold)
+        {
+            // Skor mesaja YAZILMAZ: bu metin relay üzerinden Sentry'ye ve verification_logs'a gider.
+            Console.WriteLine($"[Enclave] Giriş yüz eşleşmesi BAŞARISIZ: {score:0.00} < {BiometricThreshold:0.00}");
+            throw new LoginFaceMismatchException(
+                "Yüzünüz bu kimliği ekleyen kişiyle eşleşmedi. Doğrulamayı yalnız kimliğin sahibi tamamlayabilir.");
+        }
+
+        // Pasif canlılık — AYNI karenin kırpmasıyla, kayıt yolundaki fail-closed davranışın AYNISI
+        // (model yok / kırpma bozuk / çıkarım patladı / P(live) düşük → REDDET; sessiz geçme YOK).
+        // Girişte JEST YOKTUR: giriş ~2 saniyede bitmeli, yoksa 2FA/step-up kullanım alanı ölür.
+        // payload=null: giriş yolunda SecurePayload yoktur, crop doğrudan verilir.
+        EnforceAntiSpoof(null, diag, proof.AntiSpoofCrop, "Login");
     }
 
     // --- ACTIVE AUTHENTICATION (Chip Clone Protection) ---

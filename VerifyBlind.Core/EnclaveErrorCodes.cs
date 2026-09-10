@@ -30,4 +30,11 @@ public static class EnclaveErrorCodes
     public const string DemoMissingPubkey     = "ERR_DEMO_MISSING_PUBKEY";
     public const string Antispoofing          = "ERR_ANTISPOOFING";
     public const string TicketRevoked         = "ERR_TICKET_REVOKED";
+
+    /// <summary>Girişte canlı selfie, ticket'taki yüz referansıyla eşleşmedi (skor
+    /// BiometricThreshold altında) VEYA ticket referans taşıdığı halde istek face_proof
+    /// getirmedi. Kayıt yolundaki <see cref="BiometricMismatch"/> ile AYNI ŞEY DEĞİLDİR:
+    /// orada kart fotoğrafıyla eşleşme, burada kayıt anındaki yüzle eşleşme aranır ve
+    /// kullanıcıya söylenecek şey farklıdır ("yeniden kayıt ol" değil, "tekrar deneyin").</summary>
+    public const string LoginFaceMismatch     = "ERR_LOGIN_FACE_MISMATCH";
 }

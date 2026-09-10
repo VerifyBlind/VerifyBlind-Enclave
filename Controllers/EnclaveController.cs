@@ -241,6 +241,22 @@ public class EnclaveController : ControllerBase
                 return Content(result, "application/json");
             }
         }
+        catch (VerifyBlind.Enclave.Services.LoginFaceMismatchException ex)
+        {
+            // Canlı yüz kapısı reddetti (eşleşmedi / face_proof yok / referanssız gerçek bilet).
+            diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
+            Console.WriteLine($"[Enclave Controller] LOGIN FACE MISMATCH: {ex.Message}");
+            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
+        }
+        catch (VerifyBlind.Enclave.Services.RegistrationException ex)
+        {
+            // Girişte tek RegistrationException kaynağı canlı yüz kapısının pasif canlılık adımıdır
+            // (EnforceAntiSpoof kayıt yoluyla ORTAK kullanılır → kendi tipini değil, kayıt tipini fırlatır).
+            // Kodu olduğu gibi geçir: ERR_ANTISPOOFING* zaten relay resx haritasındadır.
+            diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
+            Console.WriteLine($"[Enclave Controller] LOGIN LIVENESS REJECTED ({ex.ErrorCode}): {ex.Message}");
+            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
+        }
         catch (VerifyBlind.Enclave.Services.TicketRevokedException ex)
         {
             // Ticket admin iptal kuralıyla reddedildi → mobil ayırt edilebilir kodu görüp yeniden-kayıt tetikler.

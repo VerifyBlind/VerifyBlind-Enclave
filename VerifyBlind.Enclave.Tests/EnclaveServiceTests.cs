@@ -1562,4 +1562,256 @@ public class EnclaveServiceTests
         var ex = await Assert.ThrowsAsync<Exception>(() => _service.LoginAsync(request, new DiagLog()));
         Assert.Contains("Geçersiz bilet", ex.Message);
     }
+    // ── LoginAsync — CANLI YÜZ KAPISI (güvenlik denetimi: bulgu #1) ────────────
+    //
+    // Bu bloğun koruduğu şey: girişte kişiyi kanıtlayan tek şeyin cihaz kilidi olmaması. Cihaz
+    // anahtarı AUTH_DEVICE_CREDENTIAL ile de açıldığından PIN'i bilen bir aile ferdi kart sahibi
+    // adına doğrulanabiliyordu; kapı bunu FaceRefJpegB64 ↔ canlı kare karşılaştırmasıyla kapatır.
+
+    /// <summary>
+    /// Yüz kapısına ULAŞAN bir login isteği kurar: binding, nonce, MAC, holder-of-key ve kart
+    /// vadesi kapılarının HEPSİ geçer, akış EnforceLoginFaceProof'a varır.
+    ///
+    /// <see cref="BuildLoginRequest"/> ile farkı HoK'tur: orası MAC'e kadar gelmek için yeterlidir,
+    /// burada gerçek bir RSA-PSS imzası üretilir (UserPubKey bilete yazılır) — yoksa akış yüz
+    /// kapısından ÖNCE holder-of-key adımında kırılır ve testler yanlış sebeple yeşil/kırmızı olur.
+    /// </summary>
+    private LoginRequest BuildLoginRequestReachingFaceGate(string tckn, string faceRefB64)
+    {
+        var (_, reqPublicKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
+        var (userPrivKey, userPubKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
+
+        const string sharedNonce = "face-gate-nonce-1";
+        var pkHash = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(reqPublicKey))).ToLowerInvariant();
+
+        var inner = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            signed_ticket = new SignedTicket
+            {
+                Payload = new TicketPayload
+                {
+                    CountryIsoCode   = "TUR",
+                    GecerlilikTarihi = new DateTime(2030, 1, 1),
+                    TCKN             = tckn,
+                    UserPubKey       = userPubKey,
+                    FaceRefJpegB64   = faceRefB64,
+                },
+                Signature = "sig"
+            },
+            nonce   = sharedNonce,
+            pk_hash = pkHash
+        });
+
+        var (aesCipher, aesKey, _) = VerifyBlind.Core.Crypto.CryptoUtils.AesEncrypt(inner);
+        _enclaveKeys.Setup(k => k.DecryptWithEnclaveKey(It.IsAny<string>())).Returns(aesKey);
+
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        // Kanonik mesaj enclave'deki ile BYTE-BYTE aynı olmalı: "VBLOK1|{nonce}|{pk_hash}|{ts}".
+        var hokSig = VerifyBlind.Core.Crypto.CryptoUtils.SignData(
+            $"VBLOK1|{sharedNonce}|{pkHash}|{ts}", userPrivKey);
+
+        return new LoginRequest
+        {
+            EncrSignedTicket = System.Text.Json.JsonSerializer.Serialize(new { enc_key = "ek", blob = aesCipher }),
+            Nonce            = Guid.NewGuid().ToString(),
+            QrPayloadJson    = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                request = new { partner_id = "partner-1", public_key = reqPublicKey, nonce = sharedNonce }
+            }),
+            UserSignature    = hokSig,
+            UserSigTimestamp = ts,
+        };
+    }
+
+    /// <summary>Geçerli bir face_proof — selfie + AYNI karenin anti-spoof kırpması (K6).</summary>
+    private static LoginFaceProof ValidFaceProof() => new()
+    {
+        UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
+        AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
+    };
+
+    private const string SomeFaceRef = "ZmFjZS1yZWY=";   // base64("face-ref")
+    private const string RealTckn    = "10000000146";    // biçimi geçerli, demo sentinel DEĞİL
+
+    [Fact]
+    public async Task LoginAsync_FaceRefPresent_MatchingSelfie_PassesFaceGate()
+    {
+        // Vaka 1: referans DOLU + eşleşen selfie → kapı geçilir.
+        // Kapının geçildiğini, akışın SONRAKİ adıma (user_id için KMS HMAC) ulaşmasıyla kanıtlıyoruz:
+        // KMS'i patlatıyoruz, dolayısıyla gelen istisna yüz kapısından DEĞİL onun ötesinden gelir.
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);   // eşiğin (0.20) çok üstünde
+        _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("kms-reached"));
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = ValidFaceProof();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("kms-reached", ex.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FaceRefPresent_NonMatchingSelfie_ThrowsLoginFaceMismatch()
+    {
+        // Vaka 2: referans DOLU + BAŞKASININ yüzü → red. Saldırı senaryosunun ta kendisi:
+        // telefonun PIN'ini bilen aile ferdi kart sahibi adına doğrulanamamalı.
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.05f);   // 0.20 eşiğinin altında
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = ValidFaceProof();
+
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_LOGIN_FACE_MISMATCH", ex.ErrorCode);
+        // Skor kullanıcıya giden metne SIZMAMALI: bu mesaj relay üzerinden Sentry'ye + DB'ye gider.
+        Assert.DoesNotContain("0.05", ex.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FaceRefPresent_NoFaceProof_Throws()
+    {
+        // Vaka 3: bilet referans taşıyor ama istek kare getirmiyor → eski istemci ya da kapıyı
+        // atlama denemesi. Sessizce geçmek, kapıyı hiç eklememekle aynı şeydir.
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = null;
+
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_LOGIN_FACE_MISMATCH", ex.ErrorCode);
+        // ONNX'e HİÇ gidilmemeli — reddin maliyeti sıfır olmalı.
+        _biometrics.Verify(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginAsync_EmptyFaceRef_DemoTckn_SkipsFaceGate()
+    {
+        // Vaka 4: ATLAMA YOLU. DemoRegisterAsync gerçek çip görmediği için FaceRefJpegB64'ü hiç
+        // set etmez → demo biletlerin referansı YAPISAL olarak boştur ve bu yol kendiliğinden çalışır.
+        // "Demo mu" kararı MAC ile mühürlü payload'dan okunur; demo BUTONUNUN sürüm kapısıyla
+        // (yapılandırma, zayıf) hiçbir ilgisi yoktur.
+        _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("kms-reached"));
+
+        var request = BuildLoginRequestReachingFaceGate("00000000000", faceRefB64: "");
+        request.FaceProof = null;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("kms-reached", ex.Message);
+        _biometrics.Verify(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginAsync_EmptyFaceRef_RealTckn_Throws()
+    {
+        // 🔴 Vaka 5 — BU İŞİN BEKÇİSİ.
+        //
+        // Kural "referans varsa zorunlu, yoksa yalnız demo muaf" biçiminde FAIL-CLOSED yazıldı.
+        // Biri onu ileride "demo ise atla" biçimine çevirirse varsayılan davranış ATLAMAK olur ve
+        // referanssız her gerçek bilet kapıyı SESSİZCE geçer. Bu testin görevi o anda kırılmaktır —
+        // fail-closed kuralı yalnız yorum satırıyla korunamaz.
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, faceRefB64: "");
+        request.FaceProof = ValidFaceProof();   // kare GÖNDERSE bile geçmemeli
+
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_LOGIN_FACE_MISMATCH", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FaceMatches_ButAntiSpoofFails_Throws()
+    {
+        // Canlılık kapısı benzerlikten AYRI durur: doğru yüz ama fotoğraf/ekran → red.
+        // (Yüz eşleşmesi tek başına yeterli olsaydı kart sahibinin fotoğrafı yeterdi.)
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+        _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0.9f, 0.1f, 0f }); // pLive=0.1
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = ValidFaceProof();
+
+        var ex = await Assert.ThrowsAsync<RegistrationException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FaceMatches_ButAntiSpoofModelMissing_Throws()
+    {
+        // INVARIANT: anti-spoof FAIL-CLOSED. Model yüklenememişse giriş REDDEDİLİR — "model yok,
+        // o hâlde kontrolü atla" bir üretim arızasını sessiz bir güvenlik açığına çevirirdi.
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+        _antiSpoof.Setup(a => a.IsModelLoaded).Returns(false);
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = ValidFaceProof();
+
+        var ex = await Assert.ThrowsAsync<RegistrationException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING_MODEL_MISSING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FaceMatches_ButAntiSpoofCropCorrupt_Throws()
+    {
+        // INVARIANT: bozuk kırpma da fail-closed. Kırpmayı bilerek bozmak, canlılık kapısını
+        // devre dışı bırakmanın en ucuz yolu olurdu.
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = new LoginFaceProof
+        {
+            UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
+            AntiSpoofCrop = "!!!not-valid-base64!!!",
+        };
+
+        var ex = await Assert.ThrowsAsync<RegistrationException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_ANTISPOOFING", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FaceGate_BiometricModelMissing_Throws()
+    {
+        // Biyometrik model yoksa da fail-closed: "ölçemedik" ASLA "geçti" demek değildir.
+        _biometrics.Setup(b => b.IsModelLoaded).Returns(false);
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Throws(new InvalidOperationException("model yok"));
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = ValidFaceProof();
+
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_LOGIN_FACE_MISMATCH", ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task LoginAsync_FaceGate_LogsScoreInRegisterCompatibleFormat()
+    {
+        // Ölçüm ŞU AN yalnız DiagLog satırlarından okunuyor (giriş kareleri
+        // verification_frame_metrics'e yazılmıyor — ayrı iş). Biçim register'daki
+        // "Biometric: Score=..%" / "AntiSpoof: P(live)=..%" ile aynı kalmalı, yoksa
+        // mevcut analiz sorguları kırılır.
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+        _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
+            .ThrowsAsync(new InvalidOperationException("kms-reached"));
+
+        var diag = new DiagLog();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef);
+        request.FaceProof = ValidFaceProof();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.LoginAsync(request, diag));
+
+        Assert.Contains(diag.Entries, e => e.Contains("Biometric Login") && e.Contains("Score=80%"));
+        Assert.Contains(diag.Entries, e => e.Contains("AntiSpoof Login") && e.Contains("P(live)=100%"));
+    }
 }
+

@@ -333,9 +333,42 @@ public class LoginRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? RevocationRules { get; set; }
 
+    /// <summary>
+    /// Girişte tazeliği kanıtlayan kare. Ticket'ın <see cref="TicketPayload.FaceRefJpegB64"/>
+    /// alanı DOLU ise ZORUNLUDUR; demo ticket'larda (referans yapısal olarak boş) null gelir.
+    /// Selfie ve anti-spoof kırpması AYNI KAREDEN olmak zorundadır (K6) — benzerlik bir kareden,
+    /// canlılık başkasından alınırsa gerçek bir açık doğar.
+    /// </summary>
+    [JsonPropertyName("face_proof")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LoginFaceProof? FaceProof { get; set; }
+
     // --- Internal API-only fields (not sent to Enclave) ---
     [JsonIgnore]
     public string? CallbackUrl { get; set; }
+}
+
+/// <summary>
+/// Giriş anındaki canlı yüz kanıtı — <see cref="RegistrationCandidate"/> ile AYNI şekil
+/// (kasıtlı: iki akış da aynı ONNX boru hattından geçer, yeni bir biçim icat edilmedi).
+///
+/// ⚠️ Kayıt akışındaki adayın aksine burada <c>Rank</c> yoktur: giriş tek karedir, aday listesi
+/// değildir (girişte jest yok, ~2 saniyede bitmeli).
+/// </summary>
+public class LoginFaceProof
+{
+    /// <summary>Hizalanmış 112×112 selfie (Base64 PNG).</summary>
+    [JsonPropertyName("user_selfie")]
+    public string UserSelfie { get; set; } = string.Empty;
+
+    /// <summary>AYNI karenin 2,7× geniş anti-spoof kırpması (Base64 JPEG 80×80).</summary>
+    [JsonPropertyName("anti_spoof_crop")]
+    public string AntiSpoofCrop { get; set; } = string.Empty;
+
+    /// <summary>Cihaz ölçüleri — DOĞRULANMAZ, yalnız teşhis satırına yazılır.</summary>
+    [JsonPropertyName("device_metrics")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DeviceFrameMetrics? DeviceMetrics { get; set; }
 }
 
 public class LoginResponse
