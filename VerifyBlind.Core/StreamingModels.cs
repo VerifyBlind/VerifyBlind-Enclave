@@ -160,6 +160,22 @@ public class DeviceFrameMetrics
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
 
+    /// <summary>
+    /// Bu gönderimden önce, oran freni yüzünden GÖNDERİLMEDEN elenen iyileşme sayısı.
+    ///
+    /// Elenen karenin KENDİSİNİ göndermek veriyi kareyle büyütürdü; bu sayaç, topladığımız
+    /// dağılımın ne kadar yanlı olduğunu ölçmenin ucuz yolu.
+    /// </summary>
+    [JsonPropertyName("skipped_count")]
+    public int? SkippedCount { get; set; }
+
+    /// <summary>
+    /// Yalnız final aday: bu karenin streaming'de gönderildiği <c>seq</c>. Hiç gönderilmediyse null.
+    /// İki aday farklı karelerken "hangi kare hangi karara yol açtı" ancak bununla yanıtlanır.
+    /// </summary>
+    [JsonPropertyName("source_seq")]
+    public int? SourceSeq { get; set; }
+
     [JsonPropertyName("platform")]
     public string? Platform { get; set; }
 
@@ -221,6 +237,28 @@ public class CandidateOutcome
     /// <summary>pass | fail_similarity | fail_liveness</summary>
     [JsonPropertyName("outcome")]
     public string Outcome { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Akış bitiş bildirimi — canlılık ekranı kapanırken gönderilir.
+///
+/// 🔴 Bu işin varlık sebebi olan vakayı görünür kılar: "enclave geçirirdi ama kullanıcı pes
+/// etti". Streaming satırları yazılıyordu ama akışın NASIL bittiği hiçbir yerde yoktu.
+///
+/// Best-effort: düşerse yalnız o akışın bitiş etiketi kaybolur, satırlar yerinde kalır.
+/// </summary>
+public class StreamingReleaseRequest
+{
+    [JsonPropertyName("flow_id")]
+    public string FlowId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Canlılık ekranının nasıl bittiği (sabit küme; relay bilinmeyeni düşürür):
+    /// submitted | abandoned | timeout_gesture | timeout_session | too_many_errors |
+    /// match_failed | no_selfie.
+    /// </summary>
+    [JsonPropertyName("flow_outcome")]
+    public string? FlowOutcome { get; set; }
 }
 
 /// <summary>Ölçüm satırı sonuç kümesi — sabit, serbest metin değil.</summary>
