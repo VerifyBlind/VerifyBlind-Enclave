@@ -29,14 +29,14 @@
 <meta name="twitter:image" content="https://www.imigrasi.go.id/images/thumbnail_1200x630_seo.jpg">
 <meta name="google-site-verification" content="9oGmMCllhGyHkLsou-mO9ce3Z0P-tW0KhmfMlBUNAZ4">
 <meta name="csrf-param" content="dirjen_imigrasi-FRONTEND-CSRF">
-<meta name="csrf-token" content="XSfzqUksna3-lpFG-A3XHRO6eURZV_GJJsXgbWhm5vYaap3qDGnO5oTR3CK3YrAtePQTDBtuv_gW9bInPAuhlw==">
+<meta name="csrf-token" content="D5qVQxb4uRWBe-SXADSTPXy92LaIuseIAE0nTICVPZpA7PJ2cJOOR8QIkvlNc_ANLtad4P7P9KVnCmwA5PhX8Q==">
 
-<link href="/assets/fd5934fa/fe/slider/keen-slider.min.css?v=1789044768" rel="stylesheet">
+<link href="/assets/e91c8a16/fe/slider/keen-slider.min.css?v=1789044675" rel="stylesheet">
 <link href="/assets/345aa491/themes/smoothness/jquery-ui.css?v=1757531572" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="/assets/4cb55d1d/css/flaticon.min.css?v=1789044767" rel="stylesheet">
+<link href="/assets/c11285f0/css/flaticon.min.css?v=1789044675" rel="stylesheet">
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/glightbox@3.2.0/dist/css/glightbox.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" rel="stylesheet">
@@ -44,12 +44,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bellerose" rel="stylesheet">
-<link href="/assets/4cb55d1d/main.css?v=1789044767" rel="stylesheet">
-<link href="/assets/4cb55d1d/css/styles.css?v=1789044767" rel="stylesheet">
-<link href="/assets/4cb55d1d/css/hyperlink-popup.css?v=1789044767" rel="stylesheet">
-<link href="/assets/4cb55d1d/css/ai-loading.css?v=1789044767" rel="stylesheet">
-<link href="/assets/4cb55d1d/css/search-ai-ui2.css?v=1789044767" rel="stylesheet">
-<link href="/assets/fd5934fa/frontend.css?v=1789044768" rel="stylesheet">
+<link href="/assets/c11285f0/main.css?v=1789044675" rel="stylesheet">
+<link href="/assets/c11285f0/css/styles.css?v=1789044675" rel="stylesheet">
+<link href="/assets/c11285f0/css/hyperlink-popup.css?v=1789044675" rel="stylesheet">
+<link href="/assets/c11285f0/css/ai-loading.css?v=1789044675" rel="stylesheet">
+<link href="/assets/c11285f0/css/search-ai-ui2.css?v=1789044675" rel="stylesheet">
+<link href="/assets/e91c8a16/frontend.css?v=1789044676" rel="stylesheet">
 <style>
     @media (max-width: 1000px) {
         #search-ai-result{
@@ -706,7 +706,7 @@
 			<a href="https://www.imigrasi.go.id"><img alt=""></a>
 			
 									<div>
-						<img src="/assets/4cb55d1d/img/logo_header_2025.webp" style="height: 40px;">	
+						<img src="/assets/c11285f0/img/logo_header_2025.webp" style="height: 40px;">	
 					</div>
 					<div style="white-space: nowrap;">
 						<p class="m-0 user-select-none" style="font-size: 12px;">Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia</p><p class="m-0 user-select-none" style="font-size: 16px;">Direktorat Jenderal Imigrasi</p>					</div>
@@ -882,7 +882,7 @@
 	</div> -->
 	<div class="container pt-5 d-none d-print-block">
 		<div class="d-flex align-items-center justify-content-between">
-			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/4cb55d1d//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
+			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/c11285f0//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
 	</div>
 
 	
@@ -1424,7 +1424,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                 <div class="bubble">
                     <div class="left">
                         <div class="logo">
-                            <img style="width: 24px;" src="/assets/fd5934fa/logos/imtell-icon.svg" alt="">
+                            <img style="width: 24px;" src="/assets/e91c8a16/logos/imtell-icon.svg" alt="">
                         </div>
                         <div class="brand">Imtelligence</div>
                     </div>
@@ -1954,7 +1954,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
     <div class="container-fluid px-0" data-aos="fade-up">
         <div class="row gy-4 align-items-center">
             <div class="col-lg-6 text-lg-end text-center">
-                <img class="img-fluid app_img" src="/assets/4cb55d1d//img/phone_mockup.png" alt="">            </div>
+                <img class="img-fluid app_img" src="/assets/c11285f0//img/phone_mockup.png" alt="">            </div>
             <div class="col-lg-6">
                 <div class="section-title mb-3">
                     <h1 class="fw-semibold text-start">
@@ -1967,8 +1967,8 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                         <h4 class="mb-lg-5 mb-4 text-center text-lg-start unduh_desc">
                             Ajukan permohonan paspor baru atau penggantian secara daring. Mudah dan nyaman.                        </h4>
                         <div class="d-flex gap-3 justify-content-lg-start justify-content-center">
-                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/4cb55d1d//img/pstore.png" alt=""></a>
-                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/4cb55d1d//img/appstore.png" alt=""></a>                        </div>
+                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/c11285f0//img/pstore.png" alt=""></a>
+                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/c11285f0//img/appstore.png" alt=""></a>                        </div>
                     </div>
                 </div>
             </div>
@@ -2080,7 +2080,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
 	<div class="container mb-md-5 mb-2 footer-top">
 		<div class="row justify-content-between g-4">
 			<div class="col-lg-5 col-md-12 mb-3 mb-md-0 footer-about">
-				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/4cb55d1d/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
+				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/c11285f0/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
 					Jl. H.R. Rasuna Said, Kav. X6, No. 8,
 Kuningan, Jakarta Selatan,
 DKI Jakarta, Indonesia				</p>
@@ -2187,7 +2187,7 @@ DKI Jakarta, Indonesia				</p>
 	<script id="sessionFlashes" type="application/json">
 		{}	</script>
 
-	<script src="/assets/fd5934fa/fe/slider/keen-slider.js?v=1789044768"></script>
+	<script src="/assets/e91c8a16/fe/slider/keen-slider.js?v=1789044675"></script>
 <script src="/assets/58a3f682/jquery.js?v=1757531562"></script>
 <script src="/assets/345aa491/jquery-ui.js?v=1757531580"></script>
 <script src="/assets/54f7976c/yii.js?v=1757532998"></script>
@@ -2200,13 +2200,13 @@ DKI Jakarta, Indonesia				</p>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
-<script src="/assets/4cb55d1d/main.js?v=1789044767"></script>
-<script src="/assets/4cb55d1d/js/main.min.js?v=1789044767"></script>
-<script src="/assets/4cb55d1d/js/hyperlink-popup.js?v=1789044767"></script>
-<script src="/assets/4cb55d1d/js/marked.min.js?v=1789044767"></script>
-<script src="/assets/4cb55d1d/js/search-ai-ui2.js?v=1789044767"></script>
-<script src="/assets/4cb55d1d/js/sitebar-sticky.js?v=1789044767"></script>
-<script src="/assets/fd5934fa/frontend.js?v=1789044768"></script>
+<script src="/assets/c11285f0/main.js?v=1789044675"></script>
+<script src="/assets/c11285f0/js/main.min.js?v=1789044675"></script>
+<script src="/assets/c11285f0/js/hyperlink-popup.js?v=1789044675"></script>
+<script src="/assets/c11285f0/js/marked.min.js?v=1789044675"></script>
+<script src="/assets/c11285f0/js/search-ai-ui2.js?v=1789044675"></script>
+<script src="/assets/c11285f0/js/sitebar-sticky.js?v=1789044675"></script>
+<script src="/assets/e91c8a16/frontend.js?v=1789044676"></script>
 <script>jQuery(function ($) {
     $("#keEvisa").click(function() {
         let posisiEvisa = $("#evisaForm").position();
