@@ -897,7 +897,7 @@ string? partnerId = null;
         // yapılandırmadır ve zayıftır. Hem FaceRefJpegB64 hem TCKN, MAC ile mühürlü bilet
         // payload'ının içindedir → "bu demo bir bilettir" istemci beyanı değil, enclave'in
         // mühürden okuduğu otoriter olgudur.
-        EnforceLoginFaceProof(signedTicket.Payload, faceProof, diag);
+        var loginFace = EnforceLoginFaceProof(signedTicket.Payload, faceProof, diag);
 
         if (derivesCodes)
         {
@@ -1093,7 +1093,26 @@ string? partnerId = null;
             enclave_sig      = consentEnclaveSig,
             // Operasyonel sinyal (DB'ye YAZILMAZ, yalnız relay log/Sentry): partner'ın istediği
             // ama türetilemeyen kimlik kodlarının ADLARI. Boş dizi = her şey yolunda.
-            identity_codes_missing = missingIdentityCodes
+            identity_codes_missing = missingIdentityCodes,
+
+            // Giriş yüz kapısının ÖLÇÜMÜ (skaler, PII'sız) — verification_frame_metrics'e yazılır.
+            // Kayıt akışı bu veriyi zaten üretiyordu; giriş akışı üretmiyordu ve bu yüzden
+            // "girişte kaç meşru kullanıcıyı hatalı reddediyoruz" sorusu cevapsızdı. 2026-09-13'te
+            // monitör hilesinin GİRİŞTE bazen geçmesi (P(live) %59,4 ve %71,3 — eşiğin üstünde)
+            // tam da bu körlükte fark edildi. measured=false → demo bileti, satır yazılmaz.
+            login_face = new
+            {
+                measured    = loginFace.MatchScore > 0f,
+                match_score = loginFace.MatchScore,
+                p_live      = loginFace.Spoof.PLive,
+                c0          = loginFace.Spoof.C0,
+                c1          = loginFace.Spoof.C1,
+                c2          = loginFace.Spoof.C2,
+                // Cihaz ölçüleri DOĞRULANMAZ (istemci beyanı) ama relay bunları kendi başına
+                // okuyamaz — face_proof şifreli zarfın içinde. Işık/kadraj/netlik, bir girişin
+                // neden sınırda kaldığını açıklayan birinci derece teşhistir.
+                device      = loginFace.Device
+            }
         };
 
         // e. Final response: encrypted_response (partner) + relay_metadata (Relay) + nationality (nonce_ledger)
@@ -1239,7 +1258,31 @@ string? partnerId = null;
     ///
     /// 🔴 K4: referans BİLETTEN okunur, FlowEmbeddingCache'ten DEĞİL — giriş yolu durumsuzdur.
     /// </summary>
-    internal void EnforceLoginFaceProof(TicketPayload ticket, LoginFaceProof? proof, DiagLog diag)
+    /// <summary>
+    /// Giriş yüz kapısının ölçüm çıktısı — relay'e <c>relay_metadata.login_face</c> olarak taşınır
+    /// ve <c>verification_frame_metrics</c>'e yazılır.
+    ///
+    /// <para><b>Neden gerekli (2026-09-13 vakası):</b> kurucu, kayıt sırasında monitördeki kendi
+    /// görüntüsünü gösterip yakalandı; aynı hileyi GİRİŞTE denediğinde bazen geçti. Loglardan
+    /// görüldü ki model hileyi çoğu denemede kesin yakalıyor (P(live) %0, c2 %100) ama iki
+    /// denemede kararsız kaldı (%59,4 ve %71,3 — ikisi de 0,55 eşiğinin ÜSTÜNDE) ve geçirdi.
+    /// Yani sorun kontrolün yokluğu değil, eşiğin yeri. Eşiği körlemesine yükseltmek meşru
+    /// kullanıcıyı keser; hangi oranda keseceği BİLİNMİYOR çünkü giriş yolu bugüne kadar ölçüm
+    /// tablosuna HİÇ yazmıyordu. Bu kayıt o boşluğu kapatır.</para>
+    ///
+    /// <para><b>c2 neden ayrı taşınıyor:</b> P(live) tek başına yanıltıyor. %59,4 "canlı" gibi
+    /// okunur ama yanındaki c2=%40,2 "sahte" der. Gerçek yüzle yapılan girişlerde c2 %1-3
+    /// bandındaydı. Ayrım P(live)'da değil, c2'de duruyor.</para>
+    /// </summary>
+    /// <param name="Device">
+    /// İstemcinin bildirdiği kare ölçüleri — DOĞRULANMAZ. Relay bunları KENDİSİ okuyamaz:
+    /// <c>face_proof</c>, <c>EncrSignedTicket</c> zarfının içinde şifreli gider (canlı yüz karesi
+    /// relay'e asla açılmaz). Ölçüm satırına yazılabilmesi için buradan taşınır.
+    /// </param>
+    internal readonly record struct LoginFaceOutcome(
+        float MatchScore, AntiSpoofResult Spoof, DeviceFrameMetrics? Device);
+
+    internal LoginFaceOutcome EnforceLoginFaceProof(TicketPayload ticket, LoginFaceProof? proof, DiagLog diag)
     {
         var hasFaceRef = !string.IsNullOrEmpty(ticket.FaceRefJpegB64);
 
@@ -1250,7 +1293,10 @@ string? partnerId = null;
             if (ticket.TCKN == DemoTckn)
             {
                 diag.Ok("Login Face", "atlandı (demo bileti — yüz referansı yapısal olarak yok)");
-                return;
+                // Demo bileti: ölçüm YOK. Sıfırlar "ölçülmedi" demektir; relay bunu ölçüm
+                // satırına YAZMAZ (aşağıdaki Measured=false kapısı). Demo skorlarını gerçek
+                // dağılıma karıştırmak eşik kararını bozardı.
+                return default;
             }
 
             diag.Fail("Login Face", "bilette yüz referansı yok (demo değil)");
@@ -1323,7 +1369,11 @@ string? partnerId = null;
         // (model yok / kırpma bozuk / çıkarım patladı / P(live) düşük → REDDET; sessiz geçme YOK).
         // Girişte JEST YOKTUR: giriş ~2 saniyede bitmeli, yoksa 2FA/step-up kullanım alanı ölür.
         // payload=null: giriş yolunda SecurePayload yoktur, crop doğrudan verilir.
-        EnforceAntiSpoof(null, diag, proof.AntiSpoofCrop, "Login");
+        var spoof = EnforceAntiSpoof(null, diag, proof.AntiSpoofCrop, "Login");
+
+        // Buraya ulaşmak "geçti" demektir (her iki kapı da fail-closed). Skorlar relay'e taşınır
+        // ve ölçüm tablosuna yazılır — eşiği veriyle ayarlayabilmek için.
+        return new LoginFaceOutcome(score, spoof, proof.DeviceMetrics);
     }
 
     // --- ACTIVE AUTHENTICATION (Chip Clone Protection) ---
