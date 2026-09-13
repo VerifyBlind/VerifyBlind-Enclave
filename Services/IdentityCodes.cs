@@ -51,7 +51,7 @@ public static class IdentityCodes
     /// nsbd_id üretir: <c>hex(SHA256(HMAC( BuildNsbdCanonical(payload) + ":" + partnerId )))</c>.
     /// Güvenilir bir kod üretilemiyorsa (kanonik boş ya da partnerId boş) <c>null</c> döner.
     /// </summary>
-    public static async Task<string?> BuildNsbdIdAsync(IKmsService kms, TicketPayload payload, string partnerId)
+    public static string? BuildNsbdId(IIdentityHmacService hmacService, TicketPayload payload, string partnerId)
     {
         if (string.IsNullOrEmpty(partnerId)) return null;
         var canon = BuildNsbdCanonical(payload);
@@ -59,7 +59,7 @@ public static class IdentityCodes
 
         // ":" + partnerId scope eki user_id ile birebir aynı kalıp; kanonik string MRZ alfabesinde
         // ":" içermez → ayraç güvenli.
-        var hmac = await kms.ComputeHmacAsync($"{canon}:{partnerId}");
+        var hmac = hmacService.ComputeHmac($"{canon}:{partnerId}");
         return Sha256Hex(hmac);
     }
 
@@ -68,11 +68,11 @@ public static class IdentityCodes
     /// cardId (SOD-tabanlı global belge kodu) ticket'tan gelir. cardId ya da partnerId boşsa
     /// <c>null</c> döner. DocType yoksa "X" kullanılır.
     /// </summary>
-    public static async Task<string?> BuildDocIdAsync(IKmsService kms, string cardId, string? documentType, string partnerId)
+    public static string? BuildDocId(IIdentityHmacService hmacService, string cardId, string? documentType, string partnerId)
     {
         if (string.IsNullOrEmpty(cardId) || string.IsNullOrEmpty(partnerId)) return null;
 
-        var hmac = await kms.ComputeHmacAsync($"{cardId}:{partnerId}");
+        var hmac = hmacService.ComputeHmac($"{cardId}:{partnerId}");
         var docType = string.IsNullOrEmpty(documentType) ? "X" : documentType;
         return $"{docType}_{Sha256Hex(hmac)}";
     }

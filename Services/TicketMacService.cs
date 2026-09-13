@@ -60,7 +60,7 @@ public class TicketMacService : ITicketMacService
 
                 var ciphertext = Convert.FromBase64String(wrappedBlobB64);
                 var attDoc = _keys.GetAttestationDocumentForRecipient();
-                var cms = await _kms.DecryptWithAttestationAsync(ciphertext, attDoc);
+                var cms = await _kms.DecryptWithAttestationAsync(ciphertext, attDoc, KmsPurpose.TicketMac);
                 var secret = _keys.DecryptCmsForRecipient(cms);
 
                 if (secret == null || secret.Length < 16)

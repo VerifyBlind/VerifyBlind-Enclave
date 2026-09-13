@@ -1,4 +1,5 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 using VerifyBlind.Core.Models;
 using VerifyBlind.Enclave.Services;
 using Xunit;
@@ -11,7 +12,22 @@ namespace VerifyBlind.Enclave.Tests;
 /// </summary>
 public class IdentityCodesTests
 {
-    private static LocalKmsService Kms() => new();
+    /// <summary>
+    /// Takma ad türetme artık enclave-içi HMAC ile yapılıyor (KMS GenerateMac'ten taşındı).
+    /// Dev secret deterministik olduğu için testler sabit kalır.
+    /// </summary>
+    private static IdentityHmacService Kms()
+    {
+        var config = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["KMS_MODE"] = "local" })
+            .Build();
+        var env = new Moq.Mock<Microsoft.Extensions.Hosting.IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns("Development");
+        var svc = new IdentityHmacService(
+            Moq.Mock.Of<IKmsService>(), Moq.Mock.Of<IEnclaveKeyService>(), config, env.Object);
+        svc.EnsureSecretLoadedAsync(null).GetAwaiter().GetResult();
+        return svc;
+    }
 
     private static TicketPayload Payload(
         string uyruk = "TUR", string country = "TUR",
@@ -109,95 +125,95 @@ public class IdentityCodesTests
     // ── nsbd_id türetimi (KMS) ────────────────────────────────────────────────
 
     [Fact]
-    public async Task NsbdId_IsLowercaseHex64()
+    public void NsbdId_IsLowercaseHex64()
     {
-        var nsbd = await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(), "partner-1");
+        var nsbd = IdentityCodes.BuildNsbdId(Kms(), Payload(), "partner-1");
         Assert.NotNull(nsbd);
         Assert.Matches(Hex64, nsbd);
     }
 
     [Fact]
-    public async Task NsbdId_StableAcrossCardRenewal()
+    public void NsbdId_StableAcrossCardRenewal()
     {
         // Aynı kişi (aynı bio), farklı kart (SeriNo + CardId değişti) → AYNI nsbd_id olmalı.
-        var oldCard = await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(seriNo: "A111", cardId: "card-old"), "p1");
-        var newCard = await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(seriNo: "B222", cardId: "card-new"), "p1");
+        var oldCard = IdentityCodes.BuildNsbdId(Kms(), Payload(seriNo: "A111", cardId: "card-old"), "p1");
+        var newCard = IdentityCodes.BuildNsbdId(Kms(), Payload(seriNo: "B222", cardId: "card-new"), "p1");
         Assert.Equal(oldCard, newCard);
     }
 
     [Fact]
-    public async Task NsbdId_IsPartnerScoped()
+    public void NsbdId_IsPartnerScoped()
     {
-        var p1 = await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(), "partner-1");
-        var p2 = await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(), "partner-2");
+        var p1 = IdentityCodes.BuildNsbdId(Kms(), Payload(), "partner-1");
+        var p2 = IdentityCodes.BuildNsbdId(Kms(), Payload(), "partner-2");
         Assert.NotEqual(p1, p2);
     }
 
     [Fact]
-    public async Task NsbdId_DiffersForDifferentPerson()
+    public void NsbdId_DiffersForDifferentPerson()
     {
-        var a = await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(soyad: "YILMAZ"), "p1");
-        var b = await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(soyad: "KAYA"), "p1");
+        var a = IdentityCodes.BuildNsbdId(Kms(), Payload(soyad: "YILMAZ"), "p1");
+        var b = IdentityCodes.BuildNsbdId(Kms(), Payload(soyad: "KAYA"), "p1");
         Assert.NotEqual(a, b);
     }
 
     [Fact]
-    public async Task NsbdId_NullWhenPartnerIdEmpty()
-        => Assert.Null(await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(), ""));
+    public void NsbdId_NullWhenPartnerIdEmpty()
+        => Assert.Null(IdentityCodes.BuildNsbdId(Kms(), Payload(), ""));
 
     [Fact]
-    public async Task NsbdId_NullWhenCanonicalEmpty()
-        => Assert.Null(await IdentityCodes.BuildNsbdIdAsync(Kms(), Payload(soyad: "", ad: ""), "p1"));
+    public void NsbdId_NullWhenCanonicalEmpty()
+        => Assert.Null(IdentityCodes.BuildNsbdId(Kms(), Payload(soyad: "", ad: ""), "p1"));
 
     // ── doc_id türetimi (KMS) ─────────────────────────────────────────────────
 
     [Fact]
-    public async Task DocId_HasDocTypePrefixAndHex64()
+    public void DocId_HasDocTypePrefixAndHex64()
     {
-        var doc = await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", "p1");
+        var doc = IdentityCodes.BuildDocId(Kms(), "card-aaa", "I", "p1");
         Assert.NotNull(doc);
         Assert.StartsWith("I_", doc);
         Assert.Matches(Hex64, doc!["I_".Length..]);
     }
 
     [Fact]
-    public async Task DocId_SameCardSamePartner_IsStable()
+    public void DocId_SameCardSamePartner_IsStable()
     {
-        var a = await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", "p1");
-        var b = await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", "p1");
+        var a = IdentityCodes.BuildDocId(Kms(), "card-aaa", "I", "p1");
+        var b = IdentityCodes.BuildDocId(Kms(), "card-aaa", "I", "p1");
         Assert.Equal(a, b); // aynı belge + aynı partner ⟹ aynı kişi (sert sinyal)
     }
 
     [Fact]
-    public async Task DocId_IsPartnerScoped()
+    public void DocId_IsPartnerScoped()
     {
-        var p1 = await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", "p1");
-        var p2 = await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", "p2");
+        var p1 = IdentityCodes.BuildDocId(Kms(), "card-aaa", "I", "p1");
+        var p2 = IdentityCodes.BuildDocId(Kms(), "card-aaa", "I", "p2");
         Assert.NotEqual(p1, p2);
     }
 
     [Fact]
-    public async Task DocId_DiffersForDifferentCard()
+    public void DocId_DiffersForDifferentCard()
     {
-        var a = await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", "p1");
-        var b = await IdentityCodes.BuildDocIdAsync(Kms(), "card-bbb", "I", "p1");
+        var a = IdentityCodes.BuildDocId(Kms(), "card-aaa", "I", "p1");
+        var b = IdentityCodes.BuildDocId(Kms(), "card-bbb", "I", "p1");
         Assert.NotEqual(a, b);
     }
 
     [Fact]
-    public async Task DocId_UsesXPrefixWhenDocTypeMissing()
+    public void DocId_UsesXPrefixWhenDocTypeMissing()
     {
-        var doc = await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", null, "p1");
+        var doc = IdentityCodes.BuildDocId(Kms(), "card-aaa", null, "p1");
         Assert.StartsWith("X_", doc);
     }
 
     [Fact]
-    public async Task DocId_NullWhenCardIdEmpty()
-        => Assert.Null(await IdentityCodes.BuildDocIdAsync(Kms(), "", "I", "p1"));
+    public void DocId_NullWhenCardIdEmpty()
+        => Assert.Null(IdentityCodes.BuildDocId(Kms(), "", "I", "p1"));
 
     [Fact]
-    public async Task DocId_NullWhenPartnerIdEmpty()
-        => Assert.Null(await IdentityCodes.BuildDocIdAsync(Kms(), "card-aaa", "I", ""));
+    public void DocId_NullWhenPartnerIdEmpty()
+        => Assert.Null(IdentityCodes.BuildDocId(Kms(), "card-aaa", "I", ""));
 
     // ── IsValidTckn ───────────────────────────────────────────────────────────
     // Bu kapı olmadan geçersiz/eksik TCKN sessizce boş user_id üretiyordu ve TCKN'siz TÜM

@@ -85,31 +85,23 @@ public class AwsKmsService : IKmsService, IDisposable
         }
     }
 
-    public async Task<string> ComputeHmacAsync(string data)
-    {
-        var keyAlias = _configuration["KMS:HmacKeyAlias"]
-            ?? "alias/verifyblind-hmac-userid";
+    // NOT: ComputeHmacAsync (kms:GenerateMac) KASITLI OLARAK KALDIRILDI.
+    // Sebep: KMS'in attestation parametresi (Recipient) MAC işlemlerinde desteklenmiyor → izin
+    // EC2 instance-role'üne verilmek zorundaydı ve sunucuya erişen herkes bir TCKN için user_id
+    // hesaplatabiliyordu. Takma ad türetme artık enclave içinde yapılıyor (IdentityHmacService),
+    // sır attestation koşullu Decrypt ile geliyor. Bu metodu GERİ EKLEME — eklendiği anda
+    // "VerifyBlind takma adı kimliğe geri çeviremez" iddiası tekrar çöker.
 
-        var request = new GenerateMacRequest
-        {
-            KeyId = keyAlias,
-            MacAlgorithm = MacAlgorithmSpec.HMAC_SHA_256,
-            Message = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(data))
-        };
-
-        var response = await _client.GenerateMacAsync(request);
-        return Convert.ToBase64String(response.Mac.ToArray());
-    }
-
-    public async Task<byte[]> DecryptWithAttestationAsync(byte[] ciphertext, byte[] attestationDocument)
+    public async Task<byte[]> DecryptWithAttestationAsync(byte[] ciphertext, byte[] attestationDocument, string purpose)
     {
         // EncryptionContext (AAD) — bootstrap'taki kms:Encrypt ile BİREBİR aynı olmalı (§4.1 bütünlük).
+        // purpose: hangi sırrın açılacağını belirler (bkz. KmsPurpose). Yanlış değer → KMS reddeder.
         var request = new DecryptRequest
         {
             CiphertextBlob = new MemoryStream(ciphertext),
             EncryptionContext = new Dictionary<string, string>
             {
-                ["purpose"] = "ticket-mac",
+                ["purpose"] = purpose,
                 ["app"] = "verifyblind"
             },
             Recipient = new RecipientInfo

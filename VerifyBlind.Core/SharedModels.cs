@@ -117,6 +117,27 @@ public class RegistrationRequest
     public string CountryIsoCode { get; set; } = string.Empty;
 
     /// <summary>
+    /// Handshake nonce'unun DÜZ METİN kopyası — yalnız relay'in tek-kullanımlık tüketimi için.
+    ///
+    /// <para><b>Neden gerekli:</b> kayıt nonce'u şifreli <see cref="SecurePayload"/>'ın içindedir
+    /// ve relay onu göremez (görebilseydi ZK iddiası çökerdi). Bu yüzden kayıt akışında nonce
+    /// relay'de TÜKETİLEMİYORDU: aynı yük 15 dakikalık pencere boyunca istenildiği kadar yeniden
+    /// gönderilebiliyordu. Giriş akışında bu koruma vardı (atomik Redis Lua), kayıtta yoktu.</para>
+    ///
+    /// <para><b>Neden güvenli:</b> bu alan tek başına hiçbir şey kanıtlamaz — istemci buraya
+    /// başka bir nonce yazıp başkasının rezervasyonunu yakabilirdi. Güvenliği sağlayan şey
+    /// enclave'in bunu şifreli yükün içindeki nonce ile <b>karşılaştırmasıdır</b>
+    /// (<c>ERR_NONCE_MISMATCH</c>). Düz kopya ≠ şifreli asıl → istek reddedilir. Yani relay
+    /// "hangi nonce'u tüketeceğini" öğrenir, ama yanlış bir değer yazmak saldırganın işine yaramaz.</para>
+    ///
+    /// <para>⚠️ Nonce zaten gizli bir değer değildir: handshake yanıtında düz metin olarak
+    /// istemciye gider ve enclave imzasıyla korunur. Düz metin taşınması yeni bir sızıntı yaratmaz.</para>
+    /// </summary>
+    [JsonPropertyName("nonce")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Nonce { get; set; }
+
+    /// <summary>
     /// Akış izleme numarası (GUID) — ölçüm satırlarını streaming kareleriyle birleştirir.
     ///
     /// ⚠️ Şifreli yükün DIŞINDA taşınır ve enclave'e GİTMEZ: relay'in ölçüm satırını yazabilmesi
@@ -148,6 +169,17 @@ public class RegistrationRequest
     [JsonPropertyName("ticket_secret_wrapped")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TicketSecretWrapped { get; set; }
+
+    /// <summary>
+    /// Relay API tarafından set edilir. AYNI wrapping CMK ile ama FARKLI EncryptionContext
+    /// (<c>purpose=identity-hmac</c>) ile sarılmış kimlik-HMAC secret'ı. Takma ad türetmesi
+    /// (user_id / nsbd_id / doc_id / person_id / card_id) bununla enclave İÇİNDE yapılır —
+    /// eskiden KMS GenerateMac'ti ve izni EC2 rolünde olduğu için sunucu bir TCKN'nin
+    /// user_id'sini hesaplatabiliyordu. Gizli değildir; yalnız attested enclave açabilir.
+    /// </summary>
+    [JsonPropertyName("identity_hmac_secret_wrapped")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IdentityHmacSecretWrapped { get; set; }
 }
 
 // PIN -> person_id türetme (Phone -> Relay -> Enclave). TCKN'siz kimliklerin bulut yedek
@@ -174,6 +206,11 @@ public class DemoRegisterRequest
     [JsonPropertyName("ticket_secret_wrapped")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TicketSecretWrapped { get; set; }
+
+    /// <summary>Relay API tarafından set edilir. Bkz. <see cref="RegistrationRequest.IdentityHmacSecretWrapped"/>.</summary>
+    [JsonPropertyName("identity_hmac_secret_wrapped")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? IdentityHmacSecretWrapped { get; set; }
 }
 
 // Ticket
@@ -323,6 +360,10 @@ public class LoginRequest
     /// <summary>Relay API tarafından set edilir. Bkz. <see cref="RegistrationRequest.TicketSecretWrapped"/>.</summary>
     [JsonPropertyName("ticket_secret_wrapped")]
     public string? TicketSecretWrapped { get; set; }
+
+    /// <summary>Relay API tarafından set edilir. Bkz. <see cref="RegistrationRequest.IdentityHmacSecretWrapped"/>.</summary>
+    [JsonPropertyName("identity_hmac_secret_wrapped")]
+    public string? IdentityHmacSecretWrapped { get; set; }
 
     /// <summary>
     /// Relay API tarafından set edilir. Etkin ticket-iptal kurallarının JSON dizisi

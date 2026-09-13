@@ -1,35 +1,29 @@
-using System.Security.Cryptography;
-using System.Text;
-
 namespace VerifyBlind.Enclave.Services;
 
 /// <summary>
 /// Local (software-backed) IKmsService implementation — yalnız dev.
-/// Tek HMAC key ile ID türetme (person_id / card_id / user_id); domain separation girdi formatlarıyla.
-/// Ticket imzalama enclave-içi MAC'e taşındı (Ticket Forgery fix) → burada ticket Sign/Verify YOK.
-/// DecryptWithAttestationAsync dev'de desteklenmez (gerçek KMS/Nitro gerekir).
+///
+/// <para>Eskiden burada tek bir HMAC anahtarıyla ID türetme (person_id / card_id / user_id)
+/// vardı. O yol KALDIRILDI: takma ad türetme artık <see cref="IdentityHmacService"/> içinde,
+/// enclave'e attestation-bound Decrypt ile gelen bir sırla yapılıyor. Sebep — KMS'in attestation
+/// parametresi MAC işlemlerinde desteklenmediği için <c>kms:GenerateMac</c> izni EC2 rolünde
+/// kalmak zorundaydı ve sunucuya erişen herkes bir TCKN'nin user_id'sini hesaplatabiliyordu.</para>
+///
+/// <para>Geriye yalnız <see cref="DecryptWithAttestationAsync"/> kalıyor ve dev'de desteklenmiyor
+/// (gerçek KMS + Nitro donanımı gerekir). Dev modunda hem <see cref="TicketMacService"/> hem
+/// <see cref="IdentityHmacService"/> sabit dev secret kullanır ve bu yolu ÇAĞIRMAZ.</para>
 /// </summary>
 public class LocalKmsService : IKmsService
 {
-    private static readonly byte[] HmacKey = SHA256.HashData("verifyblind-hmac-user-dev"u8);
-
     public LocalKmsService()
     {
-        Console.WriteLine("[LocalKmsService] Initialized (HMAC-only; ticket imzalama enclave MAC'inde).");
+        Console.WriteLine("[LocalKmsService] Initialized (dev — attestation-bound Decrypt desteklenmez).");
     }
 
-    public Task<string> ComputeHmacAsync(string data)
-    {
-        using var hmac = new HMACSHA256(HmacKey);
-        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-        return Task.FromResult(Convert.ToBase64String(hash));
-    }
-
-    public Task<byte[]> DecryptWithAttestationAsync(byte[] ciphertext, byte[] attestationDocument)
+    public Task<byte[]> DecryptWithAttestationAsync(byte[] ciphertext, byte[] attestationDocument, string purpose)
     {
         // Dev modunda gerçek KMS/Nitro yok → attestation-bound decrypt anlamsız.
-        // TicketMacService local modda sabit dev secret kullanır, bu yolu ÇAĞIRMAZ.
         throw new NotSupportedException(
-            "DecryptWithAttestationAsync local KMS modunda desteklenmez (KMS_MODE=aws gerekir).");
+            $"DecryptWithAttestationAsync local KMS modunda desteklenmez (purpose={purpose}, KMS_MODE=aws gerekir).");
     }
 }

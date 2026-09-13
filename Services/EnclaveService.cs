@@ -12,11 +12,14 @@ namespace VerifyBlind.Enclave.Services;
 public class EnclaveService
 {
     private readonly IEnclaveKeyService _enclaveKeys;
-    private readonly IKmsService _kms;
     private readonly IBiometricService _biometricService;
     private readonly IAntiSpoofService _antiSpoof;
     // Ticket'lar enclave-içi simetrik MAC ile imzalanır/doğrulanır (Ticket Forgery fix).
     private readonly ITicketMacService _ticketMac;
+    // Takma ad türetme (user_id/nsbd_id/doc_id/person_id/card_id) — enclave-içi HMAC.
+    // Eskiden KMS GenerateMac'ti; izin EC2 rolünde olduğu için sunucu bir TCKN'nin user_id'sini
+    // hesaplatabiliyordu. IKmsService artık YALNIZ attestation-bound Decrypt için var.
+    private readonly IIdentityHmacService _idHmac;
     // Canlı benzerlik akışı — YALNIZ streaming içindir. Register buraya ASLA bakmaz (K4).
     private readonly FlowEmbeddingCache _flowEmbeddings;
 
@@ -29,13 +32,14 @@ public class EnclaveService
     /// </summary>
     public const float BiometricThreshold = 0.20f;
 
-    public EnclaveService(IEnclaveKeyService enclaveKeys, IKmsService kms, IBiometricService biometricService,
-        ITicketMacService ticketMac, IAntiSpoofService antiSpoof, FlowEmbeddingCache flowEmbeddings)
+    public EnclaveService(IEnclaveKeyService enclaveKeys, IBiometricService biometricService,
+        ITicketMacService ticketMac, IIdentityHmacService idHmac, IAntiSpoofService antiSpoof,
+        FlowEmbeddingCache flowEmbeddings)
     {
         _enclaveKeys = enclaveKeys;
-        _kms = kms;
         _biometricService = biometricService;
         _ticketMac = ticketMac;
+        _idHmac = idHmac;
         _antiSpoof = antiSpoof;
         _flowEmbeddings = flowEmbeddings;
     }
@@ -157,6 +161,34 @@ public class EnclaveService
         try
         {
             diag.Begin("Nonce Verify");
+
+            // 3a. Düz metin nonce ↔ şifreli yükteki nonce EŞLEŞMELİ.
+            //
+            // Relay, kayıt nonce'unu tek-kullanımlık olarak tüketebilmek için düz bir kopyasına
+            // ihtiyaç duyuyor (şifreli yükü açamaz). O kopya tek başına hiçbir şey kanıtlamaz:
+            // istemci oraya BAŞKA bir nonce yazıp başkasının rezervasyonunu yakabilir ya da
+            // kendi yükünü taze bir nonce'la tekrar tekrar gönderebilirdi.
+            //
+            // Bu karşılaştırma o boşluğu kapatır: relay'in tükettiği nonce ile enclave'in imzasını
+            // doğruladığı nonce AYNI olmak zorunda. Eşleşmezse istek reddedilir ve tüketilen
+            // rezervasyon boşa gitmiş olur — saldırgan için kazanç yok.
+            //
+            // Boş gelmesi ESKİ İSTEMCİ demektir ve relay onu zaten daha önce reddeder; buraya
+            // ulaşıyorsa relay atlanmış demektir → fail-closed.
+            if (string.IsNullOrEmpty(request.Nonce) || request.Nonce != payload.Nonce)
+            {
+                // Değerler YAZILMAZ: bu metin relay'e ve oradan Sentry'ye gider. Nonce kişiye
+                // bağlanabilir bir oturum tanımlayıcısıdır; yapısal ayrım tanı alanında taşınır.
+                throw new RegistrationException(
+                    RegistrationStep.NonceVerification, "ERR_NONCE_VERIFICATION",
+                    "Nonce tutarsız.")
+                {
+                    Diagnostic = string.IsNullOrEmpty(request.Nonce)
+                        ? "nonce-plain-missing"
+                        : "nonce-plain-mismatch"
+                };
+            }
+
             VerifyNonce(payload);
             diag.Ok("Nonce Verify");
         }
@@ -164,6 +196,9 @@ public class EnclaveService
         {
             diag.Fail("Nonce Verify", ex.Message);
             Console.WriteLine($"[Enclave] [{RegistrationStep.NonceVerification}] adımında başarısız: {ex}");
+            // 3a'daki düz-metin tutarsızlığı kendi tanı alanını ZATEN taşıyor; yeniden sarmak onu
+            // silerdi (sarmalayıcı Diagnostic kopyalamıyor). Olduğu gibi geçir.
+            if (ex is RegistrationException) throw;
             // Süre aşımı AYRI kodla gider: relay onu beklenen kullanıcı durumu sayıp Sentry'ye
             // event üretmeyen seviyede loglar (bkz. VerifyController.Register). Nonce imzasının
             // geçersizliği ve ileri cihaz saati ERR_NONCE_VERIFICATION olarak kalır ve uyarı üretir.
@@ -333,6 +368,11 @@ public class EnclaveService
         // person_id = hex(SHA256(HMAC(TCKN_Person_id)))
         // card_id   = hex(SHA256(HMAC(hex(SHA256(SOD))_Card_id)))  — SOD-based, globally unique
         // Both are stored in the signed ticket; Login reads them directly without recomputing.
+        //
+        // Kimlik-HMAC sırrı burada yüklenmeli — ID üretiminden ÖNCE. (Ticket-MAC sırrı aşağıda,
+        // imzalama adımında yükleniyor; ikisi ayrı sır, ayrı EncryptionContext.)
+        await _idHmac.EnsureSecretLoadedAsync(request.IdentityHmacSecretWrapped);
+
         string personId, cardId;
         try
         {
@@ -342,20 +382,17 @@ public class EnclaveService
                 System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(payload.SOD))
             ).ToLowerInvariant();
 
-            // 2 HMAC çağrısı birbirinden bağımsız — paralel çalıştır (~60ms kazanç)
+            // HMAC artık enclave İÇİNDE hesaplanıyor (IdentityHmacService) — eskiden KMS GenerateMac
+            // çağrısıydı ve ~60ms ağ gecikmesi taşıdığı için iki çağrı paralelleştiriliyordu.
+            // Artık mikrosaniyelik yerel işlem → paralelleştirme gereksiz, düz akış daha okunur.
+            //
             // TCKN formatı burada da doğrulanır (login yoluyla aynı kapı). Bugün MrzParser TCKN'yi
             // ya boş ya geçerli bıraktığı için "boş mu" kontrolüyle denk; ama o invariant'a bağlı
             // kalmamak için açıkça IsValidTckn kullanılır — TicketPayload başka bir yoldan
             // üretilirse (test, gelecekteki bir akış) iki uç ayrışmasın.
-            Task<string>? personHmacTask = null;
             if (IdentityCodes.IsValidTckn(ticketPayload.TCKN))
-                personHmacTask = _kms.ComputeHmacAsync($"{ticketPayload.TCKN}_Person_id");
-
-            var cardHmacTask = _kms.ComputeHmacAsync($"{sodHashHex}_Card_id");
-
-            if (personHmacTask != null)
             {
-                var pIdHmac = await personHmacTask;
+                var pIdHmac = _idHmac.ComputeHmac($"{ticketPayload.TCKN}_Person_id");
                 personId = Convert.ToHexString(
                     System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(pIdHmac))
                 ).ToLowerInvariant();
@@ -366,7 +403,7 @@ public class EnclaveService
                 Console.WriteLine("[Enclave] Geçerli TCKN yok → person_id üretilmedi (boş bırakıldı).");
             }
 
-            var cIdHmac = await cardHmacTask;
+            var cIdHmac = _idHmac.ComputeHmac($"{sodHashHex}_Card_id");
             cardId = Convert.ToHexString(
                 System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(cIdHmac))
             ).ToLowerInvariant();
@@ -470,7 +507,8 @@ public class EnclaveService
     /// NFC/biometrik adımları atlanır; ID üretimi, imza ve şifreleme normal akıştaki gibi gerçek HSM ile yapılır.
     /// Tek farkı: SecurePayload yok, kimlik verisi enklavın içine gömülü.
     /// </summary>
-    public async Task<(string ticket, float faceScore, string cardId)> DemoRegisterAsync(string userPubKey, string? ticketSecretWrapped, DiagLog diag)
+    public async Task<(string ticket, float faceScore, string cardId)> DemoRegisterAsync(
+        string userPubKey, string? ticketSecretWrapped, string? identityHmacSecretWrapped, DiagLog diag)
     {
         diag.Info($"[DEMO] Kayıt başladı. UserPubKey={userPubKey.Length}ch");
         Console.WriteLine($"[Enclave] DEMO kayıt isteği alındı. UserPubKey uzunluğu: {userPubKey.Length}");
@@ -502,15 +540,13 @@ public class EnclaveService
         try
         {
             diag.Begin("Demo ID Generation");
-            var personHmacTask = _kms.ComputeHmacAsync($"{demoTckn}_Person_id");
-            var cardHmacTask = _kms.ComputeHmacAsync($"{demoSodHashHex}_Card_id");
-
-            var pHmac = await personHmacTask;
+            await _idHmac.EnsureSecretLoadedAsync(identityHmacSecretWrapped);
+            var pHmac = _idHmac.ComputeHmac($"{demoTckn}_Person_id");
             personId = Convert.ToHexString(
                 System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(pHmac))
             ).ToLowerInvariant();
 
-            var cHmac = await cardHmacTask;
+            var cHmac = _idHmac.ComputeHmac($"{demoSodHashHex}_Card_id");
             cardId = Convert.ToHexString(
                 System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(cHmac))
             ).ToLowerInvariant();
@@ -747,19 +783,20 @@ string? partnerId = null;
 
         diag.Begin("Ticket Sig Verify");
         await _ticketMac.EnsureSecretLoadedAsync(request.TicketSecretWrapped);
+        // Takma ad sırrı da burada yüklenir; kodlar aşağıda (MAC + HoK geçtikten SONRA) üretilecek.
+        await _idHmac.EnsureSecretLoadedAsync(request.IdentityHmacSecretWrapped);
         Task<bool> sigVerifyTask = Task.FromResult(_ticketMac.VerifyMac(signedTicket));
 
-        // UserId HMAC'ı imza doğrulamasından bağımsız — paralel başlat.
         // TCKN formatı BURADA doğrulanır (yalnız "boş mu" değil): geçersizse kod hiç üretilmez ve
         // user_id partner cevabından DÜŞER — eskiden boş string dönüyordu, bu da TCKN'siz tüm
         // kullanıcıları partner tarafında aynı kimliğe çakıştırıyordu. Demo kart sentinel'i muaf
         // tutulur (bkz. DerivesIdentityCodes) → demo login "TEST_" önekli user_id üretmeye devam eder.
-        Task<string>? userIdHmacTask = null;
-        if (DerivesIdentityCodes(signedTicket.Payload.TCKN))
-        {
-            diag.Begin("UserId+PersonId");
-            userIdHmacTask = _kms.ComputeHmacAsync($"{signedTicket.Payload.TCKN}:{partnerId}");
-        }
+        //
+        // NOT: eskiden bu HMAC bir KMS çağrısıydı (~60ms) ve imza doğrulamasıyla paralel
+        // başlatılırdı. Artık enclave-içi (IdentityHmacService) ve mikrosaniyelik → paralelleştirme
+        // kaldırıldı. Hesap, MAC doğrulaması ve HoK geçtikten SONRA yapılır (aşağıda);
+        // doğrulanmamış bir bilet için takma ad üretmek gereksiz iş ve gereksiz risktir.
+        bool derivesCodes = DerivesIdentityCodes(signedTicket.Payload.TCKN);
 
 
         // Her iki KMS sonucunu topla
@@ -862,9 +899,10 @@ string? partnerId = null;
         // mühürden okuduğu otoriter olgudur.
         EnforceLoginFaceProof(signedTicket.Payload, faceProof, diag);
 
-        if (userIdHmacTask != null)
+        if (derivesCodes)
         {
-            userId = await userIdHmacTask;
+            diag.Begin("UserId+PersonId");
+            userId = _idHmac.ComputeHmac($"{signedTicket.Payload.TCKN}:{partnerId}");
             diag.Ok($"[Enclave] user_id hesaplandı: {userId[..8]}...");
 
             // person_id and card_id were computed at registration and embedded in the signed
@@ -953,19 +991,38 @@ string? partnerId = null;
                         else missingIdentityCodes.Add("user_id");
 
                         // nsbd_id: biyografik kişi kovası (kart yenilemede sabit, olasılıksal ipucu).
-                        var nsbd = await IdentityCodes.BuildNsbdIdAsync(_kms, signedTicket.Payload, partnerId ?? "");
+                        var nsbd = IdentityCodes.BuildNsbdId(_idHmac, signedTicket.Payload, partnerId ?? "");
                         if (nsbd != null) validationsOutput["nsbd_id"] = Mark(nsbd);
                         else missingIdentityCodes.Add("nsbd_id");
 
                         // doc_id: partner-scoped card_id (aynı belge ⟹ aynı kişi, sert sinyal).
-                        var doc = await IdentityCodes.BuildDocIdAsync(
-                            _kms, loginCardId, signedTicket.Payload.DocumentType, partnerId ?? "");
+                        var doc = IdentityCodes.BuildDocId(
+                            _idHmac, loginCardId, signedTicket.Payload.DocumentType, partnerId ?? "");
                         if (doc != null) validationsOutput["doc_id"] = Mark(doc);
                         else missingIdentityCodes.Add("doc_id");
                     }
                 }
 
             }
+        }
+
+        // Demo bileti işareti — TÜM cevabı kapsar (yalnız kimlik kodlarını değil).
+        //
+        // Güvenlik denetimi #6: `TEST_` öneki yalnız user_id/nsbd_id/doc_id'ye ekleniyordu.
+        // Yalnız `age` soran bir partner (yaş doğrulama pazarının varsayılan entegrasyonu)
+        // demo girişini GERÇEK bir doğrulamadan ayırt edemiyordu: age=true çıplak dönüyordu.
+        //
+        // Neden kapıyı sıkılaştırmak yerine sonucu işaretliyoruz: demo sürümü ayarı bir gün
+        // yanlışlıkla mağaza sürümüne eşitlenirse, işaret sayesinde zarar SIFIR kalır.
+        // "Sızıntıyı zararsız yap", "kapının hiç sızmayacağını um"dan daha sağlam bir savunmadır.
+        //
+        // `TEST_` öneki KALDIRILMADI, bilinçli: yeni alanı okumayan dikkatsiz bir partner için
+        // önek pasif koruma sağlar — `TEST_` önekli bir user_id gerçek bir user_id ile ASLA
+        // çakışmaz. İkisi farklı işi yapar: önek dikkatsizi korur, is_test yaş sorusunu işaretler.
+        if (signedTicket.Payload.TCKN == DemoTckn && validationsOutput.Count > 0)
+        {
+            validationsOutput["is_test"] = true;
+            diag.Info("Demo bileti → validations.is_test=true");
         }
 
         diag.Ok("Validations", $"Count={validationsOutput.Count}");

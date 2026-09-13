@@ -197,7 +197,8 @@ public class EnclaveController : ControllerBase
         var diag = new VerifyBlind.Enclave.Services.DiagLog();
         try
         {
-            var result = await _service.DemoRegisterAsync(request.UserPubKey, request.TicketSecretWrapped, diag);
+            var result = await _service.DemoRegisterAsync(
+                request.UserPubKey, request.TicketSecretWrapped, request.IdentityHmacSecretWrapped, diag);
             diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
             return Ok(new
             {

@@ -48,6 +48,13 @@ builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IAntiSpoofService, Ve
 // Ticket Forgery fix: ticket'ı enclave-içi MAC ile imzala/doğrula. Singleton — secret boot başına
 // 1 kez attestation-bound Decrypt ile yüklenip RAM'de cache'lenir (TICKET_FORGERY_FIX_PLAN.md).
 builder.Services.AddSingleton<VerifyBlind.Enclave.Services.ITicketMacService, VerifyBlind.Enclave.Services.TicketMacService>();
+// Takma ad türetme (user_id/nsbd_id/doc_id/person_id/card_id) — enclave-içi HMAC.
+// Eskiden KMS GenerateMac'ti: AWS'in attestation parametresi (Recipient) MAC işlemlerinde
+// DESTEKLENMEDİĞİ için izin EC2 instance-role'ünde kalmak zorundaydı → sunucuya erişen herkes
+// elindeki bir TCKN için user_id hesaplatabiliyordu. Artık sır attestation-bound Decrypt ile
+// enclave'e geliyor (ticket-MAC ile AYNI CMK, FARKLI EncryptionContext) ve HMAC burada hesaplanıyor.
+// Singleton — secret boot başına 1 kez yüklenir.
+builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IIdentityHmacService, VerifyBlind.Enclave.Services.IdentityHmacService>();
 // Canlı benzerlik akışı — akış başına DG2 gömme vektörü (RAM, TTL'li). Singleton olmalı:
 // önbellek istekler ARASINDA yaşar (prepare bir istekte, kareler başka isteklerde gelir).
 builder.Services.AddSingleton<VerifyBlind.Enclave.Services.FlowEmbeddingCache>();

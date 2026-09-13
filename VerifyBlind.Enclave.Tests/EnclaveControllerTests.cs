@@ -11,7 +11,7 @@ namespace VerifyBlind.Enclave.Tests;
 public class EnclaveControllerTests
 {
     private readonly Mock<IEnclaveKeyService> _enclaveKeys = new();
-    private readonly Mock<IKmsService> _kms = new();
+    private readonly Mock<IIdentityHmacService> _idHmac = new();
     private readonly Mock<IBiometricService> _biometrics = new();
     private readonly Mock<ITicketMacService> _ticketMac = new();
     private readonly Mock<IAntiSpoofService> _antiSpoof = new();
@@ -27,7 +27,7 @@ public class EnclaveControllerTests
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
         _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0f, 1.0f, 0f });
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object, new FlowEmbeddingCache());
+        _service = new EnclaveService(_enclaveKeys.Object, _biometrics.Object, _ticketMac.Object, _idHmac.Object, _antiSpoof.Object, new FlowEmbeddingCache());
         _controller = new EnclaveController(_service, _enclaveKeys.Object);
         _controller.ControllerContext = new ControllerContext
         {

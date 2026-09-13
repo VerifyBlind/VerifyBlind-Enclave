@@ -10,7 +10,7 @@ namespace VerifyBlind.Enclave.Tests;
 public class EnclaveServiceTests
 {
     private readonly Mock<IEnclaveKeyService> _enclaveKeys = new();
-    private readonly Mock<IKmsService> _kms = new();
+    private readonly Mock<IIdentityHmacService> _idHmac = new();
     private readonly Mock<IBiometricService> _biometrics = new();
     private readonly Mock<ITicketMacService> _ticketMac = new();
     private readonly Mock<IAntiSpoofService> _antiSpoof = new();
@@ -30,7 +30,7 @@ public class EnclaveServiceTests
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
         _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0f, 1.0f, 0f });
 
-        _service = new EnclaveService(_enclaveKeys.Object, _kms.Object, _biometrics.Object, _ticketMac.Object, _antiSpoof.Object, new FlowEmbeddingCache());
+        _service = new EnclaveService(_enclaveKeys.Object, _biometrics.Object, _ticketMac.Object, _idHmac.Object, _antiSpoof.Object, new FlowEmbeddingCache());
     }
 
     // ── Handshake ─────────────────────────────────────────────────────────────
@@ -123,7 +123,48 @@ public class EnclaveServiceTests
         var (aesCipher, aesKey, _) = VerifyBlind.Core.Crypto.CryptoUtils.AesEncrypt(json);
         _enclaveKeys.Setup(k => k.DecryptWithEnclaveKey(It.IsAny<string>())).Returns(aesKey);
 
-        return new RegistrationRequest { EncryptedKey = "enc", AesBlob = aesCipher };
+        // Düz metin nonce kopyası — üretimde istemci gönderir, relay tüketir, enclave şifreli
+        // yükteki asılla EŞLEŞTİĞİNİ doğrular (güvenlik denetimi #2b).
+        return new RegistrationRequest { EncryptedKey = "enc", AesBlob = aesCipher, Nonce = nonce };
+    }
+
+    // ── Düz metin nonce ↔ şifreli nonce tutarlılığı (güvenlik denetimi #2b) ───
+
+    /// <summary>
+    /// Relay'in tükettiği nonce ile enclave'in imzasını doğruladığı nonce AYNI olmak zorunda.
+    /// Eşleşmezse saldırgan, başkasının rezervasyonunu yakabilir ya da kendi yükünü taze bir
+    /// nonce'la tekrar tekrar gönderebilirdi.
+    /// </summary>
+    [Fact]
+    public async Task RegisterAsync_PlainNonceMismatch_Rejected()
+    {
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var request = BuildRequest("gercek-nonce", ts, "sig");
+        request.Nonce = "baska-bir-nonce";          // düz kopya şifreli asılla uyuşmuyor
+
+        var ex = await Assert.ThrowsAsync<RegistrationException>(() =>
+            _service.RegisterAsync(request, new DiagLog()));
+
+        Assert.Equal(RegistrationStep.NonceVerification, ex.Step);
+        Assert.Equal("nonce-plain-mismatch", ex.Diagnostic);
+    }
+
+    /// <summary>
+    /// Düz kopya hiç yoksa fail-closed. Relay bunu zaten daha önce reddeder; buraya ulaşması
+    /// relay'in atlandığı anlamına gelir.
+    /// </summary>
+    [Fact]
+    public async Task RegisterAsync_PlainNonceMissing_Rejected()
+    {
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var request = BuildRequest("gercek-nonce", ts, "sig");
+        request.Nonce = null;
+
+        var ex = await Assert.ThrowsAsync<RegistrationException>(() =>
+            _service.RegisterAsync(request, new DiagLog()));
+
+        Assert.Equal(RegistrationStep.NonceVerification, ex.Step);
+        Assert.Equal("nonce-plain-missing", ex.Diagnostic);
     }
 
     // ── RegisterAsync — error paths ───────────────────────────────────────────
@@ -1633,7 +1674,8 @@ public class EnclaveServiceTests
     /// kapısından ÖNCE holder-of-key adımında kırılır ve testler yanlış sebeple yeşil/kırmızı olur.
     /// </summary>
     private LoginRequest BuildLoginRequestReachingFaceGate(
-        string tckn, string faceRefB64, LoginFaceProof? faceProof = null)
+        string tckn, string faceRefB64, LoginFaceProof? faceProof = null,
+        object? validations = null)
     {
         var (_, reqPublicKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
         var (userPrivKey, userPubKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
@@ -1653,6 +1695,10 @@ public class EnclaveServiceTests
                     TCKN             = tckn,
                     UserPubKey       = userPubKey,
                     FaceRefJpegB64   = faceRefB64,
+                    // Kayıt anında üretilip bilete gömülür; login bunları YENİDEN hesaplamaz.
+                    // Diag satırları ilk 8 karakteri kestiği için boş bırakılamaz.
+                    PersonId         = new string('a', 64),
+                    CardId           = new string('b', 64),
                 },
                 Signature = "sig"
             },
@@ -1676,7 +1722,9 @@ public class EnclaveServiceTests
             Nonce            = Guid.NewGuid().ToString(),
             QrPayloadJson    = System.Text.Json.JsonSerializer.Serialize(new
             {
-                request = new { partner_id = "partner-1", public_key = reqPublicKey, nonce = sharedNonce }
+                request = validations == null
+                    ? (object)new { partner_id = "partner-1", public_key = reqPublicKey, nonce = sharedNonce }
+                    : new { partner_id = "partner-1", public_key = reqPublicKey, nonce = sharedNonce, validations }
             }),
             UserSignature    = hokSig,
             UserSigTimestamp = ts,
@@ -1690,6 +1738,47 @@ public class EnclaveServiceTests
         AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
     };
 
+    // ── Demo bileti işaretlemesi (güvenlik denetimi #6) ───────────────────────
+
+    /// <summary>
+    /// Demo bileti YALNIZ yaş sorulduğunda bile işaretlenmeli. Eskiden `TEST_` öneki sadece
+    /// kimlik kodlarına ekleniyordu; `age` soran bir partner demo girişini gerçek bir
+    /// doğrulamadan ayırt EDEMİYORDU (age=true çıplak dönüyordu).
+    /// </summary>
+    [Fact]
+    public async Task LoginAsync_DemoTicket_AgeOnly_MarksResponseAsTest()
+    {
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        // Demo sentinel de kimlik kodu türetir (DerivesIdentityCodes muaf tutar) → mock şart.
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
+            validations: new Dictionary<string, object> { ["age"] = "18+" });
+
+        var json = await _service.LoginAsync(request, new DiagLog());
+
+        Assert.Contains("is_test", json);
+    }
+
+    /// <summary>Gerçek bilet ASLA işaretlenmemeli — aksi halde işaret anlamsızlaşır.</summary>
+    [Fact]
+    public async Task LoginAsync_RealTicket_AgeOnly_DoesNotMarkAsTest()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            RealTckn, SomeFaceRef, faceProof: ValidFaceProof(),
+            validations: new Dictionary<string, object> { ["age"] = "18+" });
+
+        var json = await _service.LoginAsync(request, new DiagLog());
+
+        Assert.DoesNotContain("is_test", json);
+    }
+
     private const string SomeFaceRef = "ZmFjZS1yZWY=";   // base64("face-ref")
     private const string RealTckn    = "10000000146";    // biçimi geçerli, demo sentinel DEĞİL
 
@@ -1701,8 +1790,8 @@ public class EnclaveServiceTests
         // KMS'i patlatıyoruz, dolayısıyla gelen istisna yüz kapısından DEĞİL onun ötesinden gelir.
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
                    .Returns(0.80f);   // eşiğin (0.20) çok üstünde
-        _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("kms-reached"));
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>()))
+               .Throws(new InvalidOperationException("kms-reached"));
 
         var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
@@ -1749,8 +1838,8 @@ public class EnclaveServiceTests
         // set etmez → demo biletlerin referansı YAPISAL olarak boştur ve bu yol kendiliğinden çalışır.
         // "Demo mu" kararı MAC ile mühürlü payload'dan okunur; demo BUTONUNUN sürüm kapısıyla
         // (yapılandırma, zayıf) hiçbir ilgisi yoktur.
-        _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("kms-reached"));
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>()))
+               .Throws(new InvalidOperationException("kms-reached"));
 
         var request = BuildLoginRequestReachingFaceGate("00000000000", faceRefB64: "", faceProof: null);
 
@@ -1851,8 +1940,8 @@ public class EnclaveServiceTests
         // mevcut analiz sorguları kırılır.
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
                    .Returns(0.80f);
-        _kms.Setup(k => k.ComputeHmacAsync(It.IsAny<string>()))
-            .ThrowsAsync(new InvalidOperationException("kms-reached"));
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>()))
+               .Throws(new InvalidOperationException("kms-reached"));
 
         var diag = new DiagLog();
         var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());

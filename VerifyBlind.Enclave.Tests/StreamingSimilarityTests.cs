@@ -1,4 +1,4 @@
-using VerifyBlind.Core.Models;
+﻿using VerifyBlind.Core.Models;
 using VerifyBlind.Enclave.Services;
 using Moq;
 using Xunit;
@@ -14,7 +14,7 @@ namespace VerifyBlind.Enclave.Tests;
 public class StreamingSimilarityTests
 {
     private readonly Mock<IEnclaveKeyService> _enclaveKeys = new();
-    private readonly Mock<IKmsService> _kms = new();
+    private readonly Mock<IIdentityHmacService> _idHmac = new();
     private readonly Mock<IBiometricService> _biometrics = new();
     private readonly Mock<ITicketMacService> _ticketMac = new();
     private readonly Mock<IAntiSpoofService> _antiSpoof = new();
@@ -28,8 +28,8 @@ public class StreamingSimilarityTests
         _biometrics.Setup(b => b.IsModelLoaded).Returns(true);
 
         _service = new EnclaveService(
-            _enclaveKeys.Object, _kms.Object, _biometrics.Object,
-            _ticketMac.Object, _antiSpoof.Object, _cache);
+            _enclaveKeys.Object, _biometrics.Object,
+            _ticketMac.Object, _idHmac.Object, _antiSpoof.Object, _cache);
     }
 
     private static string B64(string s) => Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(s));
