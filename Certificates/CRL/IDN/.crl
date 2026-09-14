@@ -29,14 +29,14 @@
 <meta name="twitter:image" content="https://www.imigrasi.go.id/images/thumbnail_1200x630_seo.jpg">
 <meta name="google-site-verification" content="9oGmMCllhGyHkLsou-mO9ce3Z0P-tW0KhmfMlBUNAZ4">
 <meta name="csrf-param" content="dirjen_imigrasi-FRONTEND-CSRF">
-<meta name="csrf-token" content="D5qVQxb4uRWBe-SXADSTPXy92LaIuseIAE0nTICVPZpA7PJ2cJOOR8QIkvlNc_ANLtad4P7P9KVnCmwA5PhX8Q==">
+<meta name="csrf-token" content="YmhOBl4UgnGRrbrrgm-DClxlY67LNcVW5MAYN-ci01M9USR1GUPkBOb9-Y7gBs1NCwAp7YhxvBSnj0FFqkSEPA==">
 
-<link href="/assets/e91c8a16/fe/slider/keen-slider.min.css?v=1789044675" rel="stylesheet">
+<link href="/assets/fd5934fa/fe/slider/keen-slider.min.css?v=1789044768" rel="stylesheet">
 <link href="/assets/345aa491/themes/smoothness/jquery-ui.css?v=1757531572" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="/assets/c11285f0/css/flaticon.min.css?v=1789044675" rel="stylesheet">
+<link href="/assets/4cb55d1d/css/flaticon.min.css?v=1789044767" rel="stylesheet">
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/glightbox@3.2.0/dist/css/glightbox.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" rel="stylesheet">
@@ -44,12 +44,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bellerose" rel="stylesheet">
-<link href="/assets/c11285f0/main.css?v=1789044675" rel="stylesheet">
-<link href="/assets/c11285f0/css/styles.css?v=1789044675" rel="stylesheet">
-<link href="/assets/c11285f0/css/hyperlink-popup.css?v=1789044675" rel="stylesheet">
-<link href="/assets/c11285f0/css/ai-loading.css?v=1789044675" rel="stylesheet">
-<link href="/assets/c11285f0/css/search-ai-ui2.css?v=1789044675" rel="stylesheet">
-<link href="/assets/e91c8a16/frontend.css?v=1789044676" rel="stylesheet">
+<link href="/assets/4cb55d1d/main.css?v=1789044767" rel="stylesheet">
+<link href="/assets/4cb55d1d/css/styles.css?v=1789044767" rel="stylesheet">
+<link href="/assets/4cb55d1d/css/hyperlink-popup.css?v=1789044767" rel="stylesheet">
+<link href="/assets/4cb55d1d/css/ai-loading.css?v=1789044767" rel="stylesheet">
+<link href="/assets/4cb55d1d/css/search-ai-ui2.css?v=1789044767" rel="stylesheet">
+<link href="/assets/fd5934fa/frontend.css?v=1789044768" rel="stylesheet">
 <style>
     @media (max-width: 1000px) {
         #search-ai-result{
@@ -706,7 +706,7 @@
 			<a href="https://www.imigrasi.go.id"><img alt=""></a>
 			
 									<div>
-						<img src="/assets/c11285f0/img/logo_header_2025.webp" style="height: 40px;">	
+						<img src="/assets/4cb55d1d/img/logo_header_2025.webp" style="height: 40px;">	
 					</div>
 					<div style="white-space: nowrap;">
 						<p class="m-0 user-select-none" style="font-size: 12px;">Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia</p><p class="m-0 user-select-none" style="font-size: 16px;">Direktorat Jenderal Imigrasi</p>					</div>
@@ -882,7 +882,7 @@
 	</div> -->
 	<div class="container pt-5 d-none d-print-block">
 		<div class="d-flex align-items-center justify-content-between">
-			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/c11285f0//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
+			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/4cb55d1d//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
 	</div>
 
 	
@@ -1424,7 +1424,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                 <div class="bubble">
                     <div class="left">
                         <div class="logo">
-                            <img style="width: 24px;" src="/assets/e91c8a16/logos/imtell-icon.svg" alt="">
+                            <img style="width: 24px;" src="/assets/fd5934fa/logos/imtell-icon.svg" alt="">
                         </div>
                         <div class="brand">Imtelligence</div>
                     </div>
@@ -1727,6 +1727,23 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                             <div class="keen-slider__slide">
                             <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
                                 <div class="position-relative">
+                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Menteri Imipas Penuhin Janji, 82 WNI dipulangkan dari Malaysia" data-src="/upload/2024/Berita%20Siaran%20Pers/september/IMI03534.JPG?width=400" style="height: 200px !important;">                                <div
+                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
+                                    Siaran Pers                                </div>
+                                </div>
+                                <div class="card-body m-0 mt-0">
+                                    <p class="text-muted mb-1" style="font-size: 12px;">
+                                        12 Sep 2026                                    </p>    
+                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Menteri Imipas Penuhin Janji, 82 WNI dipulangkan dari Malaysia</h5>
+                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
+                                        JAKARTA – Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas) melalui Atase Imigrasi KBRI Kuala Lumpur bergerak cepat memulangkan 82 Warga Negara Indonesia (WNI) bermasalah dari Depot Tahanan Imigresen (DTI) Semenyih dan DTI Beranang, Malaysia, Jumat (11/9). Langkah ini merupakan tindak lanjut langsung atas kunjungan kerja Menteri Imigrasi dan Pemasyarakatan (Imipas), Agus Andrianto, bersama Direktur Jenderal Imigrasi, Hendarsam Marantoko ke DTI Semenyih pada 4 September 2026 lalu.Menteri Agus menegaskan bahwa kepulangan ini menjadi prioritas utama pemerintah demi memberikan kepastian hukum dan pelindungan kemanusiaan bagi WNI di luar negeri. Dalam kunjungan kerja ke Malaysia pekan lalu, pihaknya telah menyampaikan komitmen penyelesaian tersebut secara langsung."Kami melakukan pengecekan dengan Dirjen Imigrasi. Kerja sama kami cukup baik dengan imigrasi Malaysia. Nanti kita segera upayakan pemulangan. Kalau surat sudah lengkap paling lama 10 hari mereka bisa kembali ke Indonesia," ujar Menteri Agus.Realisasi pemulangan yang terlaksana tepat satu minggu setelah instruksi tersebut mencakup 51 WNI dari DTI Semenyih, yang terdiri dari 32 laki-laki, 14 perempuan, dan lima anak perempuan. Selain itu, turut dipulangkan 31 WNI dari DTI Beranang yang meliputi 22 laki-laki dan sembilan perempuan. Seluruh WNI yang dipulangkan tersebut dipastikan telah menyelesaikan proses hukum dan keimigrasian di Malaysia serta telah mengantongi dokumen perjalanan resmi.Proses pemberangkatan ke Tanah Air pada hari ini dilakukan secara bertahap dan terbagi ke dalam tiga kloter. Kloter pertama dengan tujuan Jakarta membawa 33 orang WNI menggunakan maskapai Citilink bernomor penerbangan QG-503 dan dijadwalkan tiba di Tanah Air pada pukul 21.40 WIB.Sementara itu, kloter kedua dan ketiga diberangkatkan dengan tujuan Medan. Kloter kedua membawa enam orang penumpang menggunakan maskapai Batik Air ID-7265, dan kloter ketiga membawa 43 orang penumpang menggunakan maskapai Air Asia QZ-127. Kedua penerbangan tujuan Medan tersebut dijadwalkan mendarat pada waktu yang bersamaan, yakni pukul 21.25 WIB.Demi memastikan proses berjalan aman dan tertib, masing-masing kloter didampingi langsung oleh petugas Fungsi Imigrasi dan Konsuler KBRI Kuala Lumpur. Guna mempermudah pengawasan selama perjalanan, para WNI diberikan seragam kaos berwarna biru dan difasilitasi pemberian makan setibanya di bandara sebelum lepas landas.Atase Imigrasi KBRI Kuala Lumpur terus berkoordinasi secara intensif dengan Jabatan Imigresen Malaysia (JIM), pihak maskapai penerbangan, dan instansi terkait di Jakarta maupun Medan guna memastikan seluruh tahapan dari pemberangkatan hingga debarkasi penerimaan WNI berjalan lancar tanpa hambatan.Para WNI pun tiba di Tanah Air dengan penuh sukacita dan rasa syukur. “Alhamdulillah, bahagia. Nggak menyangka kalau sudah bisa kembali ke Indonesia, padahal sudah lama di Malaysia. Terima kasih banyak kepada Bapak Menteri Agus Andrianto dan Bapak Dirjen Hendarsam,” ungkap salah satu WNI laki-laki asal Madura yang sudah hampir sembilan tahun berada di Malaysia. Dan ada pula seorang wanita yang sudah lama berada di dalam tahanan imigrasi di malaysia akhirnya bisa pulang kembali ke Indonesia. Terimakasih banyak kepada Bapak Menteri Imigrasi dan Pemasyarakatan dan Dirjen Imigrasi yang telah membantu saya agar bisa kembali ke Tanah Air dan dapat berkumpul bersama keluarga, sampai saya tidak bisa berkata apa-apa lagi, ujar Rita, yang akan pulang ke Pandeglang, Banten.Pemulangan WNI ini bukan sekadar pemenuhan prosedur administratif, melainkan manifestasi nyata kehadiran negara untuk melindungi segenap warganya tanpa memandang latar belakang permasalahan. Kemenimipas berkomitmen memastikan setiap warga negara yang tengah menghadapi kendala keimigrasian di luar negeri mendapatkan penyelesaian yang responsif dan menjunjung tinggi martabat kemanusiaan. Melalui momentum kepulangan ini, menjadi pesan kuat bagi seluruh masyarakat akan pentingnya menempuh jalur migrasi yang legal demi jaminan keselamatan dan pelindungan menyeluruh dari negara.                                    </div>
+                                    <a href="/siaran_pers/menteri-imipas-penuhin-janji-82-wni-dipulangkan-dari-malaysia" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                                            <div class="keen-slider__slide">
+                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
+                                <div class="position-relative">
                                 <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Amankan 55 WN Tiongkok Dalam Operasi Pengawasan di BSD" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/Imigrasi%20Amankan%2055%20WN%20Tiongkok%20Dalam%20Operasi%20Pengawasan%20di%20BSD.jpeg?width=400" style="height: 200px !important;">                                <div
                                     class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
                                     Siaran Pers                                </div>
@@ -1877,23 +1894,6 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                 </div>
                             </div>
                         </div>
-                                            <div class="keen-slider__slide">
-                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
-                                <div class="position-relative">
-                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Deportasi 25 WN Vietnam Pelanggar Izin Tinggal " data-src="/upload/2025/Berita%20siaran%20pers/Siaran%20pers/Foto%20November/Imigrasi%20Deportasi%20WN%20Vietnam%20pelanggar%20izin%20tinggal.jpeg?width=400" style="height: 200px !important;">                                <div
-                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
-                                    Siaran Pers                                </div>
-                                </div>
-                                <div class="card-body m-0 mt-0">
-                                    <p class="text-muted mb-1" style="font-size: 12px;">
-                                        7 Agu 2026                                    </p>    
-                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Imigrasi Deportasi 25 WN Vietnam Pelanggar Izin Tinggal </h5>
-                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
-                                        JAKARTA - Direktorat Jenderal Imigrasi mendeportasi 25 warga negara Vietnam yang terbukti menyalahgunakan izin tinggal. Pendeportasian dilakukan menggunakan maskapai Vietjet Air melalui Terminal 2 Keberangkatan Internasional Bandara Soekarno-Hatta pada Rabu (05/08/2026). Sebelumnya, para warga negara asing (WNA) tersebut ditempatkan di Rumah Detensi Imigrasi Pusat Tanjung Pinang, Kepulauan Riau. Proses deportasi juga melibatkan Kantor Imigrasi Batam dan Kantor Imigrasi Soekarno-Hatta. Kedua puluh lima WNA tersebut sebelumnya diamankan dalam operasi pengawasan keimigrasian yang dilaksanakan oleh Tim Subdirektorat Pengawasan Keimigrasian Direktorat Jenderal Imigrasi bersama Kantor Imigrasi Kelas I Khusus TPI Batam di sebuah apartemen kawasan Baloi, Batam. Berdasarkan hasil pemeriksaan, mereka diketahui menyalahgunakan izin tinggal dengan melakukan kegiatan yang tidak sesuai dengan tujuan pemberian izin tinggalnya, yakni terlibat dalam praktik penipuan investasi secara daring. Atas pelanggaran tersebut, para WNA dikenai Tindakan Administratif Keimigrasian berupa deportasi sesuai ketentuan peraturan perundang-undangan. &nbsp;“Petugas Imigrasi Soekarno-Hatta mengawal para deteni sejak tiba di Terminal 1C hingga diberangkatkan melalui Terminal 2 Keberangkatan Internasional,” ujar Kepala Kantor Imigrasi Soekarno-Hatta, Galih Priya Kartika Perdhana.&nbsp;Sementara itu, Direktur Jenderal Imigrasi, Hendarsam Marantoko menegaskan bahwa setiap orang asing wajib menaati tujuan dan ketentuan izin tinggal yang diberikan. WNA yang terbukti melanggar ketentuan keimigrasian akan ditindak secara tegas dan terukur sesuai dengan peraturan perundang undangan.&nbsp;“Pendeportasian ini merupakan bukti konkret bahwa tindakan tegas keimigrasian memberikan dampak langsung terhadap perlindungan masyarakat. Kami memastikan pintu gerbang negara tidak disalahgunakan demi menjaga stabilitas, keamanan, dan ketenteraman masyarakat Indonesia,” imbuhnya.&nbsp;Langkah tersebut merupakan wujud komitmen Direktorat Jenderal Imigrasi dalam menjaga kedaulatan negara, memberikan kepastian hukum, serta melindungi keamanan dan ketertiban masyarakat, sejalan dengan semangat Imigrasi untuk Rakyat.&nbsp;                                     </div>
-                                    <a href="/siaran_pers/imigrasi-deportasi-25-wn-vietnam-pelanggar-izin-tinggal" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
                                     </div>
             </div>
                     </div>
@@ -1954,7 +1954,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
     <div class="container-fluid px-0" data-aos="fade-up">
         <div class="row gy-4 align-items-center">
             <div class="col-lg-6 text-lg-end text-center">
-                <img class="img-fluid app_img" src="/assets/c11285f0//img/phone_mockup.png" alt="">            </div>
+                <img class="img-fluid app_img" src="/assets/4cb55d1d//img/phone_mockup.png" alt="">            </div>
             <div class="col-lg-6">
                 <div class="section-title mb-3">
                     <h1 class="fw-semibold text-start">
@@ -1967,8 +1967,8 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                         <h4 class="mb-lg-5 mb-4 text-center text-lg-start unduh_desc">
                             Ajukan permohonan paspor baru atau penggantian secara daring. Mudah dan nyaman.                        </h4>
                         <div class="d-flex gap-3 justify-content-lg-start justify-content-center">
-                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/c11285f0//img/pstore.png" alt=""></a>
-                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/c11285f0//img/appstore.png" alt=""></a>                        </div>
+                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/4cb55d1d//img/pstore.png" alt=""></a>
+                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/4cb55d1d//img/appstore.png" alt=""></a>                        </div>
                     </div>
                 </div>
             </div>
@@ -2080,7 +2080,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
 	<div class="container mb-md-5 mb-2 footer-top">
 		<div class="row justify-content-between g-4">
 			<div class="col-lg-5 col-md-12 mb-3 mb-md-0 footer-about">
-				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/c11285f0/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
+				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/4cb55d1d/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
 					Jl. H.R. Rasuna Said, Kav. X6, No. 8,
 Kuningan, Jakarta Selatan,
 DKI Jakarta, Indonesia				</p>
@@ -2187,7 +2187,7 @@ DKI Jakarta, Indonesia				</p>
 	<script id="sessionFlashes" type="application/json">
 		{}	</script>
 
-	<script src="/assets/e91c8a16/fe/slider/keen-slider.js?v=1789044675"></script>
+	<script src="/assets/fd5934fa/fe/slider/keen-slider.js?v=1789044768"></script>
 <script src="/assets/58a3f682/jquery.js?v=1757531562"></script>
 <script src="/assets/345aa491/jquery-ui.js?v=1757531580"></script>
 <script src="/assets/54f7976c/yii.js?v=1757532998"></script>
@@ -2200,13 +2200,13 @@ DKI Jakarta, Indonesia				</p>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
-<script src="/assets/c11285f0/main.js?v=1789044675"></script>
-<script src="/assets/c11285f0/js/main.min.js?v=1789044675"></script>
-<script src="/assets/c11285f0/js/hyperlink-popup.js?v=1789044675"></script>
-<script src="/assets/c11285f0/js/marked.min.js?v=1789044675"></script>
-<script src="/assets/c11285f0/js/search-ai-ui2.js?v=1789044675"></script>
-<script src="/assets/c11285f0/js/sitebar-sticky.js?v=1789044675"></script>
-<script src="/assets/e91c8a16/frontend.js?v=1789044676"></script>
+<script src="/assets/4cb55d1d/main.js?v=1789044767"></script>
+<script src="/assets/4cb55d1d/js/main.min.js?v=1789044767"></script>
+<script src="/assets/4cb55d1d/js/hyperlink-popup.js?v=1789044767"></script>
+<script src="/assets/4cb55d1d/js/marked.min.js?v=1789044767"></script>
+<script src="/assets/4cb55d1d/js/search-ai-ui2.js?v=1789044767"></script>
+<script src="/assets/4cb55d1d/js/sitebar-sticky.js?v=1789044767"></script>
+<script src="/assets/fd5934fa/frontend.js?v=1789044768"></script>
 <script>jQuery(function ($) {
     $("#keEvisa").click(function() {
         let posisiEvisa = $("#evisaForm").position();
