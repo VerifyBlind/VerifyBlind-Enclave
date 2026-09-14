@@ -256,7 +256,27 @@ public class EnclaveController : ControllerBase
             // Kodu olduğu gibi geçir: ERR_ANTISPOOFING* zaten relay resx haritasındadır.
             diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
             Console.WriteLine($"[Enclave Controller] LOGIN LIVENESS REJECTED ({ex.ErrorCode}): {ex.Message}");
-            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
+
+            // Skorları YANITA taşı — reddedilen girişin ölçülebilmesi için.
+            //
+            // ⚠️ Bunlar olmadan giriş ölçümü yapısal olarak sakat kalıyordu: relay yalnız BAŞARILI
+            // yanıttaki relay_metadata'dan satır yazıyor, dolayısıyla tabloya YALNIZ geçen girişler
+            // düşüyordu. Yani "eşiği yükseltsem kaç meşru kullanıcıyı keserdim" sorusu — en pahalı
+            // soru — o tablodan HİÇBİR ZAMAN cevaplanamazdı, ne kadar beklenirse beklensin.
+            // Yakalanan saldırı denemeleri de görünmezdi.
+            //
+            // PII yok: yalnız model olasılıkları. Skorlar zaten enclave_diag satırında görünüyordu;
+            // burada makine-okunur alana alınıyorlar.
+            return StatusCode(400, new
+            {
+                error = ex.Message,
+                error_code = ex.ErrorCode,
+                p_live = ex.PLive,
+                c0 = ex.C0,
+                c1 = ex.C1,
+                c2 = ex.C2,
+                enclave_diag = diag.Entries
+            });
         }
         catch (VerifyBlind.Enclave.Services.TicketRevokedException ex)
         {
