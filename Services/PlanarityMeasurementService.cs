@@ -62,6 +62,9 @@ namespace VerifyBlind.Enclave.Services
             {
                 FarMeasured = far.Count,
                 NearMeasured = near.Count,
+                // Adımın kullanıcıya süre maliyeti — ölçüm kadar önemli. Kapıyı açma kararının
+                // yarısı "sinyal iyi mi", diğer yarısı "meşru kullanıcıya kaça mal oluyor".
+                ElapsedMs = proof.ElapsedMs,
             };
 
             if (far.Count == 0)

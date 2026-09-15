@@ -307,6 +307,19 @@ public class PlanarityOutcome
     /// </summary>
     [JsonPropertyName("ied_ratio")]
     public double? IedRatio { get; set; }
+
+    /// <summary>
+    /// Adımın kullanıcıya SÜRE maliyeti (ms) — istemciden gelir, olduğu gibi taşınır.
+    ///
+    /// <para><b>Neden kaydedilmeli:</b> bu adım her meşru kayda eklenen bir yüktür ve
+    /// "ne kadar sürüyor" sorusunun cevabı, kapının açılıp açılmayacağı kararının yarısıdır.
+    /// Sinyal ne kadar iyi olursa olsun, adım kullanıcıyı 20 saniye tutuyorsa bu bilinerek
+    /// kabul edilmeli — sonradan fark edilmemeli.</para>
+    ///
+    /// <para>⚠️ Cihazdan gelir, DOĞRULANMAZ; relay aralık kontrolünden geçirir.</para>
+    /// </summary>
+    [JsonPropertyName("elapsed_ms")]
+    public int? ElapsedMs { get; set; }
 }
 
 /// <summary>
