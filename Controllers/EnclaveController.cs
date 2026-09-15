@@ -92,6 +92,9 @@ public class EnclaveController : ControllerBase
                 // Aday sonuçları — relay ölçüm tablosuna yazar. Kişiye bağlanamaz: yalnız skaler
                 // skorlar ve sabit kümeli sonuç etiketi taşır.
                 candidate_outcomes = result.candidates,
+                // Yakınlaştırma ölçümü — relay ölçüm tablosuna yazar. Karar DEĞİL: kaydın
+                // geçip geçmediğiyle ilgisi yok, yalnız geometrik sinyalin dağılımını toplar.
+                planarity = result.planarity,
                 enclave_diag = diag.Entries
             });
         }
@@ -113,6 +116,9 @@ public class EnclaveController : ControllerBase
                 // Reddedilen adaylar da ölçüm tablosuna yazılır — yalnız geçeni loglamak,
                 // eşiğin doğru yerde olup olmadığını çözecek dağılımı yok ederdi.
                 candidate_outcomes = (ex as RegistrationException)?.CandidateOutcomes,
+                // 🔴 Red yolunda ÖZELLİKLE önemli: monitör saldırılarının geometrik imzası
+                // yalnız reddedilen denemelerde görülür. Yalnız geçeni kaydetmek dağılımı yok eder.
+                planarity = (ex as RegistrationException)?.Planarity,
                 enclave_diag = diag.Entries
             });
         }

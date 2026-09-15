@@ -35,6 +35,18 @@ public class RegistrationException : Exception
     public List<VerifyBlind.Core.Models.CandidateOutcome>? CandidateOutcomes { get; init; }
 
     /// <summary>
+    /// Yakınlaştırma (düzlem-dışılık) ölçümü — red yolunda da taşınır.
+    ///
+    /// ⚠️ <b>Neden `init` değil `set`:</b> bu ölçüm akışın hangi adımda düştüğünden BAĞIMSIZDIR
+    /// ve istisna kurulduktan sonra iliştirilir (<c>RegisterAsync</c> sarmalayıcısı). Diğer
+    /// alanlar hatayı ÜRETEN adımın bilgisidir; bu ise akış boyu taşınan bir gözlemdir.
+    ///
+    /// ⚠️ Reddedilen denemeleri kaydetmek işin ASIL amacı: monitör saldırılarının dağılımı
+    /// yalnız buradan görülebilir.
+    /// </summary>
+    public VerifyBlind.Core.Models.PlanarityOutcome? Planarity { get; set; }
+
+    /// <summary>
     /// Belge politikası reddinde SOD-doğrulanmış ihraç eden ülke kodu (ör. "DEU"). Relay bunu
     /// Sentry'ye yapısal alan olarak basar — istemcinin beyan ettiği CountryIsoCode'dan farklı
     /// olarak GÜVENİLİRDİR. ZK-güvenli: düşük kardinaliteli ISO kodu, kişisel veri değil.

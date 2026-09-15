@@ -203,8 +203,96 @@ public class RegistrationCandidate
     /// <summary>Aynı karenin 2,7× geniş anti-spoof kırpması (Base64 JPEG 80×80).</summary>
     public string AntiSpoofCrop { get; set; } = string.Empty;
 
+    /// <summary>
+    /// AYNI karenin 4,0× kırpması — satıcının ikinci ölçeği. Model henüz kurulu değil;
+    /// gerekçe <see cref="SecurePayload.AntiSpoofCrop40"/>. Boş gelmesi normaldir.
+    /// </summary>
+    public string AntiSpoofCrop40 { get; set; } = string.Empty;
+
     /// <summary>Cihaz ölçüleri — ölçüm satırına yazılır (doğrulanmaz).</summary>
     public DeviceFrameMetrics? DeviceMetrics { get; set; }
+}
+
+/// <summary>
+/// YAKINLAŞTIRMA KANITI — düzlem-dışılık ölçümünün ham girdisi.
+///
+/// <para><b>Neden var:</b> doku tabanlı anti-spoof monitör hilesini kaçırıyor ve eşik bunu
+/// çözmüyor (dağılımlar çakışıyor). Geometrik sinyal ise modelden bağımsızdır: gerçek yüzde
+/// burun düzlemin önündedir, ekranda her şey aynı düzlemdedir. Kullanıcı telefonu yaklaştırır,
+/// iki mesafeden kare kümesi toplanır ve enclave <c>PlanarityProbe</c> ile ölçer.</para>
+///
+/// <para><b>Neden görüntü gönderiliyor, nokta değil:</b> noktaları istemci çıkarsaydı ölçüm
+/// istemciye emanet edilirdi. Enclave kendi YuNet'iyle çıkarır; istemci yalnız kare taşır.</para>
+///
+/// <para><b>Neden çok kare:</b> sinyal gözler-arası mesafenin ~%3'ü ve nokta titremesiyle aynı
+/// mertebede. Sentetik ölçümde tek çift 1,5 px titremede %60, 9'ar kare ile %98 ayırıyor
+/// (<c>PlanarityProbeTests</c>).</para>
+///
+/// <para>⚠️ İsteğe bağlı: boş/eksik gelirse kayıt akışı BUGÜNKÜ gibi çalışır. Ölçüm şimdilik
+/// yalnız kaydedilir, kapı DEĞİLDİR.</para>
+/// </summary>
+public class ZoomProof
+{
+    /// <summary>Uzak pencere kareleri — yüz bölgesi kırpması (Base64 JPEG).</summary>
+    [JsonPropertyName("far_frames")]
+    public List<string> FarFrames { get; set; } = new();
+
+    /// <summary>Yakın pencere kareleri — aynı biçim.</summary>
+    [JsonPropertyName("near_frames")]
+    public List<string> NearFrames { get; set; } = new();
+
+    /// <summary>
+    /// İstemcinin kendi ölçtüğü gözler-arası mesafeler (px, medyan). DOĞRULANMAZ —
+    /// yalnız enclave ölçümüyle kıyaslamak ve istemci sapmasını görmek için.
+    /// </summary>
+    [JsonPropertyName("client_far_ied")]
+    public double? ClientFarIed { get; set; }
+
+    [JsonPropertyName("client_near_ied")]
+    public double? ClientNearIed { get; set; }
+
+    /// <summary>Yakınlaştırma adımının toplam süresi (ms) — kullanıcı maliyetini ölçmek için.</summary>
+    [JsonPropertyName("elapsed_ms")]
+    public int? ElapsedMs { get; set; }
+}
+
+/// <summary>
+/// Enclave'in yakınlaştırma kanıtından ürettiği ÖLÇÜM — karar değil, satır.
+/// Relay bunu ölçüm tablosuna yazar; eşik canlı veriyle kalibre edilecek.
+/// </summary>
+public class PlanarityOutcome
+{
+    /// <summary>measured | no_proof | no_face_far | no_face_near | not_enough_frames</summary>
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = string.Empty;
+
+    /// <summary>Enclave'in yüz bulabildiği kare sayıları (gönderilen değil, ÖLÇÜLEBİLEN).</summary>
+    [JsonPropertyName("far_measured")]
+    public int FarMeasured { get; set; }
+
+    [JsonPropertyName("near_measured")]
+    public int NearMeasured { get; set; }
+
+    /// <summary>
+    /// 🔴 ASIL SİNYAL: uzak ve yakın medyan burun sapma vektörleri arasındaki uzaklık
+    /// (kanonik gözler-arası mesafenin oranı). Düz yüzeyde ~0, gerçek yüzde ~0,03.
+    /// </summary>
+    [JsonPropertyName("delta")]
+    public double? Delta { get; set; }
+
+    /// <summary>Uzak/yakın pencerelerin sapma büyüklükleri — teşhis için.</summary>
+    [JsonPropertyName("far_residual")]
+    public double? FarResidual { get; set; }
+
+    [JsonPropertyName("near_residual")]
+    public double? NearResidual { get; set; }
+
+    /// <summary>
+    /// Yakın/uzak gözler-arası mesafe oranı — "kullanıcı gerçekten yaklaştı mı".
+    /// ⚠️ Sahtecilik ölçüsü DEĞİLDİR (ekran da büyür); Delta'yı yorumlamak için gerekli bağlam.
+    /// </summary>
+    [JsonPropertyName("ied_ratio")]
+    public double? IedRatio { get; set; }
 }
 
 /// <summary>
@@ -270,4 +358,33 @@ public static class FrameOutcomes
 
     public static bool IsValid(string? v) =>
         v is Pass or FailSimilarity or FailLiveness;
+}
+
+/// <summary>
+/// Yakınlaştırma (düzlem-dışılık) ölçümünün durumu — sabit küme.
+///
+/// <para>⚠️ <b>PAYLAŞILAN tanım.</b> Enclave üretir, relay saklar. İki tarafta ayrı sabitler
+/// tutmak <c>EnclaveErrorCodes</c>'ta sapmaya yol açmıştı: enclave'in ürettiği bir etiket relay'de
+/// "bilinmeyen" sayılırsa satır sessizce boş yazılır ve ölçüm görünmez olur.</para>
+///
+/// <para>⚠️ <see cref="Measured"/> DIŞINDAKİ her değer "ÖLÇEMEDİK" demektir, "sahte" DEĞİL.
+/// Kapı ileride açıldığında bu ayrım korunmalı — ölçülemeyen akışı reddetmek, kamerası zayıf
+/// kullanıcıyı cezalandırır.</para>
+/// </summary>
+public static class PlanarityStatuses
+{
+    /// <summary>Her iki pencerede de yeterli kare ölçüldü — eşik çalışmasına YALNIZ bunlar girer.</summary>
+    public const string Measured = "measured";
+
+    /// <summary>İstemci yakınlaştırma adımını hiç göndermedi (eski sürüm ya da atlanmış adım).</summary>
+    public const string NoProof = "no_proof";
+
+    public const string NoFaceFar  = "no_face_far";
+    public const string NoFaceNear = "no_face_near";
+
+    /// <summary>Sayı hesaplandı ama pencerede yeterli kare yok — dağılıma KATILMAZ.</summary>
+    public const string NotEnoughFrames = "not_enough_frames";
+
+    public static bool IsValid(string? v) =>
+        v is Measured or NoProof or NoFaceFar or NoFaceNear or NotEnoughFrames;
 }

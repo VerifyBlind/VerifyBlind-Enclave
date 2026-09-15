@@ -23,6 +23,9 @@ public class EnclaveService
     // Canlı benzerlik akışı — YALNIZ streaming içindir. Register buraya ASLA bakmaz (K4).
     private readonly FlowEmbeddingCache _flowEmbeddings;
 
+    /// <summary>Yakınlaştırma (düzlem-dışılık) ölçümü — ÖLÇER, reddetmez. Bkz. <see cref="PlanarityMeasurementService"/>.</summary>
+    private readonly IPlanarityMeasurementService _planarity;
+
     /// <summary>
     /// ArcFace (w600k_r50) kosinüs eşiği — YuNet 5-nokta hizalı boru hattı için kalibre edildi.
     /// Gerekçe ve kalibrasyon notları için bkz. <see cref="VerifyBiometricMatchParallel"/>.
@@ -34,7 +37,7 @@ public class EnclaveService
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IBiometricService biometricService,
         ITicketMacService ticketMac, IIdentityHmacService idHmac, IAntiSpoofService antiSpoof,
-        FlowEmbeddingCache flowEmbeddings)
+        FlowEmbeddingCache flowEmbeddings, IPlanarityMeasurementService? planarity = null)
     {
         _enclaveKeys = enclaveKeys;
         _biometricService = biometricService;
@@ -42,6 +45,10 @@ public class EnclaveService
         _idHmac = idHmac;
         _antiSpoof = antiSpoof;
         _flowEmbeddings = flowEmbeddings;
+        // Varsayılan hizalayıcıyı biyometri servisiyle paylaşır — AYRI bir YuNet oturumu
+        // enclave belleğinde ikinci bir model kopyası demek olurdu. İsteğe bağlı parametre:
+        // mevcut çağrı yerleri (ve testler) değişmeden çalışır.
+        _planarity = planarity ?? new PlanarityMeasurementService(biometricService);
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
@@ -93,11 +100,35 @@ public class EnclaveService
     }
 
     /// <returns>
-    /// Ticket, kazanan adayın benzerlik skoru, kart numarası ve HER adayın sonucu.
-    /// Aday sonuçları relay tarafından ölçüm tablosuna yazılır — kazanan da kaybeden de
-    /// (cihazın "en iyi" hükmü ile enclave'in hükmü arasındaki sapmanın etiketli örneği).
+    /// Ticket, kazanan adayın benzerlik skoru, kart numarası, HER adayın sonucu ve
+    /// yakınlaştırma ölçümü. Aday sonuçları relay tarafından ölçüm tablosuna yazılır —
+    /// kazanan da kaybeden de (cihazın "en iyi" hükmü ile enclave'in hükmü arasındaki
+    /// sapmanın etiketli örneği).
     /// </returns>
-    public async Task<(string ticket, float faceScore, string cardId, List<CandidateOutcome> candidates)> RegisterAsync(RegistrationRequest request, DiagLog diag)
+    public async Task<(string ticket, float faceScore, string cardId, List<CandidateOutcome> candidates,
+        PlanarityOutcome? planarity)> RegisterAsync(RegistrationRequest request, DiagLog diag)
+    {
+        // Yakınlaştırma ölçümü akışın HANGİ adımda düştüğünden bağımsızdır ve red yolunda
+        // KAYBEDİLMEMELİDİR: saldırı denemeleri ölçümün asıl konusu. Çekirdek akış ölçümü
+        // yapınca buraya bildirir; hata hâlinde istisnaya iliştirip yeniden fırlatırız.
+        //
+        // ⚠️ Bu kalıp aday sonuçlarındakiyle aynı gerekçeye dayanır: yalnız geçeni kaydetmek,
+        // eşiği belirleyecek dağılımı yok eder.
+        PlanarityOutcome? measured = null;
+        try
+        {
+            return await RegisterCoreAsync(request, diag, p => measured = p);
+        }
+        catch (RegistrationException ex)
+        {
+            ex.Planarity ??= measured;
+            throw;
+        }
+    }
+
+    private async Task<(string ticket, float faceScore, string cardId, List<CandidateOutcome> candidates,
+        PlanarityOutcome? planarity)> RegisterCoreAsync(
+        RegistrationRequest request, DiagLog diag, Action<PlanarityOutcome> onPlanarityMeasured)
     {
         diag.Info($"Kayıt başladı. EncKey={request.EncryptedKey.Length}ch, Blob={request.AesBlob.Length}ch");
         Console.WriteLine($"[Enclave] Kayıt isteği alındı. Şifreli Anahtar Uzunluğu: {request.EncryptedKey.Length}, Blob Uzunluğu: {request.AesBlob.Length}");
@@ -326,6 +357,17 @@ public class EnclaveService
             throw new RegistrationException(RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.Dg1Parse, ex.Message);
         }
 
+        // --- Step 6a: Yakınlaştırma ölçümü (düzlem-dışılık) — KAPI DEĞİL ---
+        // Belge kontrolleri geçtikten SONRA ölçülür: geçersiz belge için YuNet çıkarımı yakmayalım.
+        // Adaylardan ÖNCE ölçülür ki red yolunda da elimizde olsun.
+        //
+        // ⚠️ Hiçbir kaydı reddetmez. Doku modeli monitörü kaçırıyor ve eşik bunu çözmüyor;
+        // geometrik sinyal modelden bağımsız. Önce dağılımı görüp sonra kapı açacağız.
+        diag.Begin("Planarity");
+        var planarity = _planarity.Measure(payload.ZoomProof);
+        onPlanarityMeasured(planarity);
+        diag.Ok("Planarity", $"{planarity.Status} delta={planarity.Delta?.ToString("F5") ?? "-"}");
+
         // --- Step 6+7: Biyometrik eşleşme + pasif canlılık (aday aday, TAM KAPI) ---
         // Adaylar sırayla TAM kapıdan geçirilir ve ilk GEÇEN kazanır. Enclave streaming'de neyi
         // onayladığını BİLMEZ ve önbelleğe GÜVENMEZ (K4) — burada her şey baştan hesaplanır.
@@ -472,7 +514,7 @@ public class EnclaveService
             };
             
             diag.Ok("Response Encrypt");
-            return (JsonSerializer.Serialize(hybridResponse), faceScore, cardId, candidateOutcomes);
+            return (JsonSerializer.Serialize(hybridResponse), faceScore, cardId, candidateOutcomes, planarity);
         }
         catch (Exception ex)
         {

@@ -30,6 +30,16 @@ namespace VerifyBlind.Enclave.Services
 
         /// <summary>İki gömme vektörü arasındaki kosinüs benzerliği (0-1 aralığına kırpılmaz).</summary>
         float CosineSimilarity(float[] a, float[] b);
+
+        /// <summary>
+        /// Görüntüdeki en büyük yüzün 5 YuNet noktası, ORİJİNAL koordinatlarda
+        /// (x0,y0,...,x4,y4 — sağ göz, sol göz, burun, sağ ağız, sol ağız). Yüz yoksa null.
+        ///
+        /// <para>Düzlem-dışılık ölçümü (<see cref="FaceAlignment.PlanarityProbe"/>) için.
+        /// Hizalayıcı burada duruyor; AYRI bir YuNet oturumu açmak enclave belleğinde ikinci
+        /// bir model kopyası demek olurdu.</para>
+        /// </summary>
+        float[]? DetectLandmarks(byte[] imageBytes);
     }
 
     public class BiometricService : IBiometricService
@@ -145,6 +155,27 @@ namespace VerifyBlind.Enclave.Services
 
         /// <summary><see cref="IBiometricService.CosineSimilarity"/>.</summary>
         public float CosineSimilarity(float[] a, float[] b) => ComputeCosineSimilarity(a, b);
+
+        /// <summary>
+        /// <see cref="IBiometricService.DetectLandmarks"/>.
+        ///
+        /// <para>Bozuk/çözülemeyen görüntüde FIRLATMAZ, null döner: bu bir ÖLÇÜM yoludur,
+        /// karar yolu değil. Tek bir kötü kare yüzünden kaydı düşürmek meşru kullanıcıyı
+        /// cezalandırırdı; ölçüm satırı "ölçülemedi" der ve akış devam eder.</para>
+        /// </summary>
+        public float[]? DetectLandmarks(byte[] imageBytes)
+        {
+            try
+            {
+                using var source = Image.Load<Rgb24>(imageBytes);
+                return _aligner.DetectLandmarks(source);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BiometricService] Landmark tespiti başarısız (ölçüm atlanıyor): {ex.Message}");
+                return null;
+            }
+        }
 
         // internal: offline eşik kalibrasyonu (CalibrationLfwTests) + gelecekteki biyometrik
         // karşılaştırma/step-up primitifi. VerifyFace bunun üstüne kosinüs ekler.

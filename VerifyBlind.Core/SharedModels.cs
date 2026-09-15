@@ -102,6 +102,25 @@ public class SecurePayload
     /// Boşsa eski tek-fotoğraf yolu çalışır (geriye dönük uyumlu).
     /// </summary>
     public List<RegistrationCandidate>? Candidates { get; set; }
+
+    /// <summary>
+    /// Yakınlaştırma kanıtı (düzlem-dışılık ölçümü) — isteğe bağlı.
+    /// Boşsa kayıt akışı BUGÜNKÜ gibi çalışır; ölçüm satırı "no_proof" yazar.
+    /// Ayrıntı ve gerekçe: <see cref="ZoomProof"/>.
+    /// </summary>
+    public ZoomProof? ZoomProof { get; set; }
+
+    /// <summary>
+    /// Anti-spoof 4,0× geniş kırpma (Base64 JPEG 80×80) — Silent-Face satıcı tasarımının
+    /// İKİNCİ ölçeği.
+    ///
+    /// <para><b>Neden şimdi taşınıyor ama henüz kullanılmıyor:</b> satıcı iki modeli (2,7 V2 +
+    /// 4,0 V1SE) TOPLAYARAK kullanıyor; bizde yalnız 2,7 kurulu. İkinci modeli eklemek ayrı bir
+    /// karar (enclave'e üçüncü taraf ikili dosya girer) ama kırpma TELEFONDA üretiliyor —
+    /// alanı şimdi taşımazsak model eklendiğinde İKİNCİ bir mobil sürüm gerekir. Boş gelmesi
+    /// normaldir ve hiçbir şeyi bozmaz.</para>
+    /// </summary>
+    public string AntiSpoofCrop40 { get; set; } = string.Empty;
 }
 
 // Registration Request (Phone -> Relay -> Enclave)

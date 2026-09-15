@@ -77,6 +77,18 @@ namespace VerifyBlind.Enclave.Services.FaceAlignment
         }
 
         /// <summary>
+        /// Görüntüdeki en büyük yüzün 5 noktasını ORİJİNAL koordinatlarda döndürür
+        /// (x0,y0,...,x4,y4 — sağ göz, sol göz, burun, sağ ağız, sol ağız). Yüz yoksa null.
+        ///
+        /// <para>Hizalamanın yan ürünü olarak zaten hesaplanıyordu; <see cref="PlanarityProbe"/>
+        /// düzlem-dışılık ölçümü için AYNI noktalara ihtiyaç duyduğundan dışarı açıldı. Ölçümün
+        /// enclave içinde kalması esastır: istemci daha zengin nokta kümesi (kulak, yanak) üretebilir
+        /// ama güvenilmeyen taraftır.</para>
+        /// </summary>
+        public float[]? DetectLandmarks(Image<Rgb24> source) =>
+            _isLoaded ? DetectBestLandmarks(source) : null;
+
+        /// <summary>
         /// Kaynağı 640x640'a letterbox'lar, YuNet'i çalıştırır, 3-stride decode + NMS yapar,
         /// en büyük yüzün 5 landmark'ını ORİJİNAL koordinatlara çevirir. Yüz yoksa null.
         /// </summary>
