@@ -72,7 +72,13 @@ namespace VerifyBlind.Enclave.Services
 
             if (near.Count == 0)
             {
-                outcome.Status = PlanarityStatuses.NoFaceNear;
+                // İstemci hedefe ulaşılmadığını bildirdiyse yakın pencereyi BİLEREK boş
+                // göndermiştir — kamera arızası değil, kullanıcı yaklaşmamıştır. İkisini tek
+                // etikette toplamak adımın neden çalışmadığını gizlerdi: yönerge mi anlaşılmıyor,
+                // kamera mı yetersiz? Ayrımı ancak bu iki durum ayrı sayılırsa öğreniriz.
+                outcome.Status = proof.ReachedTarget
+                    ? PlanarityStatuses.NoFaceNear
+                    : PlanarityStatuses.NotApproached;
                 return outcome;
             }
 

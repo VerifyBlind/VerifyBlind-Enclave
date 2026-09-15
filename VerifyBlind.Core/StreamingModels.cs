@@ -254,6 +254,20 @@ public class ZoomProof
     /// <summary>Yakınlaştırma adımının toplam süresi (ms) — kullanıcı maliyetini ölçmek için.</summary>
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
+
+    /// <summary>
+    /// İstemcinin bildirdiği: kullanıcı yaklaşma hedefine gerçekten ulaştı mı.
+    ///
+    /// <para>false ise <see cref="NearFrames"/> BOŞTUR — istemci yarı yolda kare toplamaz,
+    /// çünkü sinyal mesafe DEĞİŞİMİNDEN doğar ve yarım bir yaklaşmadan çıkan sayı anlamsızdır
+    /// (üstelik "ölçtük" görünüp eşik çalışmasını kirletirdi).</para>
+    ///
+    /// <para>⚠️ DOĞRULANMAZ ve hiçbir güvenlik kararına girmez. Yalnız ölçüm satırını
+    /// etiketler: "kullanıcı yaklaşmadı" ile "kamera yüzü göremedi" farklı sorunlardır ve
+    /// ikisini tek etikette toplamak adımın neden çalışmadığını gizlerdi.</para>
+    /// </summary>
+    [JsonPropertyName("reached_target")]
+    public bool ReachedTarget { get; set; }
 }
 
 /// <summary>
@@ -382,9 +396,18 @@ public static class PlanarityStatuses
     public const string NoFaceFar  = "no_face_far";
     public const string NoFaceNear = "no_face_near";
 
+    /// <summary>
+    /// Kullanıcı yaklaşma hedefine ULAŞMADI — istemci bu yüzden yakın kare toplamadı.
+    ///
+    /// <para><see cref="NoFaceNear"/>'dan AYRI tutulur: biri kullanıcının hareketi yapmaması,
+    /// öteki kameranın yüzü görememesidir. Tek etikette toplanırsa adımın neden çalışmadığı
+    /// (yönerge mi anlaşılmıyor, kamera mı yetersiz) öğrenilemez.</para>
+    /// </summary>
+    public const string NotApproached = "not_approached";
+
     /// <summary>Sayı hesaplandı ama pencerede yeterli kare yok — dağılıma KATILMAZ.</summary>
     public const string NotEnoughFrames = "not_enough_frames";
 
     public static bool IsValid(string? v) =>
-        v is Measured or NoProof or NoFaceFar or NoFaceNear or NotEnoughFrames;
+        v is Measured or NoProof or NoFaceFar or NoFaceNear or NotApproached or NotEnoughFrames;
 }

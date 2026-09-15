@@ -123,6 +123,10 @@ public class PlanarityMeasurementServiceTests
         Assert.Null(outcome.Delta);
     }
 
+    /// <summary>
+    /// Kullanıcı yaklaştı (istemci öyle diyor) ama kamera yakın pencerede yüz göremedi —
+    /// bu bir KAMERA sorunudur ve öyle etiketlenmeli.
+    /// </summary>
     [Fact]
     public void NoFaceInNearWindowOnly_IsDistinguished()
     {
@@ -131,11 +135,43 @@ public class PlanarityMeasurementServiceTests
         mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>()))
             .Returns(() => call++ < 5 ? RealFace(600) : null);
 
-        var outcome = new PlanarityMeasurementService(mock.Object).Measure(Proof(5, 5));
+        var proof = Proof(5, 5);
+        proof.ReachedTarget = true;
+
+        var outcome = new PlanarityMeasurementService(mock.Object).Measure(proof);
 
         Assert.Equal("no_face_near", outcome.Status);
         Assert.Equal(5, outcome.FarMeasured);
         Assert.Equal(0, outcome.NearMeasured);
+    }
+
+    /// <summary>
+    /// 🔴 Kullanıcı hiç yaklaşmadı → istemci yakın pencereyi BİLEREK boş gönderir.
+    ///
+    /// <para>Kamera arızasından AYRI etiketlenir. Bu satırların oranı, adımın acemi kullanıcıda
+    /// çalışıp çalışmadığının tek ölçüsüdür: yüksekse sorun eşikte değil YÖNERGEDEDİR. İkisi
+    /// tek etikette toplansaydı bu ayrım hiç görünmezdi.</para>
+    /// </summary>
+    [Fact]
+    public void UserNeverApproached_IsLabelledSeparatelyFromCameraFailure()
+    {
+        var mock = new Mock<IBiometricService>();
+        mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>())).Returns(RealFace(600));
+
+        var proof = new ZoomProof
+        {
+            FarFrames = Proof(6, 0).FarFrames,
+            NearFrames = new List<string>(),   // istemci yarı yolda kare TOPLAMAZ
+            ReachedTarget = false,
+        };
+
+        var outcome = new PlanarityMeasurementService(mock.Object).Measure(proof);
+
+        Assert.Equal("not_approached", outcome.Status);
+        Assert.Equal(6, outcome.FarMeasured);
+        Assert.Equal(0, outcome.NearMeasured);
+        // Yarım yaklaşmadan sayı ÜRETİLMEZ — üretilseydi dağılımı sahte veriyle doldururdu.
+        Assert.Null(outcome.Delta);
     }
 
     /// <summary>Bozuk base64 kareyi düşürür, ölçümü durdurmaz.</summary>
