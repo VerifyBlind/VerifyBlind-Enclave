@@ -71,6 +71,27 @@ public class PlanarityMeasurementServiceTests
         detector.Verify(b => b.DetectLandmarks(It.IsAny<byte[]>()), Times.Never);
     }
 
+    /// <summary>
+    /// 🔴 Kare toplanamayan akış da ÖLÇÜM VERİSİ taşır: arka plan dokusu ve geçen süre.
+    ///
+    /// <para>Sahada dokusuz arka plan yüzünden hiç kare toplayamayan bir kayıt oldu ve geriye
+    /// yalnız "no_proof" kaldı — dokunun KAÇ olduğu, yani eşiği kalibre etmek için gereken tek
+    /// sayı, hiç öğrenilemedi. Ölçemediğimiz akış, neden ölçemediğimizi anlatan akıştır.</para>
+    /// </summary>
+    [Fact]
+    public void EmptyProof_StillCarriesBackgroundTextureAndElapsed()
+    {
+        var detector = new Mock<IBiometricService>(MockBehavior.Strict);
+
+        var o = new PlanarityMeasurementService(detector.Object)
+            .Measure(new ParallaxProof { BgTexture = 11.4, ElapsedMs = 9100 });
+
+        Assert.Equal("no_proof", o.Status);
+        Assert.Equal(11.4, o.BgTexture);
+        Assert.Equal(9100, o.ElapsedMs);
+        detector.Verify(b => b.DetectLandmarks(It.IsAny<byte[]>()), Times.Never);
+    }
+
     /// <summary>Dört mesafe, gerçek bir yaklaşma → ölçüldü, açıklık raporlandı.</summary>
     [Fact]
     public void FullProof_ReportsSpanMeasuredByUs()

@@ -59,7 +59,7 @@ namespace VerifyBlind.Enclave.Services
 
         public PlanarityOutcome Measure(ParallaxProof? proof)
         {
-            if (proof == null || proof.Frames.Count == 0)
+            if (proof == null)
                 return new PlanarityOutcome { Status = PlanarityStatuses.NoProof };
 
             var outcome = new PlanarityOutcome
@@ -67,6 +67,21 @@ namespace VerifyBlind.Enclave.Services
                 BgTexture = proof.BgTexture,
                 ElapsedMs = proof.ElapsedMs,
             };
+
+            // 🔴 Kare YOKSA bile doku ve süre KAYDEDİLİR. Eskiden boş kare listesi daha ilk
+            // satırda boş bir sonuçla dönüyordu ve o akışın arka plan dokusu — eşiği kalibre
+            // etmek için gereken tek sayı — kayboluyordu. Sahada tam bu oldu: dokusuz arka
+            // plan yüzünden hiç kare toplanamayan akıştan geriye sadece "no_proof" kaldı,
+            // dokunun KAÇ olduğu ise hiç öğrenilemedi. Ölçemediğimiz akış, neden
+            // ölçemediğimizi anlatan akıştır.
+            if (proof.Frames.Count == 0)
+            {
+                outcome.Status = PlanarityStatuses.NoProof;
+                Console.WriteLine(
+                    $"[Parallax] durum=no_proof kare=0 " +
+                    $"doku={proof.BgTexture?.ToString("F1") ?? "-"} süre={proof.ElapsedMs}ms");
+                return outcome;
+            }
 
             // Yüzü kendi YuNet'imizle bul — istemcinin bildirdiği genişliklere GÜVENMİYORUZ.
             var interocular = new List<double>();
