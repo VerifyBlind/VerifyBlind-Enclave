@@ -214,60 +214,63 @@ public class RegistrationCandidate
 }
 
 /// <summary>
-/// YAKINLAŞTIRMA KANITI — düzlem-dışılık ölçümünün ham girdisi.
+/// PARALLAKS KANITI — dört farklı mesafeden TAM kareler (en uzaktan en yakına sıralı).
 ///
-/// <para><b>Neden var:</b> doku tabanlı anti-spoof monitör hilesini kaçırıyor ve eşik bunu
-/// çözmüyor (dağılımlar çakışıyor). Geometrik sinyal ise modelden bağımsızdır: gerçek yüzde
-/// burun düzlemin önündedir, ekranda her şey aynı düzlemdedir. Kullanıcı telefonu yaklaştırır,
-/// iki mesafeden kare kümesi toplanır ve enclave <c>PlanarityProbe</c> ile ölçer.</para>
+/// <para><b>Fikir:</b> yüz ve arka plan farklı derinlikte olduğu için telefon uzaklaşıp
+/// yaklaşırken farklı oranda büyür. Düz bir yüzeyde (TV, monitör, baskı) ikisi AYNI
+/// düzlemdedir ve aynı oranda büyür.</para>
 ///
-/// <para><b>Neden görüntü gönderiliyor, nokta değil:</b> noktaları istemci çıkarsaydı ölçüm
-/// istemciye emanet edilirdi. Enclave kendi YuNet'iyle çıkarır; istemci yalnız kare taşır.</para>
+/// <code>
+/// B = yüz ölçeği / arka plan ölçeği
+///   düz yüzey  → 1,00   ölçülen 0,997-1,025 (Xiaomi ve iPhone'da AYNI)
+///   gerçek yüz → 1,38-1,59
+/// </code>
 ///
-/// <para><b>Neden çok kare:</b> sinyal gözler-arası mesafenin ~%3'ü ve nokta titremesiyle aynı
-/// mertebede. Sentetik ölçümde tek çift 1,5 px titremede %60, 9'ar kare ile %98 ayırıyor
-/// (<c>PlanarityProbeTests</c>).</para>
+/// <para>1,00 bir ölçüm değil <b>fizik sabitidir</b>: tek düzlemde iki bölge de aynı
+/// dönüşüme uğrar. Ekranı eğmek, kaydırmak, büyütmek bunu değiştirmez.</para>
 ///
-/// <para>⚠️ İsteğe bağlı: boş/eksik gelirse kayıt akışı BUGÜNKÜ gibi çalışır. Ölçüm şimdilik
-/// yalnız kaydedilir, kapı DEĞİLDİR.</para>
+/// <para>⚠️ Kareler TAM KARE, yüz kırpması DEĞİL — ölçülen şey yüz ile ARKA PLAN arasındaki
+/// fark; arka plan kesilirse ölçülecek bir şey kalmaz.</para>
+///
+/// <para>⚠️ Arka planda DOKU zorunludur. Dokusuz arka planda ölçüm imkânsız (düz duvar:
+/// iki cihazda da 0/8) ve saldırganın düz arka planlı fotoğrafı da aynı sonucu verir. Bu
+/// yüzden istemci dokuyu EN BAŞTA kontrol edip kullanıcıyı uyarır — kural sadece kullanıcı
+/// deneyimi değil, güvenliğin direği: doku zorunlu olunca saldırgan da dokulu bir arka plan
+/// sunmak zorunda kalır, sunduğu anda arka plan ekranla aynı düzleme düşer ve yakalanır.</para>
+///
+/// <para>⚠️ İsteğe bağlı: boş gelirse kayıt BUGÜNKÜ gibi çalışır.</para>
 /// </summary>
-public class ZoomProof
+public class ParallaxProof
 {
-    /// <summary>Uzak pencere kareleri — yüz bölgesi kırpması (Base64 JPEG).</summary>
-    [JsonPropertyName("far_frames")]
-    public List<string> FarFrames { get; set; } = new();
+    /// <summary>En uzaktan en yakına SIRALI tam kareler (Base64 JPEG).</summary>
+    [JsonPropertyName("frames")]
+    public List<string> Frames { get; set; } = new();
 
-    /// <summary>Yakın pencere kareleri — aynı biçim.</summary>
-    [JsonPropertyName("near_frames")]
-    public List<string> NearFrames { get; set; } = new();
+    /// <summary>Her karenin yüz genişliği (px) — DOĞRULANMAZ, enclave ölçümüyle kıyas için.</summary>
+    [JsonPropertyName("face_widths")]
+    public List<float> FaceWidths { get; set; } = new();
 
     /// <summary>
-    /// İstemcinin kendi ölçtüğü gözler-arası mesafeler (px, medyan). DOĞRULANMAZ —
-    /// yalnız enclave ölçümüyle kıyaslamak ve istemci sapmasını görmek için.
+    /// İstemcinin uzak karede ölçtüğü arka plan doku enerjisi.
+    /// Eşik kalibre EDİLMEDİ; gerçek değer bu alanın dağılımından konacak.
     /// </summary>
-    [JsonPropertyName("client_far_ied")]
-    public double? ClientFarIed { get; set; }
+    [JsonPropertyName("bg_texture")]
+    public double? BgTexture { get; set; }
 
-    [JsonPropertyName("client_near_ied")]
-    public double? ClientNearIed { get; set; }
+    /// <summary>
+    /// En yakın/en uzak yüz genişliği oranı.
+    /// ⚠️ Küçükse sinyalin ANLAMI YOKTUR — sinyal mesafe değişiminden doğar. Ölçümde arka plan
+    /// 83 cm'deyken 2,1× açıklıkta oran 1,26 (güvenli), 1,3× açıklıkta 1,08 (ekran bandında).
+    /// </summary>
+    [JsonPropertyName("span_ratio")]
+    public double? SpanRatio { get; set; }
 
-    /// <summary>Yakınlaştırma adımının toplam süresi (ms) — kullanıcı maliyetini ölçmek için.</summary>
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
 
-    /// <summary>
-    /// İstemcinin bildirdiği: kullanıcı yaklaşma hedefine gerçekten ulaştı mı.
-    ///
-    /// <para>false ise <see cref="NearFrames"/> BOŞTUR — istemci yarı yolda kare toplamaz,
-    /// çünkü sinyal mesafe DEĞİŞİMİNDEN doğar ve yarım bir yaklaşmadan çıkan sayı anlamsızdır
-    /// (üstelik "ölçtük" görünüp eşik çalışmasını kirletirdi).</para>
-    ///
-    /// <para>⚠️ DOĞRULANMAZ ve hiçbir güvenlik kararına girmez. Yalnız ölçüm satırını
-    /// etiketler: "kullanıcı yaklaşmadı" ile "kamera yüzü göremedi" farklı sorunlardır ve
-    /// ikisini tek etikette toplamak adımın neden çalışmadığını gizlerdi.</para>
-    /// </summary>
-    [JsonPropertyName("reached_target")]
-    public bool ReachedTarget { get; set; }
+    /// <summary>Dört mesafenin dördü de toplanabildi mi.</summary>
+    [JsonPropertyName("complete")]
+    public bool Complete { get; set; }
 }
 
 /// <summary>
@@ -307,6 +310,10 @@ public class PlanarityOutcome
     /// </summary>
     [JsonPropertyName("ied_ratio")]
     public double? IedRatio { get; set; }
+
+    /// <summary>İstemcinin bildirdiği arka plan doku enerjisi — eşik kalibrasyonu için.</summary>
+    [JsonPropertyName("bg_texture")]
+    public double? BgTexture { get; set; }
 
     /// <summary>
     /// Adımın kullanıcıya SÜRE maliyeti (ms) — istemciden gelir, olduğu gibi taşınır.
@@ -428,9 +435,19 @@ public static class PlanarityStatuses
     /// </summary>
     public const string NotApproached = "not_approached";
 
+    /// <summary>
+    /// Arka planda eşleştirilecek doku YOK (düz duvar vb.).
+    ///
+    /// <para>⚠️ Bu bir RED sebebi DEĞİLDİR — düz duvarın önündeki meşru kullanıcı giriş
+    /// yapamaz hale gelirdi. Akış bugünkü davranışa düşer. Ama bu satırların ORANI, doku
+    /// zorunluluğunun meşru kullanıcıya maliyetini ölçmenin tek yoludur.</para>
+    /// </summary>
+    public const string NoTexture = "no_texture";
+
     /// <summary>Sayı hesaplandı ama pencerede yeterli kare yok — dağılıma KATILMAZ.</summary>
     public const string NotEnoughFrames = "not_enough_frames";
 
     public static bool IsValid(string? v) =>
-        v is Measured or NoProof or NoFaceFar or NoFaceNear or NotApproached or NotEnoughFrames;
+        v is Measured or NoProof or NoFaceFar or NoFaceNear or NotApproached
+          or NotEnoughFrames or NoTexture;
 }

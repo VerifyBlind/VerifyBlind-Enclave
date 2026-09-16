@@ -364,7 +364,7 @@ public class EnclaveService
         // ⚠️ Hiçbir kaydı reddetmez. Doku modeli monitörü kaçırıyor ve eşik bunu çözmüyor;
         // geometrik sinyal modelden bağımsız. Önce dağılımı görüp sonra kapı açacağız.
         diag.Begin("Planarity");
-        var planarity = _planarity.Measure(payload.ZoomProof);
+        var planarity = _planarity.Measure(payload.ParallaxProof);
         onPlanarityMeasured(planarity);
         diag.Ok("Planarity", $"{planarity.Status} delta={planarity.Delta?.ToString("F5") ?? "-"}");
 

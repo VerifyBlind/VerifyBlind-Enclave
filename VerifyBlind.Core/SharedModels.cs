@@ -104,11 +104,11 @@ public class SecurePayload
     public List<RegistrationCandidate>? Candidates { get; set; }
 
     /// <summary>
-    /// Yakınlaştırma kanıtı (düzlem-dışılık ölçümü) — isteğe bağlı.
+    /// Parallaks kanıtı — dört mesafeden TAM kareler. İsteğe bağlı.
     /// Boşsa kayıt akışı BUGÜNKÜ gibi çalışır; ölçüm satırı "no_proof" yazar.
-    /// Ayrıntı ve gerekçe: <see cref="ZoomProof"/>.
+    /// Ayrıntı ve gerekçe: <see cref="ParallaxProof"/>.
     /// </summary>
-    public ZoomProof? ZoomProof { get; set; }
+    public ParallaxProof? ParallaxProof { get; set; }
 
     /// <summary>
     /// Anti-spoof 4,0× geniş kırpma (Base64 JPEG 80×80) — Silent-Face satıcı tasarımının

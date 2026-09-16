@@ -6,160 +6,125 @@ using VerifyBlind.Enclave.Services.FaceAlignment;
 namespace VerifyBlind.Enclave.Services
 {
     /// <summary>
-    /// Yakınlaştırma kanıtını ÖLÇER — karar vermez.
+    /// Parallaks kanıtını ÖLÇER — karar vermez.
     ///
-    /// <para>Kullanıcı telefonu yüzüne yaklaştırır; istemci uzak ve yakın pencerelerden kare
-    /// kümesi toplar; burada her karenin 5 YuNet noktası çıkarılıp <see cref="PlanarityProbe"/>
-    /// ile düzlem-dışılık sinyali hesaplanır. Düz yüzey (monitör, baskı) ~0 üretir, gerçek yüz
-    /// belirgin bir sayı üretir.</para>
+    /// <para><b>Ölçülecek sinyal:</b> yüz ve arka plan farklı derinlikte olduğu için telefon
+    /// uzaklaşıp yaklaşırken farklı oranda büyür. Düz yüzeyde ikisi aynı düzlemdedir ve aynı
+    /// oranda büyür — oran <b>1,00</b> olur. Fotoğraf ölçümünde ekran 0,997-1,025 (iki farklı
+    /// cihazda), gerçek yüz 1,38-1,59 verdi.</para>
     ///
-    /// <para>⚠️ <b>Şimdilik yalnız ÖLÇÜM.</b> Hiçbir kaydı reddetmez. Eşik canlı veriyle
-    /// kalibre edilecek; kapı ancak meşru kullanıcı dağılımı görüldükten sonra açılır. Bu,
-    /// ölçüm hattını önce kurup sonra karar verme kalıbının aynısıdır.</para>
+    /// <para>🔴 <b>BU SÜRÜM SİNYALİ HENÜZ HESAPLAMIYOR.</b> Arka planın ölçeğini çıkarmak
+    /// gerçek özellik eşleştirmesi (ORB) gerektiriyor ve o henüz yazılmadı. Beş ucuz alternatif
+    /// denendi, beşi de çöktü: hepsi bir hareket modeli VARSAYIYOR, oysa düzlemsel sahnenin
+    /// gerçek hareketi parametreleri bilinmeyen bir homografi. ORB'u çalıştıran şey tanımlayıcı
+    /// değil, hareketi bilmeden eşleştirip RANSAC ile aykırıları ATMASI.</para>
+    ///
+    /// <para>Şimdilik toplanan: kaç karede yüz bulunabildi, yüzün gerçek açıklığı (istemcinin
+    /// bildirdiğine GÜVENMEDEN, YuNet ile), istemcinin arka plan doku ölçümü. Bunlar eşik ve
+    /// kullanılabilirlik kararlarının yarısı — sinyal gelince öbür yarısı tamamlanır.</para>
+    ///
+    /// <para>⚠️ Hiçbir kaydı reddetmez. "Ölçemedik" ile "sahte" ayrı şeylerdir ve kapı
+    /// açıldığında da ayrı kalmalı: ölçülemeyen akışı reddetmek, düz duvarın önündeki meşru
+    /// kullanıcıyı giriş yapamaz hale getirir.</para>
     /// </summary>
     public interface IPlanarityMeasurementService
     {
-        PlanarityOutcome Measure(ZoomProof? proof);
+        PlanarityOutcome Measure(ParallaxProof? proof);
     }
 
     /// <inheritdoc cref="IPlanarityMeasurementService"/>
     public class PlanarityMeasurementService : IPlanarityMeasurementService
     {
         /// <summary>
-        /// Pencere başına işlenecek EN FAZLA kare. Her kare bir YuNet çıkarımıdır; sınırsız
-        /// kare, register'ı ucuz bir CPU tüketim yüzeyine çevirirdi (aday listesindeki
-        /// "tavan iki" kuralıyla aynı gerekçe).
+        /// İşlenecek EN FAZLA kare. Her kare bir YuNet çıkarımıdır; sınırsız kare register'ı
+        /// ucuz bir CPU tüketim yüzeyine çevirirdi (aday listesindeki "tavan iki" ile aynı gerekçe).
         /// </summary>
-        public const int MaxFramesPerWindow = 12;
+        public const int MaxFrames = 8;
 
-        /// <summary>
-        /// Pencere başına EN AZ kare. Sentetik ölçüm tek kare çiftinin gerçekçi nokta
-        /// titremesinde yetmediğini gösterdi (1,5 px'te %60); bunun altında ölçümü "yapıldı"
-        /// saymak yanıltıcı olur.
-        /// </summary>
-        public const int MinFramesPerWindow = 3;
+        /// <summary>Parallaks için en az bu kadar ölçülebilir kare gerekir (uzak + yakın).</summary>
+        public const int MinFrames = 2;
 
         /// <summary>Tek karenin çözülmüş en büyük boyutu — şişirilmiş yük koruması.</summary>
-        private const int MaxFrameBytes = 200_000;
+        private const int MaxFrameBytes = 400_000;
+
+        /// <summary>
+        /// İstemcinin bildirdiği doku bu değerin altındaysa ölçüm "dokusuz" sayılır.
+        /// ⚠️ İstemciden gelir ve DOĞRULANMAZ; yalnız etiketleme içindir, karar değil.
+        /// </summary>
+        private const double MinBackgroundTexture = 18.0;
 
         private readonly IBiometricService _biometric;
 
         public PlanarityMeasurementService(IBiometricService biometric) => _biometric = biometric;
 
-        public PlanarityOutcome Measure(ZoomProof? proof)
+        public PlanarityOutcome Measure(ParallaxProof? proof)
         {
-            if (proof == null ||
-                (proof.FarFrames.Count == 0 && proof.NearFrames.Count == 0))
-            {
-                // Eski istemci ya da adımı atlayan akış — ölçüm yok, hata da yok.
+            if (proof == null || proof.Frames.Count == 0)
                 return new PlanarityOutcome { Status = PlanarityStatuses.NoProof };
-            }
-
-            List<float[]> far = DetectWindow(proof.FarFrames);
-            List<float[]> near = DetectWindow(proof.NearFrames);
 
             var outcome = new PlanarityOutcome
             {
-                FarMeasured = far.Count,
-                NearMeasured = near.Count,
-                // Adımın kullanıcıya süre maliyeti — ölçüm kadar önemli. Kapıyı açma kararının
-                // yarısı "sinyal iyi mi", diğer yarısı "meşru kullanıcıya kaça mal oluyor".
+                BgTexture = proof.BgTexture,
                 ElapsedMs = proof.ElapsedMs,
             };
 
-            if (far.Count == 0)
+            // Yüzü kendi YuNet'imizle bul — istemcinin bildirdiği genişliklere GÜVENMİYORUZ.
+            var interocular = new List<double>();
+            int processed = 0;
+            foreach (string b64 in proof.Frames)
+            {
+                if (processed >= MaxFrames) break;
+                if (string.IsNullOrEmpty(b64)) continue;
+
+                byte[] bytes;
+                try { bytes = Convert.FromBase64String(b64); }
+                catch (FormatException) { continue; }
+                if (bytes.Length == 0 || bytes.Length > MaxFrameBytes) continue;
+
+                processed++;
+                float[]? lm;
+                try { lm = _biometric.DetectLandmarks(bytes); }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Parallax] Kare atlandı: {ex.GetType().Name}");
+                    continue;
+                }
+                double? d = lm is null ? null : PlanarityProbe.Interocular(lm);
+                if (d is > 0) interocular.Add(d.Value);
+            }
+
+            outcome.FarMeasured = interocular.Count;
+
+            if (interocular.Count == 0)
             {
                 outcome.Status = PlanarityStatuses.NoFaceFar;
                 return outcome;
             }
 
-            if (near.Count == 0)
-            {
-                // İstemci hedefe ulaşılmadığını bildirdiyse yakın pencereyi BİLEREK boş
-                // göndermiştir — kamera arızası değil, kullanıcı yaklaşmamıştır. İkisini tek
-                // etikette toplamak adımın neden çalışmadığını gizlerdi: yönerge mi anlaşılmıyor,
-                // kamera mı yetersiz? Ayrımı ancak bu iki durum ayrı sayılırsa öğreniriz.
-                outcome.Status = proof.ReachedTarget
-                    ? PlanarityStatuses.NoFaceNear
-                    : PlanarityStatuses.NotApproached;
-                return outcome;
-            }
+            // Kareler en uzaktan en yakına SIRALI geliyor → açıklık = son / ilk.
+            // Bunu istemciden almıyoruz: açıklık sinyalin anlamını belirleyen sayı ve
+            // istemcinin beyanı doğrulanamaz.
+            double span = interocular[^1] / interocular[0];
+            outcome.IedRatio = Math.Round(span, 4);
 
-            // Kısmi ölçüm de kaydedilir: "kaç kare ölçülebildi" kalibrasyonun kendisi için veri.
-            // Ama az kareyle çıkan sayıya "ölçüldü" demeyiz — eşik çalışmasını kirletirdi.
-            if (far.Count < MinFramesPerWindow || near.Count < MinFramesPerWindow)
+            if (interocular.Count < MinFrames)
                 outcome.Status = PlanarityStatuses.NotEnoughFrames;
+            else if (proof.BgTexture is { } t && t < MinBackgroundTexture)
+                // Doku yoksa arka plan ölçeği çıkarılamaz — ama bu bir RED sebebi değil.
+                outcome.Status = PlanarityStatuses.NoTexture;
+            else if (span < 1.2)
+                // Kullanıcı yeterince yaklaşmadı → sinyalin anlamı yok.
+                outcome.Status = PlanarityStatuses.NotApproached;
             else
                 outcome.Status = PlanarityStatuses.Measured;
 
-            var farOffset = PlanarityProbe.MedianOffset(far);
-            var nearOffset = PlanarityProbe.MedianOffset(near);
-
-            outcome.FarResidual = farOffset?.Magnitude;
-            outcome.NearResidual = nearOffset?.Magnitude;
-            outcome.Delta = PlanarityProbe.Delta(far, near);
-
-            double? farIed = PlanarityProbe.MedianInterocular(far);
-            double? nearIed = PlanarityProbe.MedianInterocular(near);
-            if (farIed is > 0 && nearIed is > 0)
-                outcome.IedRatio = Math.Round(nearIed.Value / farIed.Value, 4);
-
-            if (outcome.Delta.HasValue) outcome.Delta = Math.Round(outcome.Delta.Value, 5);
-            if (outcome.FarResidual.HasValue) outcome.FarResidual = Math.Round(outcome.FarResidual.Value, 5);
-            if (outcome.NearResidual.HasValue) outcome.NearResidual = Math.Round(outcome.NearResidual.Value, 5);
-
+            // 🔴 outcome.Delta BİLEREK null: asıl sinyal ORB gelince hesaplanacak.
             Console.WriteLine(
-                $"[Planarity] durum={outcome.Status} uzak={outcome.FarMeasured} yakın={outcome.NearMeasured} " +
-                $"delta={outcome.Delta?.ToString("F5") ?? "-"} ied_oran={outcome.IedRatio?.ToString("F2") ?? "-"}");
+                $"[Parallax] durum={outcome.Status} kare={outcome.FarMeasured}/{proof.Frames.Count} " +
+                $"açıklık={span:F2} doku={proof.BgTexture?.ToString("F1") ?? "-"} " +
+                $"tam={proof.Complete}");
 
             return outcome;
-        }
-
-        /// <summary>
-        /// Bir pencerenin karelerini çözüp noktalarını çıkarır. Çözülemeyen/yüz bulunamayan
-        /// kareler SESSİZCE atlanır — pencerede yeterli kare kalıp kalmadığını çağıran yorumlar.
-        /// </summary>
-        private List<float[]> DetectWindow(List<string> frames)
-        {
-            var result = new List<float[]>(Math.Min(frames.Count, MaxFramesPerWindow));
-
-            int processed = 0;
-            foreach (string b64 in frames)
-            {
-                if (processed >= MaxFramesPerWindow) break;
-                if (string.IsNullOrEmpty(b64)) continue;
-
-                byte[] bytes;
-                try
-                {
-                    bytes = Convert.FromBase64String(b64);
-                }
-                catch (FormatException)
-                {
-                    continue;   // bozuk kare — ölçümden düşer, akışı durdurmaz
-                }
-
-                if (bytes.Length == 0 || bytes.Length > MaxFrameBytes) continue;
-
-                processed++;
-
-                // Ölçüm kaydı ASLA düşürmez. Gerçek uygulama zaten yutuyor; buradaki kalkan
-                // sözleşmeyi koda bağlar: bu yol bir karar yolu değil, bir gözlem yoludur.
-                float[]? lm;
-                try
-                {
-                    lm = _biometric.DetectLandmarks(bytes);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[Planarity] Kare atlandı (ölçüm kaydı etkilemez): {ex.Message}");
-                    continue;
-                }
-
-                if (lm != null) result.Add(lm);
-            }
-
-            return result;
         }
     }
 }

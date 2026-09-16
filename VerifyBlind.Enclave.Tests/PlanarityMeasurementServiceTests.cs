@@ -9,62 +9,56 @@ using Xunit;
 namespace VerifyBlind.Enclave.Tests;
 
 /// <summary>
-/// Yakınlaştırma ölçümünün SÖZLEŞMESİ: bir gözlem yoludur, karar yolu değil.
+/// Parallaks ölçümünün SÖZLEŞMESİ: bir gözlem yoludur, karar yolu değil.
 ///
 /// <para>Bu testlerin ortak teması tek cümle: <b>ölçüm hiçbir koşulda kaydı düşürmez.</b>
 /// Kanıt yoksa, kareler bozuksa, yüz bulunamazsa, dedektör istisna atarsa — hepsinde sonuç
-/// bir DURUM etiketidir, bir istisna değil. Kapı ileride açılacaksa bile bu ayrım korunmalı:
-/// "ölçemedik" ile "sahte" aynı şey değildir.</para>
+/// bir DURUM etiketidir, bir istisna değil. Kapı ileride açıldığında da bu ayrım korunmalı:
+/// "ölçemedik" ile "sahte" aynı şey değildir, ve ölçülemeyen akışı reddetmek düz duvarın
+/// önündeki meşru kullanıcıyı giriş yapamaz hale getirir.</para>
 /// </summary>
 public class PlanarityMeasurementServiceTests
 {
-    // --- Sentetik nokta üretimi (PlanarityProbeTests ile aynı kamera/yüz modeli) ---
-    private const double FocalPx = 1400, Cx = 540, Cy = 960, NoseMm = 20.0;
+    // --- Sentetik nokta üretimi: yalnız gözler-arası mesafe önemli (açıklık ondan çıkıyor) ---
+    private const double FocalPx = 1400, Cx = 540, Cy = 960;
 
-    private static float[] RealFace(double distanceMm)
+    private static float[] FaceAt(double distanceMm)
     {
-        double[,] pts =
-        {
-            { -31.50,   0.17, 0.0     },
-            {  31.50,  -0.17, 0.0     },
-            {   0.20,  36.00, -NoseMm },
-            { -25.70,  72.90, 0.0     },
-            {  26.50,  72.60, 0.0     },
-        };
-
+        // Gözler ±31,5 mm; kalan noktalar açıklık hesabını etkilemez ama dizi 10 elemanlı olmalı.
+        double[,] pts = { { -31.5, 0 }, { 31.5, 0 }, { 0, 36 }, { -25.7, 72.9 }, { 26.5, 72.6 } };
         var lm = new float[10];
         for (int i = 0; i < 5; i++)
         {
-            double z = distanceMm + pts[i, 2];
-            lm[2 * i] = (float)(FocalPx * pts[i, 0] / z + Cx);
-            lm[2 * i + 1] = (float)(FocalPx * pts[i, 1] / z + Cy);
+            lm[2 * i] = (float)(FocalPx * pts[i, 0] / distanceMm + Cx);
+            lm[2 * i + 1] = (float)(FocalPx * pts[i, 1] / distanceMm + Cy);
         }
         return lm;
     }
 
-    private static ZoomProof Proof(int farCount, int nearCount)
+    private static ParallaxProof Proof(int frames, double? texture = 50.0, bool complete = true)
     {
-        string frame = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
-        return new ZoomProof
+        string f = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 });
+        return new ParallaxProof
         {
-            FarFrames = Enumerable.Repeat(frame, farCount).ToList(),
-            NearFrames = Enumerable.Repeat(frame, nearCount).ToList(),
+            Frames = Enumerable.Repeat(f, frames).ToList(),
+            BgTexture = texture,
+            Complete = complete,
+            ElapsedMs = 7000,
         };
     }
 
-    /// <summary>Uzak kareler için 600 mm, yakın kareler için 250 mm nokta döndüren sahte dedektör.</summary>
-    private static Mock<IBiometricService> Detector(int farCount)
+    /// <summary>Kareler en uzaktan en yakına sıralı: mesafe azalır, yüz büyür.</summary>
+    private static Mock<IBiometricService> Detector(params double[] distancesMm)
     {
         var mock = new Mock<IBiometricService>();
         int call = 0;
         mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>()))
-            .Returns(() => RealFace(call++ < farCount ? 600 : 250));
+            .Returns(() => FaceAt(distancesMm[Math.Min(call++, distancesMm.Length - 1)]));
         return mock;
     }
 
     // =========================================================================================
 
-    /// <summary>Kanıt yoksa ölçüm yok — ve bu bir hata DEĞİL.</summary>
     [Fact]
     public void NoProof_ReturnsNoProofStatus_WithoutTouchingDetector()
     {
@@ -72,156 +66,112 @@ public class PlanarityMeasurementServiceTests
         var svc = new PlanarityMeasurementService(detector.Object);
 
         Assert.Equal("no_proof", svc.Measure(null).Status);
-        Assert.Equal("no_proof", svc.Measure(new ZoomProof()).Status);
+        Assert.Equal("no_proof", svc.Measure(new ParallaxProof()).Status);
 
         detector.Verify(b => b.DetectLandmarks(It.IsAny<byte[]>()), Times.Never);
     }
 
-    /// <summary>Tam kanıt → ölçüldü, sinyal hesaplandı, yaklaşma oranı raporlandı.</summary>
+    /// <summary>Dört mesafe, gerçek bir yaklaşma → ölçüldü, açıklık raporlandı.</summary>
     [Fact]
-    public void FullProof_MeasuresDeltaAndIedRatio()
+    public void FullProof_ReportsSpanMeasuredByUs()
     {
-        var svc = new PlanarityMeasurementService(Detector(farCount: 6).Object);
-        PlanarityOutcome outcome = svc.Measure(Proof(6, 6));
+        var svc = new PlanarityMeasurementService(Detector(600, 500, 400, 300).Object);
+        PlanarityOutcome o = svc.Measure(Proof(4));
 
-        Assert.Equal("measured", outcome.Status);
-        Assert.Equal(6, outcome.FarMeasured);
-        Assert.Equal(6, outcome.NearMeasured);
-        Assert.NotNull(outcome.Delta);
-        Assert.True(outcome.Delta > 0.01, $"Gerçek yüz sinyali beklenirdi, delta={outcome.Delta}");
-
-        // Yaklaşma gerçekten oldu: 600 → 250 mm ≈ 2,4×
-        Assert.NotNull(outcome.IedRatio);
-        Assert.True(outcome.IedRatio > 2.0, $"IED oranı={outcome.IedRatio}");
+        Assert.Equal("measured", o.Status);
+        Assert.Equal(4, o.FarMeasured);
+        // 600 → 300 mm = yüz iki katı büyür.
+        Assert.NotNull(o.IedRatio);
+        Assert.True(Math.Abs(o.IedRatio!.Value - 2.0) < 0.05, $"açıklık={o.IedRatio}");
     }
 
     /// <summary>
-    /// Az kare → sayı yine hesaplanır ama "ölçüldü" DENMEZ. Eşik çalışması güvenilmez
-    /// pencereleri kendi dağılımına karıştırmamalı.
+    /// 🔴 Açıklık istemciden ALINMAZ, biz ölçeriz. İstemcinin beyanı doğrulanamaz ve açıklık
+    /// sinyalin anlamını belirleyen sayıdır.
     /// </summary>
     [Fact]
-    public void TooFewFrames_ComputesValue_ButFlagsStatus()
+    public void Span_IsMeasuredByUs_NotTakenFromClient()
     {
-        var svc = new PlanarityMeasurementService(Detector(farCount: 2).Object);
-        PlanarityOutcome outcome = svc.Measure(Proof(2, 2));
+        var proof = Proof(4);
+        proof.SpanRatio = 99.0;                     // istemci saçmalıyor
 
-        Assert.Equal("not_enough_frames", outcome.Status);
-        Assert.NotNull(outcome.Delta);   // veri kaybedilmez, yalnız etiketlenir
+        var o = new PlanarityMeasurementService(Detector(600, 500, 400, 300).Object).Measure(proof);
+
+        Assert.True(o.IedRatio < 3.0, $"istemcinin beyanı sızmış: {o.IedRatio}");
     }
 
-    /// <summary>Hiç yüz bulunamazsa hangi pencerenin boş olduğu ayırt edilir — teşhis için.</summary>
+    /// <summary>Kullanıcı yeterince yaklaşmadıysa sinyalin anlamı yok — ayrı etiket.</summary>
     [Fact]
-    public void NoFaceDetected_ReportsWhichWindowFailed()
+    public void TooLittleApproach_IsLabelledNotApproached()
+    {
+        var svc = new PlanarityMeasurementService(Detector(600, 580, 560, 550).Object);
+        Assert.Equal("not_approached", svc.Measure(Proof(4)).Status);
+    }
+
+    /// <summary>
+    /// Dokusuz arka plan AYRI etiketlenir — ve bu bir RED sebebi değildir.
+    /// Düz duvarın önündeki meşru kullanıcı giriş yapamaz hale gelmemeli.
+    /// </summary>
+    [Fact]
+    public void NoBackgroundTexture_IsLabelledSeparately_NotRejected()
+    {
+        var svc = new PlanarityMeasurementService(Detector(600, 500, 400, 300).Object);
+        var o = svc.Measure(Proof(4, texture: 5.0));
+
+        Assert.Equal("no_texture", o.Status);
+        Assert.NotNull(o.IedRatio);                 // veri yine de toplanır
+    }
+
+    [Fact]
+    public void NoFaceDetected_IsReported()
     {
         var mock = new Mock<IBiometricService>();
         mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>())).Returns((float[]?)null);
 
-        var outcome = new PlanarityMeasurementService(mock.Object).Measure(Proof(5, 5));
+        var o = new PlanarityMeasurementService(mock.Object).Measure(Proof(4));
 
-        Assert.Equal("no_face_far", outcome.Status);
-        Assert.Equal(0, outcome.FarMeasured);
-        Assert.Null(outcome.Delta);
+        Assert.Equal("no_face_far", o.Status);
+        Assert.Equal(0, o.FarMeasured);
+        Assert.Null(o.IedRatio);
     }
 
-    /// <summary>
-    /// Kullanıcı yaklaştı (istemci öyle diyor) ama kamera yakın pencerede yüz göremedi —
-    /// bu bir KAMERA sorunudur ve öyle etiketlenmeli.
-    /// </summary>
-    [Fact]
-    public void NoFaceInNearWindowOnly_IsDistinguished()
-    {
-        var mock = new Mock<IBiometricService>();
-        int call = 0;
-        mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>()))
-            .Returns(() => call++ < 5 ? RealFace(600) : null);
-
-        var proof = Proof(5, 5);
-        proof.ReachedTarget = true;
-
-        var outcome = new PlanarityMeasurementService(mock.Object).Measure(proof);
-
-        Assert.Equal("no_face_near", outcome.Status);
-        Assert.Equal(5, outcome.FarMeasured);
-        Assert.Equal(0, outcome.NearMeasured);
-    }
-
-    /// <summary>
-    /// 🔴 Kullanıcı hiç yaklaşmadı → istemci yakın pencereyi BİLEREK boş gönderir.
-    ///
-    /// <para>Kamera arızasından AYRI etiketlenir. Bu satırların oranı, adımın acemi kullanıcıda
-    /// çalışıp çalışmadığının tek ölçüsüdür: yüksekse sorun eşikte değil YÖNERGEDEDİR. İkisi
-    /// tek etikette toplansaydı bu ayrım hiç görünmezdi.</para>
-    /// </summary>
-    [Fact]
-    public void UserNeverApproached_IsLabelledSeparatelyFromCameraFailure()
-    {
-        var mock = new Mock<IBiometricService>();
-        mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>())).Returns(RealFace(600));
-
-        var proof = new ZoomProof
-        {
-            FarFrames = Proof(6, 0).FarFrames,
-            NearFrames = new List<string>(),   // istemci yarı yolda kare TOPLAMAZ
-            ReachedTarget = false,
-        };
-
-        var outcome = new PlanarityMeasurementService(mock.Object).Measure(proof);
-
-        Assert.Equal("not_approached", outcome.Status);
-        Assert.Equal(6, outcome.FarMeasured);
-        Assert.Equal(0, outcome.NearMeasured);
-        // Yarım yaklaşmadan sayı ÜRETİLMEZ — üretilseydi dağılımı sahte veriyle doldururdu.
-        Assert.Null(outcome.Delta);
-    }
-
-    /// <summary>Bozuk base64 kareyi düşürür, ölçümü durdurmaz.</summary>
     [Fact]
     public void CorruptFrame_IsSkipped_NotFatal()
     {
-        var proof = Proof(5, 5);
-        proof.FarFrames[2] = "bu-base64-değil!!!";
-        proof.NearFrames[0] = "";
+        var proof = Proof(4);
+        proof.Frames[1] = "bu-base64-değil!!!";
 
-        var outcome = new PlanarityMeasurementService(Detector(farCount: 4).Object).Measure(proof);
+        var o = new PlanarityMeasurementService(Detector(600, 450, 300).Object).Measure(proof);
 
-        Assert.Equal("measured", outcome.Status);
-        Assert.Equal(4, outcome.FarMeasured);
-        Assert.Equal(4, outcome.NearMeasured);
+        Assert.Equal(3, o.FarMeasured);
+        Assert.Equal("measured", o.Status);
     }
 
     /// <summary>Şişirilmiş kare işlenmez — register ucuz bir CPU tüketim yüzeyi olmamalı.</summary>
     [Fact]
     public void OversizedFrame_IsSkipped()
     {
-        var proof = Proof(4, 4);
-        proof.FarFrames[0] = Convert.ToBase64String(new byte[300_000]);
+        var proof = Proof(4);
+        proof.Frames[0] = Convert.ToBase64String(new byte[500_000]);
 
-        var detector = Detector(farCount: 3);
-        var outcome = new PlanarityMeasurementService(detector.Object).Measure(proof);
+        var detector = Detector(600, 450, 300);
+        new PlanarityMeasurementService(detector.Object).Measure(proof);
 
-        Assert.Equal(3, outcome.FarMeasured);
-        detector.Verify(b => b.DetectLandmarks(It.Is<byte[]>(a => a.Length > 200_000)), Times.Never);
+        detector.Verify(b => b.DetectLandmarks(It.Is<byte[]>(a => a.Length > 400_000)), Times.Never);
     }
 
-    /// <summary>
-    /// Pencere başına kare tavanı uygulanır: aday listesindeki "tavan iki" ile aynı gerekçe —
-    /// uç, kaç çıkarım koşturacağımıza karar veremez.
-    /// </summary>
     [Fact]
-    public void FrameCount_IsCappedPerWindow()
+    public void FrameCount_IsCapped()
     {
-        var detector = Detector(farCount: PlanarityMeasurementService.MaxFramesPerWindow);
-        var svc = new PlanarityMeasurementService(detector.Object);
-
-        svc.Measure(Proof(50, 50));
+        var detector = Detector(600, 500, 400, 300);
+        new PlanarityMeasurementService(detector.Object).Measure(Proof(50));
 
         detector.Verify(b => b.DetectLandmarks(It.IsAny<byte[]>()),
-            Times.Exactly(PlanarityMeasurementService.MaxFramesPerWindow * 2));
+            Times.Exactly(PlanarityMeasurementService.MaxFrames));
     }
 
     /// <summary>
-    /// 🔴 Dedektör patlasa bile ölçüm istisna FIRLATMAZ. Bu, "ölçüm kaydı düşürmez"
-    /// sözleşmesinin en sert hâli.
+    /// 🔴 Dedektör patlasa bile ölçüm istisna FIRLATMAZ — sözleşmenin en sert hâli.
     /// </summary>
     [Fact]
     public void DetectorThrowing_DoesNotPropagate()
@@ -230,38 +180,24 @@ public class PlanarityMeasurementServiceTests
         mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>()))
             .Throws(new InvalidOperationException("model yok"));
 
-        var outcome = new PlanarityMeasurementService(mock.Object).Measure(Proof(5, 5));
+        var o = new PlanarityMeasurementService(mock.Object).Measure(Proof(4));
 
-        Assert.Equal("no_face_far", outcome.Status);
-        Assert.Null(outcome.Delta);
+        Assert.Equal("no_face_far", o.Status);
+        Assert.Null(o.Delta);
     }
 
     /// <summary>
-    /// Düz yüzey (monitör) sinyali ~0 üretmeli — servis katmanında da doğrulanır,
-    /// yalnız saf matematikte değil.
+    /// Asıl sinyal (yüz/arka plan ölçek oranı) bu sürümde HENÜZ hesaplanmıyor: arka planın
+    /// ölçeğini çıkarmak gerçek özellik eşleştirmesi (ORB) gerektiriyor ve o yazılmadı.
+    /// Bu testin görevi beklentiyi kayda geçirmek — biri "delta neden hep boş" diye sorunca
+    /// cevabı burada bulsun.
     /// </summary>
     [Fact]
-    public void FlatSurface_ProducesNearZeroSignal_ThroughService()
+    public void Delta_IsNotComputedYet_PendingFeatureMatching()
     {
-        // Ekran: aynı düzlemsel nokta kümesi, yalnız ölçeklenmiş (kamera yaklaştı).
-        float[] far = RealFace(600);
-        var near = new float[10];
-        for (int i = 0; i < 10; i++)
-        {
-            double centre = i % 2 == 0 ? Cx : Cy;
-            near[i] = (float)(centre + (far[i] - centre) * 2.4);   // düz büyütme
-        }
+        var o = new PlanarityMeasurementService(Detector(600, 500, 400, 300).Object).Measure(Proof(4));
 
-        var mock = new Mock<IBiometricService>();
-        int call = 0;
-        mock.Setup(b => b.DetectLandmarks(It.IsAny<byte[]>()))
-            .Returns(() => call++ < 5 ? far : near);
-
-        var outcome = new PlanarityMeasurementService(mock.Object).Measure(Proof(5, 5));
-
-        Assert.Equal("measured", outcome.Status);
-        Assert.NotNull(outcome.Delta);
-        Assert.True(outcome.Delta < 0.001,
-            $"Düz yüzey sinyal üretmemeli, delta={outcome.Delta}");
+        Assert.Equal("measured", o.Status);
+        Assert.Null(o.Delta);
     }
 }
