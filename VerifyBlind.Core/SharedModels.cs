@@ -114,13 +114,31 @@ public class SecurePayload
     /// Anti-spoof 4,0× geniş kırpma (Base64 JPEG 80×80) — Silent-Face satıcı tasarımının
     /// İKİNCİ ölçeği.
     ///
-    /// <para><b>Neden şimdi taşınıyor ama henüz kullanılmıyor:</b> satıcı iki modeli (2,7 V2 +
-    /// 4,0 V1SE) TOPLAYARAK kullanıyor; bizde yalnız 2,7 kurulu. İkinci modeli eklemek ayrı bir
-    /// karar (enclave'e üçüncü taraf ikili dosya girer) ama kırpma TELEFONDA üretiliyor —
-    /// alanı şimdi taşımazsak model eklendiğinde İKİNCİ bir mobil sürüm gerekir. Boş gelmesi
-    /// normaldir ve hiçbir şeyi bozmaz.</para>
+    /// <para><b>Model KURULU ama karara GİRMEZ.</b> Üretici iki modeli toplayarak kullanıyor;
+    /// bizde ikisi de yüklü. Ama 32 fotoğraflık gerçek yüz/ekran ölçümünde 4,0 ölçeği ekranlara
+    /// daha yüksek "canlı" puanı verdi ve topluluk 2,7'nin tek başınadan KÖTÜ ayırdı
+    /// (0,264 ↔ 0,317). Bu yüzden skorlanıyor, loglanıyor, ama kapı 2,7'de kaldı.</para>
+    ///
+    /// <para>Gerçek boru hattı (ön kamera, 1080p) fotoğraflardan farklı davranırsa kapıyı
+    /// SUNUCU tarafında açarız — kırpma zaten geliyor, ikinci mobil sürüm gerekmez.
+    /// Boş gelmesi normaldir.</para>
     /// </summary>
     public string AntiSpoofCrop40 { get; set; } = string.Empty;
+
+    /// <summary>
+    /// GÜLÜMSEME KARESİ — jestin onaylandığı andaki selfie + kendi kırpması. <b>YALNIZ ÖLÇÜM.</b>
+    ///
+    /// <para><b>Neden:</b> bugün benzerlik, istemcinin "en iyi" saydığı kareden ölçülüyor ve o
+    /// kareyi kimin ürettiği enclave'e kanıtlanmıyor. Jestin YAPILDIĞI anın karesinde de
+    /// benzerliği ölçmek, kimliği harekete bağlar: saldırganın benzerliği bir kaynaktan,
+    /// jesti başka kaynaktan sağlaması imkânsızlaşır.</para>
+    ///
+    /// <para>⚠️ <b>Şimdilik karara GİRMEZ.</b> Gülümserken ağız ve yanak geometrisi değişir,
+    /// çipteki nötr fotoğrafla benzerlik kaçınılmaz olarak DÜŞER — ne kadar düştüğünü
+    /// bilmiyoruz. Önce meşru dağılımı ölçüp sonra kapı yapacağız; eşiği ölçmeden koymak
+    /// p_live'da yapılan hatanın aynısı olurdu.</para>
+    /// </summary>
+    public RegistrationCandidate? SmileFrame { get; set; }
 }
 
 // Registration Request (Phone -> Relay -> Enclave)

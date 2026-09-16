@@ -373,6 +373,15 @@ public class EnclaveService
         // onayladığını BİLMEZ ve önbelleğe GÜVENMEZ (K4) — burada her şey baştan hesaplanır.
         var (faceScore, candidateOutcomes) = EvaluateCandidates(payload, diag);
 
+        // --- Step 7b: GÜLÜMSEME KARESİ — ÖLÇÜM, KAPI DEĞİL ---
+        // Jestin onaylandığı andaki kareyi de aynı kapıdan geçirip sonucu kaydediyoruz.
+        // Amaç: kimliği HAREKETE bağlamak. Bugün benzerlik istemcinin "en iyi" saydığı
+        // kareden ölçülüyor ve o kareyi kimin ürettiği kanıtlanmıyor.
+        //
+        // ⚠️ Sonucu karara KATMIYORUZ: gülümserken benzerlik kaçınılmaz olarak düşer ve ne
+        // kadar düştüğünü bilmiyoruz. Önce dağılımı görüp sonra kapı yapacağız.
+        AppendSmileFrameMeasurement(payload, candidateOutcomes, diag);
+
         // --- Step 8: DG1 Parsing ---
         TicketPayload ticketPayload;
         try
@@ -1220,7 +1229,12 @@ string? partnerId = null;
     //   • crop boş / bozuk base64 / çözülemeyen JPEG / çıkarım hatası → REDDET
     //   • P(live) eşiğin altında → REDDET
     /// <summary>MiniFASNetV2 çıktısı — 3-sınıf softmax + P(live). Ölçüm satırına yazılır.</summary>
-    internal readonly record struct AntiSpoofResult(float PLive, float C0, float C1, float C2);
+    /// <param name="PLive40">
+    /// İKİNCİ ÖLÇEĞİN (4,0×) canlılık olasılığı — <b>YALNIZ ÖLÇÜM.</b> Karara girmez;
+    /// gerekçe <see cref="IAntiSpoofService.PredictSecondary"/>. Ölçülemediyse null.
+    /// </param>
+    internal readonly record struct AntiSpoofResult(float PLive, float C0, float C1, float C2,
+        float? PLive40 = null);
 
     /// <param name="crop">
     /// Değerlendirilecek adayın KENDİ 2,7× kırpması. Benzerliğin geldiği kareyle AYNI kareden
@@ -1231,10 +1245,12 @@ string? partnerId = null;
     /// Kayıt akışının yükü — YALNIZ <paramref name="crop"/> verilmediğinde okunur. Giriş yolunda
     /// SecurePayload YOKTUR (referans ticket'tan gelir, K4) → null geçilir, crop zorunlu olur.
     /// </param>
-    internal AntiSpoofResult EnforceAntiSpoof(SecurePayload? payload, DiagLog diag, string? crop = null, string? label = null)
+    internal AntiSpoofResult EnforceAntiSpoof(SecurePayload? payload, DiagLog diag, string? crop = null, string? label = null,
+        string? crop40 = null)
     {
         var step = label is null ? "AntiSpoof" : $"AntiSpoof {label}";
         crop ??= payload?.AntiSpoofCrop;
+        crop40 ??= payload?.AntiSpoofCrop40;
 
         diag.Begin(step);
 
@@ -1278,7 +1294,22 @@ string? partnerId = null;
                 PLive = pLive, C0 = c0, C1 = c1, C2 = c2,
             };
 
-        return new AntiSpoofResult(pLive, c0, c1, c2);
+        // İkinci ölçek: ÖLÇÜM. Yoksa, boşsa ya da patlarsa null döner ve karar değişmez.
+        float? pLive40 = null;
+        if (!string.IsNullOrEmpty(crop40))
+        {
+            try
+            {
+                float[]? probs40 = _antiSpoof.PredictSecondary(Convert.FromBase64String(crop40));
+                if (probs40 is { Length: > 1 }) pLive40 = probs40[1];
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Enclave] 4,0 ölçümü atlandı: {ex.GetType().Name}");
+            }
+        }
+
+        return new AntiSpoofResult(pLive, c0, c1, c2, pLive40);
     }
 
 
@@ -1736,7 +1767,7 @@ string? partnerId = null;
             AntiSpoofResult live;
             try
             {
-                live = EnforceAntiSpoof(payload, diag, candidate.AntiSpoofCrop, label);
+                live = EnforceAntiSpoof(payload, diag, candidate.AntiSpoofCrop, label, candidate.AntiSpoofCrop40);
             }
             catch (RegistrationException ex)
             {
@@ -1763,6 +1794,7 @@ string? partnerId = null;
                 C0 = Math.Round(live.C0, 4),
                 C1 = Math.Round(live.C1, 4),
                 C2 = Math.Round(live.C2, 4),
+                PLive40 = live.PLive40.HasValue ? Math.Round(live.PLive40.Value, 4) : null,
                 Outcome = FrameOutcomes.Pass,
             });
 
@@ -1806,6 +1838,71 @@ string? partnerId = null;
     /// ⚠️ TAVAN İKİ: uç kimlik doğrulaması istemez ve her aday iki ONNX çıkarımı demektir;
     /// sınırsız aday, register'ı ucuz bir CPU tüketim yüzeyine çevirirdi.
     /// </summary>
+    /// <summary>
+    /// Gülümseme karesini normal kapıdan geçirir ve sonucu <c>Rank = 3</c> ile ölçüm
+    /// listesine ekler. <b>Kararı DEĞİŞTİRMEZ</b> — ne kaydı geçirir ne düşürür.
+    ///
+    /// <para>Kare yoksa, bozuksa ya da ölçüm patlarsa sessizce atlanır: bu bir gözlem
+    /// yoludur, bir karar yolu değil.</para>
+    /// </summary>
+    private void AppendSmileFrameMeasurement(SecurePayload payload,
+        List<CandidateOutcome> outcomes, DiagLog diag)
+    {
+        var smile = payload.SmileFrame;
+        if (smile == null || string.IsNullOrEmpty(smile.UserSelfie)) return;
+
+        try
+        {
+            float score = 0f;
+            string result = FrameOutcomes.Pass;
+            float pLive = 0f, c0 = 0f, c1 = 0f, c2 = 0f;
+            float? pLive40 = null;
+
+            try
+            {
+                score = VerifyBiometricMatchParallel(payload, smile.UserSelfie);
+            }
+            catch (Exception ex)
+            {
+                result = FrameOutcomes.FailSimilarity;
+                score = (ex as BiometricMismatchException)?.Score ?? 0f;
+            }
+
+            if (result == FrameOutcomes.Pass && !string.IsNullOrEmpty(smile.AntiSpoofCrop))
+            {
+                try
+                {
+                    var live = EnforceAntiSpoof(payload, diag, smile.AntiSpoofCrop, "Gülümseme",
+                        smile.AntiSpoofCrop40);
+                    pLive = live.PLive; c0 = live.C0; c1 = live.C1; c2 = live.C2;
+                    pLive40 = live.PLive40;
+                }
+                catch (RegistrationException ex)
+                {
+                    result = FrameOutcomes.FailLiveness;
+                    pLive = ex.PLive ?? 0f; c0 = ex.C0 ?? 0f; c1 = ex.C1 ?? 0f; c2 = ex.C2 ?? 0f;
+                }
+            }
+
+            outcomes.Add(new CandidateOutcome
+            {
+                Rank = 3,                       // 1-2 gerçek adaylar; 3 = gülümseme ÖLÇÜMÜ
+                MatchScore = Math.Round(score, 4),
+                PLive = Math.Round(pLive, 4),
+                C0 = Math.Round(c0, 4),
+                C1 = Math.Round(c1, 4),
+                C2 = Math.Round(c2, 4),
+                PLive40 = pLive40.HasValue ? Math.Round(pLive40.Value, 4) : null,
+                Outcome = result,
+            });
+            diag.Info($"Gülümseme ölçümü: benzerlik={Math.Round(score * 100, 1)}% sonuç={result}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Enclave] Gülümseme ölçümü atlandı: {ex.GetType().Name}");
+        }
+    }
+
     internal static List<RegistrationCandidate> BuildCandidateList(SecurePayload payload)
     {
         const int maxCandidates = 2;

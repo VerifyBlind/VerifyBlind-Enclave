@@ -349,6 +349,16 @@ public class CandidateOutcome
     [JsonPropertyName("c2")]
     public double C2 { get; set; }
 
+    /// <summary>
+    /// İKİNCİ ÖLÇEĞİN (4,0× kırpma, MiniFASNetV1SE) canlılık olasılığı — <b>YALNIZ ÖLÇÜM.</b>
+    ///
+    /// <para>Karara GİRMEZ. Fotoğraf ölçümünde bu model ekranlara daha yüksek "canlı" puanı
+    /// verdi ve topluluk 2,7'nin tek başınadan kötü ayırdı; yine de gerçek boru hattında
+    /// (ön kamera, 1080p) farklı davranabilir, o yüzden kaydediliyor. Ölçülemediyse null.</para>
+    /// </summary>
+    [JsonPropertyName("p_live_40")]
+    public double? PLive40 { get; set; }
+
     /// <summary>pass | fail_similarity | fail_liveness</summary>
     [JsonPropertyName("outcome")]
     public string Outcome { get; set; } = string.Empty;
