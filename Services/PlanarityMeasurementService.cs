@@ -50,8 +50,14 @@ namespace VerifyBlind.Enclave.Services
         /// <summary>
         /// İstemcinin bildirdiği doku bu değerin altındaysa ölçüm "dokusuz" sayılır.
         /// ⚠️ İstemciden gelir ve DOĞRULANMAZ; yalnız etiketleme içindir, karar değil.
+        ///
+        /// <para><b>18 → 14 (2026-09-19), ilk gerçek dağılımdan.</b> Çıplak duvar 10,8-13,6;
+        /// mutfak/perde/tablolu duvar/gece penceresi 14,2-16,1; kitaplık ve koridor 18,1-19,3.
+        /// 18 eşiği yedi meşru sahnenin beşini "dokusuz" etiketliyordu. Değer istemcideki
+        /// <c>MIN_BACKGROUND_TEXTURE</c> ile AYNI olmak zorunda: farklı olurlarsa kullanıcı
+        /// uyarı almadan geçer ama satır <c>no_texture</c> yazılır (ya da tersi).</para>
         /// </summary>
-        private const double MinBackgroundTexture = 18.0;
+        private const double MinBackgroundTexture = 14.0;
 
         private readonly IBiometricService _biometric;
 
