@@ -53,14 +53,14 @@ namespace VerifyBlind.Enclave.Services
         private const int MaxFrameBytes = 400_000;
 
         /// <summary>
-        /// B için ölçülecek EN FAZLA ardışık kare çifti.
+        /// B için denenecek EN FAZLA kare çifti.
         ///
         /// <para>Ölçüldü: gerçekçi bir sahnede çift başına ~175 ms (240×320), yüksek entropili
         /// bir karede ~830 ms (360×480). İkincisi yamalanmış bir istemcinin enclave CPU'sunu
         /// yakmak için kullanabileceği bir yüzey; çift sayısını sınırlamak onu sabitler.
         /// Medyan için dört çift zaten fazlasıyla yeterli.</para>
         /// </summary>
-        private const int MaxRatioPairs = 4;
+        private const int MaxPairAttempts = 4;
 
         /// <summary>
         /// İstemcinin bildirdiği doku bu değerin altındaysa ölçüm "dokusuz" sayılır.
@@ -157,7 +157,10 @@ namespace VerifyBlind.Enclave.Services
             double span = interocular[^1] / interocular[0];
             outcome.IedRatio = Math.Round(span, 4);
 
-            outcome.Delta = ParallaxRatio(gray, faceBox, interocular);
+            var parallax = MeasureParallax(gray, faceBox, interocular);
+            outcome.Delta = parallax.Ratio;
+            outcome.NearResidual = parallax.DepthRatio;
+            outcome.NearMeasured = parallax.Inliers;
 
             if (interocular.Count < MinFrames)
                 outcome.Status = PlanarityStatuses.NotEnoughFrames;
@@ -173,53 +176,88 @@ namespace VerifyBlind.Enclave.Services
             Console.WriteLine(
                 $"[Parallax] durum={outcome.Status} kare={outcome.FarMeasured}/{proof.Frames.Count} " +
                 $"açıklık={span:F2} B={outcome.Delta?.ToString("F3") ?? "-"} " +
+                $"derinlik={outcome.NearResidual?.ToString("F2") ?? "-"} uyum={outcome.NearMeasured} " +
                 $"doku={proof.BgTexture?.ToString("F1") ?? "-"} " +
                 $"tam={proof.Complete}");
 
             return outcome;
         }
 
+        /// <summary>B ölçümünün sonucu: oran, göreli arka plan derinliği ve dayandığı uyum sayısı.</summary>
+        internal readonly record struct ParallaxResult(double? Ratio, double? DepthRatio, int Inliers);
+
         /// <summary>
-        /// PARALLAKS ORANI — <c>B = yüz ölçeği / arka plan ölçeği</c>, ardışık kare çiftlerinin
-        /// MEDYANI.
+        /// PARALLAKS ÖLÇÜMÜ — <c>B = yüz ölçeği / arka plan ölçeği</c>.
         ///
-        /// <para><b>Neden çiftler, neden uzak-yakın tek atlayış değil:</b> iki uç arasındaki
-        /// ölçek farkı 2 kata yaklaşıyor ve en yakın karede yüz kutusu kadrajın yarısını
-        /// kaplıyor — dışlandıktan sonra geriye eşleştirilecek arka plan pek kalmıyor. Ardışık
-        /// duraklar arasındaki ~1,2'lik adımlarda hem örtüşme büyük hem de eşleştirme kolay.</para>
+        /// <para>🔴 <b>EN GENİŞ ÇİFTTEN BAŞLANIR, ardışık çiftlerden DEĞİL.</b> Fizik şunu
+        /// söylüyor: yüz kameradan <i>N</i>, arka plan yüzden <i>g</i> geride, kıyaslanan
+        /// çiftin yüz ölçeği <i>s</i> iken
+        /// <code>B = s(N+g) / (sN+g)</code>
+        /// Buradan çıkan sınır belirleyici: <b>B asla s'yi aşamaz.</b> Ardışık çiftlerin ölçeği
+        /// ~1,27 olduğu için B de 1,27'nin altında kalmak zorundaydı — sahada ölçülen 1,19-1,21
+        /// değerleri o tavanın %95'iydi. Yani sinyal zayıf değildi, ÇİFT SEÇİMİYLE kırpılmıştı.
+        /// Aynı sahnede uçtan uca ölçüm ~1,71 veriyor; sahte taraf 1,00'de kaldığı için marj
+        /// 0,19'dan 0,71'e çıkıyor (2026-09-22 ölçümleri).</para>
         ///
-        /// <para><b>Neden medyan:</b> tek bir çiftte ölçüm bozulabilir (bulanıklık, kadraja giren
-        /// nesne). Medyan tek bir kötü çiftten etkilenmez; ortalama etkilenir.</para>
+        /// <para>Geniş çift eşleşmeyebilir (yakın karede yüz kutusu büyük, geriye az arka plan
+        /// kalıyor); o yüzden geniş→dar sırayla denenir ve ilk tutan sonuç raporlanır.</para>
         ///
-        /// <para>Hiçbir çift ölçülemezse <c>null</c> — "ölçemedik" demektir, "sahte" DEĞİL.</para>
+        /// <para><b>Göreli derinlik</b> <c>g/N = s(B−1)/(s−B)</c>, B'nin aksine kıyaslanan
+        /// çiftin AÇIKLIĞINDAN bağımsızdır. ⚠️ Ama <i>N</i>, çiftin YAKIN karesindeki bakış
+        /// mesafesidir: farklı yakın uçlara sahip çiftlerin değerleri aynı büyüklük değildir,
+        /// bu yüzden ortalanmazlar. Protokolde yakın uç sabit bir hedef (yüz = kadrajın %62'si)
+        /// olduğu için en geniş çiftin değeri koşular arasında kıyaslanabilir olan tek değerdir
+        /// — eşik de oraya konmalı.</para>
+        ///
+        /// <para>Hiçbir çift ölçülemezse boş döner: "ölçemedik", "sahte" DEĞİL.</para>
         /// </summary>
-        private static double? ParallaxRatio(
+        internal static ParallaxResult MeasureParallax(
             List<GrayImage?> gray, List<Rect> faceBox, List<double> interocular)
         {
-            var ratios = new List<double>();
+            var candidates = new List<(int i, int j, double faceScale)>();
+            for (int i = 0; i < gray.Count; i++)
+                for (int j = i + 1; j < gray.Count; j++)
+                {
+                    if (interocular[i] <= 0) continue;
+                    if (gray[i] is null || gray[j] is null) continue;
+                    candidates.Add((i, j, interocular[j] / interocular[i]));
+                }
 
-            for (int i = 0; i + 1 < gray.Count && ratios.Count < MaxRatioPairs; i++)
+            candidates.Sort((x, y) => y.faceScale.CompareTo(x.faceScale));
+
+            int attempts = 0;
+            foreach (var (i, j, faceScale) in candidates)
             {
-                if (interocular[i] <= 0) continue;
-                if (gray[i] is not { } a || gray[i + 1] is not { } b) continue;
-                double faceScale = interocular[i + 1] / interocular[i];
+                if (attempts >= MaxPairAttempts) break;
+                if (faceScale <= 1.0) continue;
+                attempts++;
 
+                var a = gray[i]!.Value;
+                var b = gray[j]!.Value;
                 var background = BackgroundScaleEstimator.Estimate(
                     a.Pixels, a.Width, a.Height, faceBox[i],
-                    b.Pixels, b.Width, b.Height, faceBox[i + 1]);
+                    b.Pixels, b.Width, b.Height, faceBox[j]);
 
-                if (BackgroundScaleEstimator.ParallaxRatio(faceScale, background) is { } r)
-                    ratios.Add(r);
+                if (BackgroundScaleEstimator.ParallaxRatio(faceScale, background) is not { } ratio)
+                    continue;
+
+                // 🔴 B > s FİZİKSEL OLARAK İMKÂNSIZ (arka plan yüzden hızlı büyümüş demektir).
+                // Böyle bir sonuç sahnenin katı olmadığını söyler — ekrandaki görüntü kendi
+                // başına hareket ediyor olabilir. Sayıyı kaydetmek yerine o çifti atıyoruz.
+                if (ratio >= faceScale) continue;
+
+                double depth = ratio > 1.0
+                    ? faceScale * (ratio - 1.0) / (faceScale - ratio)
+                    : 0;   // düz yüzey: arka plan yüzle aynı düzlemde
+
+                // İlk tutan çift EN GENİŞ olandır (liste açıklığa göre sıralı) ve rapor edilen
+                // odur. Daha dar çiftlerle ortalama ALINMAZ: dar çiftin yakın ucu farklı
+                // mesafededir, dolayısıyla derinlikleri aynı büyüklük değildir.
+                return new ParallaxResult(
+                    Math.Round(ratio, 4), Math.Round(depth, 3), background!.Value.Inliers);
             }
 
-            if (ratios.Count == 0) return null;
-
-            ratios.Sort();
-            double median = ratios.Count % 2 == 1
-                ? ratios[ratios.Count / 2]
-                : (ratios[ratios.Count / 2 - 1] + ratios[ratios.Count / 2]) / 2;
-
-            return Math.Round(median, 4);
+            return new ParallaxResult(null, null, 0);
         }
 
         /// <summary>

@@ -79,13 +79,20 @@ namespace VerifyBlind.Enclave.Services.Vision
         /// Skora göre en güçlü kaç nokta döndürülecek. Eşleştirme maliyeti nokta sayısının karesiyle
         /// büyüdüğü için tavan şart; 0 veya negatif ise sınır uygulanmaz.
         /// </param>
+        /// <param name="include">
+        /// Verilirse YALNIZ bu dikdörtgenin içi taranır. <paramref name="exclude"/> ile birlikte
+        /// bir HALKA tanımlar: yüzün çevresindeki bant. Gerekçe <see cref="Rect"/> yanında değil,
+        /// <c>BackgroundScaleEstimator</c>'da — kısaca: uzaktaki kenarlar saldırganın ekranının
+        /// DIŞINDA kalan gerçek odayı taşıyabiliyor ve ölçümü meşru gösteriyor.
+        /// </param>
         public static List<KeyPoint> Detect(
             byte[] gray,
             int width,
             int height,
             int threshold = 20,
             Rect? exclude = null,
-            int maxPoints = 1500)
+            int maxPoints = 1500,
+            Rect? include = null)
         {
             ArgumentNullException.ThrowIfNull(gray);
             if (width <= 0 || height <= 0) return [];
@@ -105,6 +112,7 @@ namespace VerifyBlind.Enclave.Services.Vision
             {
                 for (int x = border; x < width - border; x++)
                 {
+                    if (include is { } inc && !inc.Contains(x, y)) continue;
                     if (exclude is { } r && r.Contains(x, y)) continue;
 
                     int score = CornerScore(gray, width, x, y, threshold);

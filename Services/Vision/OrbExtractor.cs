@@ -52,13 +52,15 @@ namespace VerifyBlind.Enclave.Services.Vision
         /// parçası.
         /// </param>
         /// <param name="maxPerLevel">Kademe başına en güçlü kaç nokta tutulacak.</param>
+        /// <param name="include">Verilirse yalnız bu bölge taranır; yüz dışlamasıyla birlikte halka.</param>
         public static List<Feature> Extract(
             byte[] gray,
             int width,
             int height,
             Rect? exclude = null,
             int maxPerLevel = 150,
-            int threshold = 20)
+            int threshold = 20,
+            Rect? include = null)
         {
             ArgumentNullException.ThrowIfNull(gray);
             var features = new List<Feature>(maxPerLevel * Levels);
@@ -90,7 +92,20 @@ namespace VerifyBlind.Enclave.Services.Vision
                     levelExclude = new Rect(lx0, ly0, lx1 - lx0, ly1 - ly0);
                 }
 
-                var keyPoints = FastDetector.Detect(img, lw, lh, threshold, levelExclude, maxPerLevel);
+                // İçerme kademeye İÇERİ doğru yuvarlanır: dışarı taşan bir kenar, halkanın
+                // dışındaki noktayı geri sokar ve halkanın varlık sebebini ortadan kaldırır.
+                Rect? levelInclude = null;
+                if (include is { } inc)
+                {
+                    int ix0 = (int)Math.Ceiling(inc.X / scale);
+                    int iy0 = (int)Math.Ceiling(inc.Y / scale);
+                    int ix1 = (int)Math.Floor((inc.X + inc.Width) / scale);
+                    int iy1 = (int)Math.Floor((inc.Y + inc.Height) / scale);
+                    levelInclude = new Rect(ix0, iy0, Math.Max(0, ix1 - ix0), Math.Max(0, iy1 - iy0));
+                }
+
+                var keyPoints = FastDetector.Detect(
+                    img, lw, lh, threshold, levelExclude, maxPerLevel, levelInclude);
 
                 foreach (var kp in keyPoints)
                 {

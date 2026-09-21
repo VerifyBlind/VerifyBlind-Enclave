@@ -33,6 +33,35 @@ namespace VerifyBlind.Enclave.Services.Vision
     public static class BackgroundScaleEstimator
     {
         /// <summary>
+        /// 🔴 ÖLÇÜM HALKASI: öznitelikler yüz kutusunun bu katına kadar olan bantta aranır,
+        /// tüm karede DEĞİL.
+        ///
+        /// <para><b>Neden:</b> saldırganın ekranı kadrajı doldurmazsa, kenarlarda kalan GERÇEK
+        /// oda gerçek derinliktedir. Yüz ekran düzleminde, arka plan gerçek odada olunca oran
+        /// 1'in belirgin üstüne çıkar ve düzenek meşru görünür — sahada tam bu oldu
+        /// (2026-09-22, 7. koşu: monitörde canlı kamera, kadrajda perde, B = 1,179; aynı
+        /// monitörde kadrajı dolduran sabit fotoğraf ise 0,963).</para>
+        ///
+        /// <para><b>Halka bunu kapıyor:</b> saldırgan artık yüzün ÇEVRESİNİ de ekranla
+        /// kaplamak zorunda. Kapladığı anda halka ekran düzlemine düşer ve B ≈ 1,00 çıkar.
+        /// Kaçamak, yakalandığı duruma dönüşür. Meşru kullanıcı için değişen bir şey yok:
+        /// başının hemen arkasındaki duvar zaten bu bantta.</para>
+        ///
+        /// <para>Yakın karede yüz kutusu zaten kadrajın yarısını kapladığı için halka doğal
+        /// olarak "yüz dışındaki her yer"e yakınsar; kısıt kendiliğinden gevşer.</para>
+        /// </summary>
+        public const double RingFactor = 2.2;
+
+        /// <summary>Yüz kutusundan ölçüm halkasını türetir.</summary>
+        internal static Rect? RingAround(Rect? face)
+        {
+            if (face is not { } f) return null;
+            double cx = f.X + f.Width / 2.0, cy = f.Y + f.Height / 2.0;
+            double hw = f.Width * RingFactor / 2.0, hh = f.Height * RingFactor / 2.0;
+            return new Rect((int)(cx - hw), (int)(cy - hh), (int)(2 * hw), (int)(2 * hh));
+        }
+
+        /// <summary>
         /// İki karenin arka planı arasındaki ölçek değişimini kestirir.
         /// </summary>
         /// <param name="faceA">A karesindeki yüz kutusu (dışlanır); bilinmiyorsa null.</param>
@@ -41,8 +70,8 @@ namespace VerifyBlind.Enclave.Services.Vision
             byte[] grayA, int widthA, int heightA, Rect? faceA,
             byte[] grayB, int widthB, int heightB, Rect? faceB)
         {
-            var a = OrbExtractor.Extract(grayA, widthA, heightA, faceA);
-            var b = OrbExtractor.Extract(grayB, widthB, heightB, faceB);
+            var a = OrbExtractor.Extract(grayA, widthA, heightA, faceA, include: RingAround(faceA));
+            var b = OrbExtractor.Extract(grayB, widthB, heightB, faceB, include: RingAround(faceB));
 
             var matches = FeatureMatcher.Match(a, b);
             if (matches.Count < SimilarityRansac.MinInliers) return null;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using VerifyBlind.Enclave.Services;
 using VerifyBlind.Enclave.Services.Vision;
 using Xunit;
 
@@ -202,6 +203,102 @@ namespace VerifyBlind.Enclave.Tests
 
             Assert.Equal(a!.Value.Scale, b!.Value.Scale);
             Assert.Equal(a.Value.Inliers, b.Value.Inliers);
+        }
+
+        // ── En geniş çift + göreli derinlik ────────────────────────────────────
+
+        /// <summary>
+        /// Fizik: yüz N, arka plan yüzden g geride. N = 100, 80, 60 ve g = 200 seçildi, yani
+        /// kareler arası ölçekler UYDURMA DEĞİL, tek bir sahneden türetildi:
+        /// <code>
+        /// yüz ölçeği (0→2) = 100/60   = 1,667
+        /// arka plan (0→2)  = 300/260  = 1,154
+        /// B                = 1,667/1,154 = 1,445
+        /// g/N (yakın uçta) = 200/60   = 3,33
+        /// </code>
+        /// </summary>
+        private static (List<GrayImage?> gray, List<Rect> boxes, List<double> ied) Sequence()
+        {
+            double[] bg = { 1.0, 300.0 / 280.0, 300.0 / 260.0 };
+            double[] face = { 1.0, 100.0 / 80.0, 100.0 / 60.0 };
+
+            var gray = new List<GrayImage?>();
+            var boxes = new List<Rect>();
+            for (int k = 0; k < 3; k++)
+            {
+                gray.Add(new GrayImage(Render(bg[k], face[k]), W, H));
+                boxes.Add(FaceRect(face[k]));
+            }
+            return (gray, boxes, new List<double> { 60, 75, 100 });
+        }
+
+        /// <summary>
+        /// 🔴 Bu testin varlık sebebi: B, kıyaslanan çiftin yüz ölçeğini aşamaz. Ardışık
+        /// çiftlerle ölçmek sinyali tavana dayayıp kırpıyordu (sahada 1,19-1,21, tavan 1,27).
+        /// En geniş çift kullanılınca aynı sahne belirgin biçimde daha yüksek B veriyor.
+        /// </summary>
+        [Fact]
+        public void EnGenisCiftKullanilir()
+        {
+            var (gray, boxes, ied) = Sequence();
+
+            var r = PlanarityMeasurementService.MeasureParallax(gray, boxes, ied);
+
+            Assert.NotNull(r.Ratio);
+            // Ardışık çift 1,167 verirdi; en geniş çift 1,445 vermeli.
+            Assert.True(r.Ratio!.Value > 1.30,
+                $"en geniş çift kullanılmamış görünüyor: B={r.Ratio.Value:F3} (beklenen ~1,445)");
+            Assert.InRange(r.Ratio.Value, 1.30, 1.60);
+            Assert.True(r.Inliers > 0, "uyum sayısı raporlanmıyor");
+        }
+
+        [Fact]
+        public void GoreliDerinlikFizikleUyusur()
+        {
+            var (gray, boxes, ied) = Sequence();
+
+            var r = PlanarityMeasurementService.MeasureParallax(gray, boxes, ied);
+
+            Assert.NotNull(r.DepthRatio);
+            // g/N = 200/60 = 3,33. Pay ve payda küçük farkların oranı olduğu için tolerans geniş.
+            Assert.InRange(r.DepthRatio!.Value, 2.3, 4.6);
+        }
+
+        /// <summary>Düz yüzey: yüz ve arka plan aynı oranda büyür → B ≈ 1, derinlik ≈ 0.</summary>
+        [Fact]
+        public void DuzYuzeydeDerinlikSifir()
+        {
+            double[] scales = { 1.0, 1.25, 1.667 };
+            var gray = new List<GrayImage?>();
+            var boxes = new List<Rect>();
+            for (int k = 0; k < 3; k++)
+            {
+                gray.Add(new GrayImage(Render(scales[k], scales[k]), W, H));
+                boxes.Add(FaceRect(scales[k]));
+            }
+
+            var r = PlanarityMeasurementService.MeasureParallax(gray, boxes, new List<double> { 60, 75, 100 });
+
+            Assert.NotNull(r.Ratio);
+            Assert.InRange(r.Ratio!.Value, 0.94, 1.06);
+            Assert.InRange(r.DepthRatio!.Value, 0.0, 0.6);
+        }
+
+        /// <summary>
+        /// Halka: öznitelikler yüzün çevresindeki bantta aranır, kadrajın uzak kenarlarında
+        /// değil. Saldırganın ekranının DIŞINDA kalan gerçek odayı ölçüme sokmayan şey bu.
+        /// </summary>
+        [Fact]
+        public void HalkaDisindakiNoktalarKullanilmaz()
+        {
+            var face = FaceRect(1.0);
+            var ring = BackgroundScaleEstimator.RingAround(face);
+            Assert.NotNull(ring);
+
+            var features = OrbExtractor.Extract(Render(1.0, 1.0), W, H, face, include: ring);
+
+            Assert.NotEmpty(features);
+            Assert.DoesNotContain(features, f => !ring!.Value.Contains((int)f.X, (int)f.Y));
         }
     }
 }
