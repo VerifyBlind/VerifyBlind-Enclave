@@ -208,17 +208,24 @@ public class PlanarityMeasurementServiceTests
     }
 
     /// <summary>
-    /// Asıl sinyal (yüz/arka plan ölçek oranı) bu sürümde HENÜZ hesaplanmıyor: arka planın
-    /// ölçeğini çıkarmak gerçek özellik eşleştirmesi (ORB) gerektiriyor ve o yazılmadı.
-    /// Bu testin görevi beklentiyi kayda geçirmek — biri "delta neden hep boş" diye sorunca
-    /// cevabı burada bulsun.
+    /// B oranı ÖLÇÜLEMEDİĞİNDE <c>null</c> kalır ve akış bundan etkilenmez.
+    ///
+    /// <para>Buradaki kareler gerçek JPEG değil, yalnız landmark sahtesi besliyorlar — yani
+    /// arka plan ölçeği çıkarılamaz. Beklenen davranış tam olarak bu: durum yine
+    /// <c>measured</c>, açıklık yine ölçülmüş, yalnız <c>Delta</c> boş.</para>
+    ///
+    /// <para>🔴 Sözleşme: ölçümün bir dalının düşmesi diğerini SESSİZCE bozmamalı. İlk
+    /// entegrasyonda tam bu olmuştu — gri çözümü başarısız olan kare açıklık sayımından da
+    /// düşüyor, durum etiketi sessizce değişiyordu.</para>
     /// </summary>
     [Fact]
-    public void Delta_IsNotComputedYet_PendingFeatureMatching()
+    public void Delta_OlculemezseBosKalir_AkisEtkilenmez()
     {
         var o = new PlanarityMeasurementService(Detector(600, 500, 400, 300).Object).Measure(Proof(4));
 
         Assert.Equal("measured", o.Status);
+        Assert.Equal(4, o.FarMeasured);
+        Assert.NotNull(o.IedRatio);
         Assert.Null(o.Delta);
     }
 }
