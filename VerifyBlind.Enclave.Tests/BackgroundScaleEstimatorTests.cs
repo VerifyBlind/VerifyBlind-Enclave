@@ -252,16 +252,35 @@ namespace VerifyBlind.Enclave.Tests
             Assert.True(r.Inliers > 0, "uyum sayısı raporlanmıyor");
         }
 
+        /// <summary>
+        /// P = (B−1)/(s−1): düz yüzeyde 0, sonsuz uzak arka planda 1. Bu sahnede arka plan
+        /// yüzden 200, yakın bakış mesafesi 60 birim → P = g/(sN+g) = 200/(1,667·60+200) = 0,667.
+        /// </summary>
         [Fact]
-        public void GoreliDerinlikFizikleUyusur()
+        public void NormalizePayFizikleUyusur()
         {
             var (gray, boxes, ied) = Sequence();
 
             var r = PlanarityMeasurementService.MeasureParallax(gray, boxes, ied);
 
-            Assert.NotNull(r.DepthRatio);
-            // g/N = 200/60 = 3,33. Pay ve payda küçük farkların oranı olduğu için tolerans geniş.
-            Assert.InRange(r.DepthRatio!.Value, 2.3, 4.6);
+            Assert.NotNull(r.P);
+            Assert.InRange(r.P!.Value, 0.50, 0.82);
+        }
+
+        /// <summary>
+        /// 🔴 Kullanılan çiftin ölçeği AYRICA raporlanmalı. `ied_ratio`'yu körlemesine s sanmak
+        /// sahada yanlış sonuca götürdü: 2,72 açıklıklı bir koşuda en geniş çift tutmamıştı ve
+        /// gerçek s 1,91'di; körlemesine hesap P'yi neredeyse yarıya düşürüyordu.
+        /// </summary>
+        [Fact]
+        public void KullanilanOlcekRaporlanir()
+        {
+            var (gray, boxes, ied) = Sequence();
+
+            var r = PlanarityMeasurementService.MeasureParallax(gray, boxes, ied);
+
+            Assert.NotNull(r.Span);
+            Assert.InRange(r.Span!.Value, 1.0, 100.0 / 60.0 + 0.01);
         }
 
         /// <summary>Düz yüzey: yüz ve arka plan aynı oranda büyür → B ≈ 1, derinlik ≈ 0.</summary>
@@ -281,7 +300,7 @@ namespace VerifyBlind.Enclave.Tests
 
             Assert.NotNull(r.Ratio);
             Assert.InRange(r.Ratio!.Value, 0.94, 1.06);
-            Assert.InRange(r.DepthRatio!.Value, 0.0, 0.6);
+            Assert.InRange(r.P!.Value, -0.2, 0.2);
         }
 
         /// <summary>

@@ -51,15 +51,25 @@ namespace VerifyBlind.Enclave.Services.Vision
         /// yani saldırıyı meşru gibi gösterir. Dışlama isteğe bağlı değil, ölçümün tanımının
         /// parçası.
         /// </param>
-        /// <param name="maxPerLevel">Kademe başına en güçlü kaç nokta tutulacak.</param>
+        /// <param name="maxPerLevel">
+        /// Kademe başına en güçlü kaç nokta tutulacak. 150 → 200 (2026-09-22): sahada uyum
+        /// sayıları 14-29 arasındaydı ve taban 12 — ölçüm ince buzda yürüyordu. Eşleştirme
+        /// maliyeti nokta sayısının KARESİYLE büyüdüğü için bu ücretsiz değil, ölçülerek seçildi.
+        /// </param>
+        /// <param name="threshold">
+        /// FAST eşiği. 20 → 15: yakın karede yüz dışlandıktan sonra kalan bant düşük kontrastlı
+        /// olabiliyor ve orada hiç köşe bulunamıyordu. Tavan zaten <paramref name="maxPerLevel"/>
+        /// olduğu için eşiği düşürmek nokta sayısını patlatmaz, yalnız zayıf bölgeden de aday
+        /// toplanmasını sağlar.
+        /// </param>
         /// <param name="include">Verilirse yalnız bu bölge taranır; yüz dışlamasıyla birlikte halka.</param>
         public static List<Feature> Extract(
             byte[] gray,
             int width,
             int height,
             Rect? exclude = null,
-            int maxPerLevel = 150,
-            int threshold = 20,
+            int maxPerLevel = 200,
+            int threshold = 15,
             Rect? include = null)
         {
             ArgumentNullException.ThrowIfNull(gray);

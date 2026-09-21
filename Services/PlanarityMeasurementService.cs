@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using VerifyBlind.Core.Models;
 using VerifyBlind.Enclave.Services.FaceAlignment;
 using VerifyBlind.Enclave.Services.Vision;
+using System.Collections.Generic;
 
 namespace VerifyBlind.Enclave.Services
 {
@@ -53,14 +54,14 @@ namespace VerifyBlind.Enclave.Services
         private const int MaxFrameBytes = 400_000;
 
         /// <summary>
-        /// B için denenecek EN FAZLA kare çifti.
+        /// B için denenecek EN FAZLA kare çifti. Tutanların HEPSİ kullanılır, ilk tutan değil.
         ///
         /// <para>Ölçüldü: gerçekçi bir sahnede çift başına ~175 ms (240×320), yüksek entropili
         /// bir karede ~830 ms (360×480). İkincisi yamalanmış bir istemcinin enclave CPU'sunu
         /// yakmak için kullanabileceği bir yüzey; çift sayısını sınırlamak onu sabitler.
         /// Medyan için dört çift zaten fazlasıyla yeterli.</para>
         /// </summary>
-        private const int MaxPairAttempts = 4;
+        private const int MaxPairAttempts = 6;
 
         /// <summary>
         /// İstemcinin bildirdiği doku bu değerin altındaysa ölçüm "dokusuz" sayılır.
@@ -159,7 +160,8 @@ namespace VerifyBlind.Enclave.Services
 
             var parallax = MeasureParallax(gray, faceBox, interocular);
             outcome.Delta = parallax.Ratio;
-            outcome.NearResidual = parallax.DepthRatio;
+            outcome.NearResidual = parallax.P;
+            outcome.FarResidual = parallax.Span;
             outcome.NearMeasured = parallax.Inliers;
 
             if (interocular.Count < MinFrames)
@@ -176,7 +178,7 @@ namespace VerifyBlind.Enclave.Services
             Console.WriteLine(
                 $"[Parallax] durum={outcome.Status} kare={outcome.FarMeasured}/{proof.Frames.Count} " +
                 $"açıklık={span:F2} B={outcome.Delta?.ToString("F3") ?? "-"} " +
-                $"derinlik={outcome.NearResidual?.ToString("F2") ?? "-"} uyum={outcome.NearMeasured} " +
+                $"P={outcome.NearResidual?.ToString("F3") ?? "-"} s={outcome.FarResidual?.ToString("F2") ?? "-"} uyum={outcome.NearMeasured} " +
                 $"doku={proof.BgTexture?.ToString("F1") ?? "-"} " +
                 $"tam={proof.Complete}");
 
@@ -184,30 +186,31 @@ namespace VerifyBlind.Enclave.Services
         }
 
         /// <summary>B ölçümünün sonucu: oran, göreli arka plan derinliği ve dayandığı uyum sayısı.</summary>
-        internal readonly record struct ParallaxResult(double? Ratio, double? DepthRatio, int Inliers);
+        internal readonly record struct ParallaxResult(double? Ratio, double? P, double? Span, int Inliers);
 
         /// <summary>
-        /// PARALLAKS ÖLÇÜMÜ — <c>B = yüz ölçeği / arka plan ölçeği</c>.
+        /// PARALLAKS ÖLÇÜMÜ — <c>B = yüz ölçeği / arka plan ölçeği</c> ve ondan türetilen
+        /// normalize pay <c>P</c>.
         ///
-        /// <para>🔴 <b>EN GENİŞ ÇİFTTEN BAŞLANIR, ardışık çiftlerden DEĞİL.</b> Fizik şunu
-        /// söylüyor: yüz kameradan <i>N</i>, arka plan yüzden <i>g</i> geride, kıyaslanan
-        /// çiftin yüz ölçeği <i>s</i> iken
-        /// <code>B = s(N+g) / (sN+g)</code>
-        /// Buradan çıkan sınır belirleyici: <b>B asla s'yi aşamaz.</b> Ardışık çiftlerin ölçeği
-        /// ~1,27 olduğu için B de 1,27'nin altında kalmak zorundaydı — sahada ölçülen 1,19-1,21
-        /// değerleri o tavanın %95'iydi. Yani sinyal zayıf değildi, ÇİFT SEÇİMİYLE kırpılmıştı.
-        /// Aynı sahnede uçtan uca ölçüm ~1,71 veriyor; sahte taraf 1,00'de kaldığı için marj
-        /// 0,19'dan 0,71'e çıkıyor (2026-09-22 ölçümleri).</para>
+        /// <para>🔴 <b>EN GENİŞ ÇİFTTEN BAŞLANIR ve TUTAN ÇİFTLERİN HEPSİ KULLANILIR.</b>
+        /// Fizik: yüz kameradan <i>N</i>, arka plan yüzden <i>g</i> geride, çiftin yüz ölçeği
+        /// <i>s</i> iken <c>B = s(N+g)/(sN+g)</c>. Buradan çıkan sınır belirleyici:
+        /// <b>B asla s'yi aşamaz.</b> Ardışık çiftlerde s ~1,27 olduğu için B de 1,27'nin
+        /// altında kalıyordu; sahada ölçülen 1,19-1,21 o tavanın %95'iydi — sinyal zayıf değil,
+        /// çift seçimiyle kırpılmıştı. En geniş çifte geçince aynı sahneler 1,64-1,66 verdi.</para>
         ///
-        /// <para>Geniş çift eşleşmeyebilir (yakın karede yüz kutusu büyük, geriye az arka plan
-        /// kalıyor); o yüzden geniş→dar sırayla denenir ve ilk tutan sonuç raporlanır.</para>
+        /// <para><b>Neden ilk tutan değil, hepsi:</b> yakın uçta yüz kutusu büyüdüğü için en
+        /// geniş çift her zaman eşleşmiyor (2026-09-22: 2,72 açıklıklı koşuda geniş çift tuttu
+        /// sanıldı, gerçekte 1,91'lik bir çifte düşülmüştü). Tutan çiftlerin hepsinden P
+        /// hesaplayıp MEDYANINI almak, uyum sayısının düşük olduğu (14-29) bu aşamada tek bir
+        /// çiftin gürültüsüne teslim olmayı engelliyor.</para>
         ///
-        /// <para><b>Göreli derinlik</b> <c>g/N = s(B−1)/(s−B)</c>, B'nin aksine kıyaslanan
-        /// çiftin AÇIKLIĞINDAN bağımsızdır. ⚠️ Ama <i>N</i>, çiftin YAKIN karesindeki bakış
-        /// mesafesidir: farklı yakın uçlara sahip çiftlerin değerleri aynı büyüklük değildir,
-        /// bu yüzden ortalanmazlar. Protokolde yakın uç sabit bir hedef (yüz = kadrajın %62'si)
-        /// olduğu için en geniş çiftin değeri koşular arasında kıyaslanabilir olan tek değerdir
-        /// — eşik de oraya konmalı.</para>
+        /// <para><b>Neden P, B değil:</b> <c>P = (B−1)/(s−1)</c> — düz yüzeyde 0, sonsuz uzak
+        /// arka planda 1. B'nin aksine SINIRLI ve çiftten çifte kıyaslanabilir. Sahada meşru
+        /// koşular 0,70-0,75, monitör düzeneği 0,03 verdi. Eşik buraya konacak.</para>
+        ///
+        /// <para>⚠️ <c>ied_ratio</c> körlemesine <i>s</i> sanılmamalı: en geniş çift tutmadığında
+        /// gerçek s daha küçüktür. Bu yüzden kullanılan s AYRICA kaydediliyor.</para>
         ///
         /// <para>Hiçbir çift ölçülemezse boş döner: "ölçemedik", "sahte" DEĞİL.</para>
         /// </summary>
@@ -225,18 +228,31 @@ namespace VerifyBlind.Enclave.Services
 
             candidates.Sort((x, y) => y.faceScale.CompareTo(x.faceScale));
 
+            // Öznitelikler kare başına BİR KEZ çıkarılır. Altı çift denemesinde her kareyi
+            // yeniden çıkarmak, çıkarma maliyeti eşleştirmeyle aynı mertebede olduğu için
+            // ölçümü birkaç katına çıkarırdı.
+            var features = new List<Feature>?[gray.Count];
+            List<Feature> FeaturesOf(int k)
+            {
+                if (features[k] is { } cached) return cached;
+                var img = gray[k]!.Value;
+                var f = BackgroundScaleEstimator.ExtractFor(img.Pixels, img.Width, img.Height, faceBox[k]);
+                features[k] = f;
+                return f;
+            }
+
             int attempts = 0;
+            double? widestRatio = null, widestSpan = null;
+            int widestInliers = 0;
+            var normalized = new List<double>();
+
             foreach (var (i, j, faceScale) in candidates)
             {
                 if (attempts >= MaxPairAttempts) break;
-                if (faceScale <= 1.0) continue;
+                if (faceScale <= 1.02) continue;   // ölçek farkı yoksa P'nin paydası sıfıra gider
                 attempts++;
 
-                var a = gray[i]!.Value;
-                var b = gray[j]!.Value;
-                var background = BackgroundScaleEstimator.Estimate(
-                    a.Pixels, a.Width, a.Height, faceBox[i],
-                    b.Pixels, b.Width, b.Height, faceBox[j]);
+                var background = BackgroundScaleEstimator.Estimate(FeaturesOf(i), FeaturesOf(j));
 
                 if (BackgroundScaleEstimator.ParallaxRatio(faceScale, background) is not { } ratio)
                     continue;
@@ -246,18 +262,26 @@ namespace VerifyBlind.Enclave.Services
                 // başına hareket ediyor olabilir. Sayıyı kaydetmek yerine o çifti atıyoruz.
                 if (ratio >= faceScale) continue;
 
-                double depth = ratio > 1.0
-                    ? faceScale * (ratio - 1.0) / (faceScale - ratio)
-                    : 0;   // düz yüzey: arka plan yüzle aynı düzlemde
+                normalized.Add((ratio - 1.0) / (faceScale - 1.0));
 
-                // İlk tutan çift EN GENİŞ olandır (liste açıklığa göre sıralı) ve rapor edilen
-                // odur. Daha dar çiftlerle ortalama ALINMAZ: dar çiftin yakın ucu farklı
-                // mesafededir, dolayısıyla derinlikleri aynı büyüklük değildir.
-                return new ParallaxResult(
-                    Math.Round(ratio, 4), Math.Round(depth, 3), background!.Value.Inliers);
+                // En geniş TUTAN çift, okunabilir B ve onun ölçeği olarak raporlanır. Liste
+                // açıklığa göre sıralı olduğu için ilk tutan zaten en geniş olandır.
+                if (widestRatio is null)
+                {
+                    widestRatio = Math.Round(ratio, 4);
+                    widestSpan = Math.Round(faceScale, 4);
+                    widestInliers = background!.Value.Inliers;
+                }
             }
 
-            return new ParallaxResult(null, null, 0);
+            if (normalized.Count == 0) return new ParallaxResult(null, null, null, 0);
+
+            normalized.Sort();
+            double p = normalized.Count % 2 == 1
+                ? normalized[normalized.Count / 2]
+                : (normalized[normalized.Count / 2 - 1] + normalized[normalized.Count / 2]) / 2;
+
+            return new ParallaxResult(widestRatio, Math.Round(p, 4), widestSpan, widestInliers);
         }
 
         /// <summary>

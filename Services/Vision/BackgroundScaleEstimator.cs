@@ -70,9 +70,24 @@ namespace VerifyBlind.Enclave.Services.Vision
             byte[] grayA, int widthA, int heightA, Rect? faceA,
             byte[] grayB, int widthB, int heightB, Rect? faceB)
         {
-            var a = OrbExtractor.Extract(grayA, widthA, heightA, faceA, include: RingAround(faceA));
-            var b = OrbExtractor.Extract(grayB, widthB, heightB, faceB, include: RingAround(faceB));
+            var a = ExtractFor(grayA, widthA, heightA, faceA);
+            var b = ExtractFor(grayB, widthB, heightB, faceB);
+            return Estimate(a, b);
+        }
 
+        /// <summary>
+        /// Bir karenin ölçüm halkasındaki özniteliklerini çıkarır.
+        ///
+        /// <para>Ayrı metot, çünkü çağıran BİRDEN ÇOK ÇİFT deneyebiliyor: kare başına bir kez
+        /// çıkarıp her çiftte yeniden kullanmak, altı çift denemesinde aynı kareyi altı kez
+        /// çıkarmaktan kat kat ucuz. Çıkarma maliyeti eşleştirmeyle aynı mertebede.</para>
+        /// </summary>
+        public static List<Feature> ExtractFor(byte[] gray, int width, int height, Rect? face) =>
+            OrbExtractor.Extract(gray, width, height, face, include: RingAround(face));
+
+        /// <summary>Hazır çıkarılmış özniteliklerden ölçek kestirir.</summary>
+        public static BackgroundScale? Estimate(IReadOnlyList<Feature> a, IReadOnlyList<Feature> b)
+        {
             var matches = FeatureMatcher.Match(a, b);
             if (matches.Count < SimilarityRansac.MinInliers) return null;
 
