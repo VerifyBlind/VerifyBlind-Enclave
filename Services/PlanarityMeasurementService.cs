@@ -75,6 +75,37 @@ namespace VerifyBlind.Enclave.Services
         /// </summary>
         private const double MinBackgroundTexture = 14.0;
 
+        /// <summary>
+        /// 🔴 KAPI: normalize parallaks payı <c>P</c> bunun altındaysa yüzey DÜZ sayılır ve
+        /// kayıt reddedilir. Parallaks hattının ilk ve tek reddi budur.
+        ///
+        /// <para><b>Kalibrasyon (2026-09-22, tek cihaz, tek ev):</b></para>
+        /// <code>
+        /// desteklenen meşru : 0,402  0,729  0,824  0,832
+        /// yatak senaryosu   : 0,141  0,163  0,242  0,253   (DESTEKLENMİYOR, aşağıya bakın)
+        /// ekran düzenekleri : −0,022  0,063
+        /// </code>
+        ///
+        /// <para>0,30: sahte tarafa <b>0,24</b>, desteklenen en kötü meşru duruma (sırt
+        /// kütüphanede, eşyalar 20 cm) <b>0,10</b> pay bırakıyor.</para>
+        ///
+        /// <para><b>Yatak senaryosu bilerek dışarıda</b> (kamera tavandan, sırtüstü): üç eksende
+        /// birden sınırda — doku 15,4-16,8 (kapı 14,0), geniş çift hiç tutmuyor, P 0,14-0,25.
+        /// Onu içeri almak eşiği 0,10'a indirmek ve saldırıya pay bırakmamak demekti. Kimlik
+        /// doğrulamasında kullanıcıdan doğrulup arkasındaki yüzeyden uzaklaşmasını istemek
+        /// meşru (kullanıcı kararı). ⚠️ Ama mesaj EYLEM BİLDİRMELİ — p_live'daki genel
+        /// "canlılık doğrulanamadı" hatası tekrarlanmayacak.</para>
+        ///
+        /// <para>⚠️ <b>Yalnız ÖLÇÜLEBİLEN akış reddedilir.</b> P yoksa (dokusuz arka plan,
+        /// yetersiz eşleşme) kapı çalışmaz: "ölçemedik" ile "sahte" ayrı şeyler ve düz duvarın
+        /// önündeki meşru kullanıcı reddedilmemeli. Bu, saldırganın ölçümü bilerek imkânsız
+        /// kılarak kapıyı atlamasına açık bir yüzey bırakır — bilinçli tercih; ölçülemeyen
+        /// akışların oranı <c>planarity_status</c> dağılımından izlenecek.</para>
+        ///
+        /// <para>n = 10. Tek cihaz, tek ev. Geniş dağılım geldikçe yeniden bakılacak.</para>
+        /// </summary>
+        public const double MinParallaxP = 0.30;
+
         private readonly IBiometricService _biometric;
 
         public PlanarityMeasurementService(IBiometricService biometric) => _biometric = biometric;
@@ -172,6 +203,9 @@ namespace VerifyBlind.Enclave.Services
             else if (span < 1.2)
                 // Kullanıcı yeterince yaklaşmadı → sinyalin anlamı yok.
                 outcome.Status = PlanarityStatuses.NotApproached;
+            else if (parallax.P is { } p && p < MinParallaxP)
+                // Ölçtük ve DÜZ çıktı. Diğer tüm durumlardan farkı: bu bir red sebebi.
+                outcome.Status = PlanarityStatuses.FlatSurface;
             else
                 outcome.Status = PlanarityStatuses.Measured;
 
@@ -275,6 +309,10 @@ namespace VerifyBlind.Enclave.Services
             }
 
             if (normalized.Count == 0) return new ParallaxResult(null, null, null, 0);
+
+            // Çift başına P'ler günlüğe yazılır: meşru bir kullanıcı reddedildiğinde tek bir
+            // medyana bakıp körleşmemek için, ölçümün hangi çiftlerden geldiğini görmek şart.
+            Console.WriteLine($"[Parallax] çift P = {string.Join(" · ", normalized.ConvertAll(v => v.ToString("F3")))}");
 
             normalized.Sort();
             double p = normalized.Count % 2 == 1

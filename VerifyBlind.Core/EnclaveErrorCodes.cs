@@ -32,6 +32,13 @@ public static class EnclaveErrorCodes
     public const string ResponseEncryption    = "ERR_RESPONSE_ENCRYPTION";
     public const string DemoMissingPubkey     = "ERR_DEMO_MISSING_PUBKEY";
     public const string Antispoofing          = "ERR_ANTISPOOFING";
+
+    /// <summary>
+    /// Parallaks ölçümü yüzü ve arka planı AYNI DÜZLEMDE buldu — ekran, baskı, tablet.
+    /// <see cref="Antispoofing"/> bir MODEL hükmüdür (doku), bu GEOMETRİDİR: doku modeli
+    /// TV'deki fotoğrafı geçirirken geometri aynı düzeneği yakaladı.
+    /// </summary>
+    public const string ParallaxFlat          = "ERR_PARALLAX_FLAT";
     public const string TicketRevoked         = "ERR_TICKET_REVOKED";
 
     /// <summary>Girişte canlı selfie, ticket'taki yüz referansıyla eşleşmedi (skor

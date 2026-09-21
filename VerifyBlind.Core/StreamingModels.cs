@@ -444,10 +444,19 @@ public static class PlanarityStatuses
     /// </summary>
     public const string NoTexture = "no_texture";
 
+    /// <summary>
+    /// 🔴 DÜZ YÜZEY — yüz ve arka plan aynı düzlemde. Ekran, baskı, tablet.
+    ///
+    /// <para><c>measured</c> DIŞINDAKİ diğer değerlerden farkı: bu "ölçemedik" değil,
+    /// <b>ölçtük ve düz çıktı</b>. Kaydı REDDEDEN tek parallaks durumu budur.</para>
+    /// </summary>
+    public const string FlatSurface = "flat_surface";
+
+
     /// <summary>Sayı hesaplandı ama pencerede yeterli kare yok — dağılıma KATILMAZ.</summary>
     public const string NotEnoughFrames = "not_enough_frames";
 
     public static bool IsValid(string? v) =>
         v is Measured or NoProof or NoFaceFar or NoFaceNear or NotApproached
-          or NotEnoughFrames or NoTexture;
+          or NotEnoughFrames or NoTexture or FlatSurface;
 }

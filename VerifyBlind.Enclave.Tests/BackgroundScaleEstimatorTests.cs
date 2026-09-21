@@ -319,5 +319,38 @@ namespace VerifyBlind.Enclave.Tests
             Assert.NotEmpty(features);
             Assert.DoesNotContain(features, f => !ring!.Value.Contains((int)f.X, (int)f.Y));
         }
+
+        // ── Kapı ──────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// 🔴 Eşiğin iki tarafını da sabitler. Ölçüm ya da eşik kayarsa bu test düşer.
+        ///
+        /// <para>Saha kalibrasyonu (2026-09-22): desteklenen meşru 0,402-0,832, ekran
+        /// düzenekleri −0,022 ve 0,063, eşik 0,30.</para>
+        /// </summary>
+        [Fact]
+        public void EsikDuzYuzeyiElerMesruyuGecirir()
+        {
+            double[] scales = { 1.0, 1.25, 1.667 };
+            var flatGray = new List<GrayImage?>();
+            var flatBoxes = new List<Rect>();
+            for (int k = 0; k < 3; k++)
+            {
+                flatGray.Add(new GrayImage(Render(scales[k], scales[k]), W, H));
+                flatBoxes.Add(FaceRect(scales[k]));
+            }
+            var ied = new List<double> { 60, 75, 100 };
+
+            var flat = PlanarityMeasurementService.MeasureParallax(flatGray, flatBoxes, ied);
+            var real = PlanarityMeasurementService.MeasureParallax(
+                Sequence().gray, Sequence().boxes, Sequence().ied);
+
+            Assert.NotNull(flat.P);
+            Assert.NotNull(real.P);
+            Assert.True(flat.P!.Value < PlanarityMeasurementService.MinParallaxP,
+                $"düz yüzey eşiği geçiyor: P={flat.P.Value:F3} ≥ {PlanarityMeasurementService.MinParallaxP}");
+            Assert.True(real.P!.Value > PlanarityMeasurementService.MinParallaxP,
+                $"gerçek sahne eşiğe takılıyor: P={real.P.Value:F3} < {PlanarityMeasurementService.MinParallaxP}");
+        }
     }
 }

@@ -368,6 +368,24 @@ public class EnclaveService
         onPlanarityMeasured(planarity);
         diag.Ok("Planarity", $"{planarity.Status} delta={planarity.Delta?.ToString("F5") ?? "-"}");
 
+        // 🔴 PARALLAKS KAPISI. Yalnız ÖLÇÜLEBİLEN ve DÜZ çıkan akış reddedilir; ölçülemeyen
+        // akış geçer ("ölçemedik" ≠ "sahte"). Ölçüm belge kontrollerinden sonra, adaylardan
+        // önce yapıldığı için biyometrik/canlılık işine hiç girmeden burada düşer — düz bir
+        // ekranı ArcFace'e sokmanın anlamı yok.
+        if (planarity.Status == PlanarityStatuses.FlatSurface)
+        {
+            diag.Fail("Planarity", $"düz yüzey P={planarity.NearResidual?.ToString("F3") ?? "-"}");
+            Console.WriteLine(
+                $"[Enclave] [{RegistrationStep.BiometricVerification}] Parallaks reddi: " +
+                $"P={planarity.NearResidual?.ToString("F3") ?? "-"} " +
+                $"B={planarity.Delta?.ToString("F3") ?? "-"} " +
+                $"s={planarity.FarResidual?.ToString("F2") ?? "-"} " +
+                $"uyum={planarity.NearMeasured} eşik={PlanarityMeasurementService.MinParallaxP}");
+            throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_PARALLAX_FLAT",
+                "Yüz ve arka plan aynı düzlemde ölçüldü — düz bir yüzey (ekran/baskı) sunuluyor olabilir.")
+            { Planarity = planarity };
+        }
+
         // --- Step 6+7: Biyometrik eşleşme + pasif canlılık (aday aday, TAM KAPI) ---
         // Adaylar sırayla TAM kapıdan geçirilir ve ilk GEÇEN kazanır. Enclave streaming'de neyi
         // onayladığını BİLMEZ ve önbelleğe GÜVENMEZ (K4) — burada her şey baştan hesaplanır.
