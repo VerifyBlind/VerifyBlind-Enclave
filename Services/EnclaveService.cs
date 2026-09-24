@@ -2196,6 +2196,7 @@ string? partnerId = null;
                $"titreşim={Num(c.HoldMotionMin, "F2")} kayma={Num(c.HoldScaleDevMax)} " +
                $"kontur={Num(c.ContourFar)}→{Num(c.ContourNear)} (×{Num(c.ContourRatio)}) " +
                $"olaylar=[{events}] kare={c.Faces}/{c.Frames} sıfırlama={c.Resets?.ToString() ?? "-"} yakın-doku={Num(c.BgTextureNear, "F1")} " +
+               $"takip-değişimi={c.TrackingChanges?.ToString() ?? "-"} " +
                $"yanlış={c.WrongEvents?.ToString() ?? "-"} ({c.CostMs}ms)";
     }
 

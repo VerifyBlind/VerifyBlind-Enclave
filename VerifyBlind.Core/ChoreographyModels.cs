@@ -123,6 +123,14 @@ public class ChoreographyProof
     /// <summary>Yanlış olay sayısı (istenmeyen kasıtlı hareket).</summary>
     [JsonPropertyName("wrong_events")]
     public int? WrongEvents { get; set; }
+
+    /// <summary>
+    /// Yüz KAYBOLMADAN değişen ML Kit takip numarası sayısı — yalnız ölçüm. İstemci numara
+    /// değişimini ancak yüz gerçekten kaybolduysa sıfırlama sebebi sayıyor; kesintisiz algılamada
+    /// ML Kit'in numarayı ne sıklıkla yenilediği bilinmiyor ve bu sayı onun için.
+    /// </summary>
+    [JsonPropertyName("tracking_changes")]
+    public int? TrackingChanges { get; set; }
 }
 
 /// <summary>Bir durağın kareleri.</summary>
@@ -244,6 +252,9 @@ public class ChoreographyOutcome
 
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
+
+    [JsonPropertyName("tracking_changes")]
+    public int? TrackingChanges { get; set; }
 
     /// <summary>Yakın çıpadaki doku — istemci uyarısının eşiğini kalibre etmek için.</summary>
     [JsonPropertyName("bg_texture_near")]
