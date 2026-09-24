@@ -86,6 +86,7 @@ namespace VerifyBlind.Enclave.Services.Stance
                 Resets = proof.Resets,
                 WrongEvents = proof.WrongEvents,
                 ElapsedMs = proof.ElapsedMs,
+                BgTextureNear = proof.BgTextureNear,
             };
             var outcome = new PlanarityOutcome
             {

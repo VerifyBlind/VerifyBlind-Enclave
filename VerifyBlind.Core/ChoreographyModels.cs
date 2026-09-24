@@ -95,15 +95,23 @@ public class ChoreographyProof
     public List<ChoreographyProofStop> Stops { get; set; } = new();
 
     /// <summary>
-    /// Arka plan doku enerjisi — YAKIN ÇIPADA ölçülür (uzak karede değil).
+    /// Arka plan doku enerjisi — İLK UZAK durakta, eski parallaks adımıyla AYNI ölçüyle (tüm
+    /// kare, yüz kutusu × 1,6 dışarıda). Eşik (14) bu ölçüyle kalibre edildi; sunucu bu sayıyla
+    /// "arkanızda desen yok" / "arka plan çok yakın" mesajları arasında seçim yapıyor.
+    /// </summary>
+    [JsonPropertyName("bg_texture")]
+    public double? BgTexture { get; set; }
+
+    /// <summary>
+    /// Aynı ölçü YAKIN ÇIPADA (yüz kutusu × 1,15 dışarıda) — istemcinin erken uyarısı buna bakar.
     ///
     /// <para>Yaklaştıkça arka plan kadrajdan çıkar; yakın karede görünen, uzak karede
     /// görünenin alt kümesidir. ORB'un eşleştireceği desen iki karede de bulunmalı, yani
     /// bağlayıcı olan yakın uç. Yatak koşularında uzak karedeki doku 15-17 ile kapıyı geçti,
-    /// yakın uçta eşleşme dördünde de çöktü.</para>
+    /// yakın uçta eşleşme dördünde de çöktü. ⚠️ Eşiği KALİBRE EDİLMEDİ; bu alan onun için.</para>
     /// </summary>
-    [JsonPropertyName("bg_texture")]
-    public double? BgTexture { get; set; }
+    [JsonPropertyName("bg_texture_near")]
+    public double? BgTextureNear { get; set; }
 
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
@@ -236,6 +244,10 @@ public class ChoreographyOutcome
 
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
+
+    /// <summary>Yakın çıpadaki doku — istemci uyarısının eşiğini kalibre etmek için.</summary>
+    [JsonPropertyName("bg_texture_near")]
+    public double? BgTextureNear { get; set; }
 
     /// <summary>Ölçümün enclave'e maliyeti (ms).</summary>
     [JsonPropertyName("cost_ms")]
