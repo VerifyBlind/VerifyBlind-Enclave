@@ -472,6 +472,28 @@ public class ChoreographyVerifierTests
         Assert.Null(o.Choreography.IdentityMin);
     }
 
+    /// <summary>
+    /// İstemcinin iz kaydı ölçüm satırına taşınır — ama istemci metni: sınırlı ve ayıklanmış.
+    /// </summary>
+    [Fact]
+    public void IzKaydiTasinirVeAyiklanir()
+    {
+        var scene = new Scene();
+        var proof = Perform(scene, Typical, Real);
+        proof.Trace = "0.0 start;1.2 s0 in f=0.61;" + (char)1 + "bozuk" + (char)10;
+        proof.Redos = 2;
+
+        var o = new ChoreographyVerifier(scene.Models().Object).Measure(proof, Typical, new byte[] { 1 });
+        Assert.Equal(2, o.Choreography!.Redos);
+        Assert.StartsWith("0.0 start;1.2 s0 in f=0.61;", o.Choreography.Trace);
+        Assert.DoesNotContain((char)10, o.Choreography.Trace!);
+        Assert.DoesNotContain((char)1, o.Choreography.Trace!);
+
+        var huge = ChoreographyVerifier.SanitizeTrace(new string('a', 10_000));
+        Assert.Equal(ChoreographyVerifier.MaxTraceChars, huge!.Length);
+        Assert.Null(ChoreographyVerifier.SanitizeTrace(null));
+    }
+
     /// <summary>Kontur: sahte YuNet kutusu göz-arasıyla orantılı → oran 1 (düz yüzeyin imzası).</summary>
     [Fact]
     public void KonturOraniOlculur()

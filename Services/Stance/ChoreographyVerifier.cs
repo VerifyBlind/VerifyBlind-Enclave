@@ -69,6 +69,19 @@ namespace VerifyBlind.Enclave.Services.Stance
             _planarity = new PlanarityMeasurementService(biometric);
         }
 
+        /// <summary>İz kaydının tavanı (istemcininki 3500).</summary>
+        public const int MaxTraceChars = 4000;
+
+        internal static string? SanitizeTrace(string? trace)
+        {
+            if (string.IsNullOrEmpty(trace)) return null;
+            var chars = trace.Length > MaxTraceChars ? trace[..MaxTraceChars] : trace;
+            var sb = new System.Text.StringBuilder(chars.Length);
+            foreach (char c in chars)
+                sb.Append(c >= 0x20 && c < 0x7F ? c : '?');
+            return sb.ToString();
+        }
+
         private sealed class Frame
         {
             public required byte[] Bytes { get; init; }
@@ -88,6 +101,10 @@ namespace VerifyBlind.Enclave.Services.Stance
                 ElapsedMs = proof.ElapsedMs,
                 BgTextureNear = proof.BgTextureNear,
                 TrackingChanges = proof.TrackingChanges,
+                Redos = proof.Redos,
+                // İstemci metni: uzunluk sınırlı, kontrol karakterleri ayıklanır — ölçüm satırını
+                // şişirmesin, JSON'u bozmasın.
+                Trace = SanitizeTrace(proof.Trace),
             };
             var outcome = new PlanarityOutcome
             {

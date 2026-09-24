@@ -131,6 +131,18 @@ public class ChoreographyProof
     /// </summary>
     [JsonPropertyName("tracking_changes")]
     public int? TrackingChanges { get; set; }
+
+    /// <summary>Durak tekrarı sayısı — duruşta telefon kaydı, yalnız o durak baştan alındı.</summary>
+    [JsonPropertyName("redos")]
+    public int? Redos { get; set; }
+
+    /// <summary>
+    /// İstemcinin karar zaman çizelgesi (ASCII): banda giriş/çıkış, duruş, tekrar/sıfırlama
+    /// sebepleri, olay sırasında göz/gülümseme/ağız değerleri. DOĞRULANMAZ — teşhis ve eşik
+    /// kalibrasyonu için. İlk saha testinde "neden baştan başladı" sorusunun cevabı yoktu.
+    /// </summary>
+    [JsonPropertyName("trace")]
+    public string? Trace { get; set; }
 }
 
 /// <summary>Bir durağın kareleri.</summary>
@@ -262,6 +274,13 @@ public class ChoreographyOutcome
 
     [JsonPropertyName("tracking_changes")]
     public int? TrackingChanges { get; set; }
+
+    [JsonPropertyName("redos")]
+    public int? Redos { get; set; }
+
+    /// <summary>İstemcinin iz kaydı — enclave 4000 karakterde kırpar, ASCII dışını ayıklar.</summary>
+    [JsonPropertyName("trace")]
+    public string? Trace { get; set; }
 
     /// <summary>Yakın çıpadaki doku — istemci uyarısının eşiğini kalibre etmek için.</summary>
     [JsonPropertyName("bg_texture_near")]
