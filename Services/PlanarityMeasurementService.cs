@@ -183,17 +183,54 @@ namespace VerifyBlind.Enclave.Services
         }
 
         /// <summary>
-        /// 🔴 KATI KİPTE istenen en küçük açıklık (ölçümün yapıldığı çiftin yüz ölçeği).
+        /// 🔴 KATI KİPTE bir çiftin P'ye GİREBİLMESİ için en küçük yüz ölçeği.
         ///
         /// <para>P'nin gürültüsü açıklıkla ters orantılı: B'deki ±0,03'lük hata P'de
-        /// ±0,03/(s−1) eder. s = 1,1'de ±0,3 — düz bir ekran şans eseri 0,30'u aşabilir.
-        /// Saldırganın en ucuz kaçamağı tam budur: hareketi küçük tut, gürültü işini görsün.
-        /// 1,25'te hata ±0,12; sahte bant 0'da kalır.</para>
+        /// ±0,03/(s−1) eder. s = 1,16'da ±0,19 — sahada tam bu oldu (2026-09-24 14:52, sırt
+        /// perdeye dayalı): altı çift denemesinden YALNIZ BİRİ tuttu, o da 1,16 açıklıkla, P =
+        /// 0,303 çıktı ve kayıt eşiği 0,003 farkla GEÇTİ. Aynı durumun önceki iki koşusu 0,109
+        /// ve 0,150 vermişti; kararı fizik değil tek bir gürültülü çift verdi.</para>
         ///
-        /// <para>Meşru kullanıcıya maliyeti yok: duruş dizisi uzak (0,31) ile yakın (0,62)
-        /// arasında 2,0× açıklık dayatıyor. Yatak koşularında bile tutan en geniş çift 1,34-1,73.</para>
+        /// <para>1,25'te hata ±0,12. Tek başına yetmez — ama tek başına da çalışmıyor: en az
+        /// <see cref="MinStrictPairs"/> çift ve en geniş çiftin <see cref="MinStrictWidestSpan"/>
+        /// olması da şart. Filtre yalnız aynı mesafedeki durakların (s ≈ 1) ve bant kenarında
+        /// sıkışmış komşu durakların gürültüsünü dışarıda tutar. İstemci bantları (uzak ≤ 0,32,
+        /// orta 0,41-0,47, yakın ≥ 0,60) komşu çiftleri en kötü durumda 1,28'de tutuyor.</para>
         /// </summary>
-        public const double MinStrictSpan = 1.25;
+        public const double MinStrictPairSpan = 1.25;
+
+        /// <summary>
+        /// 🔴 KATI KİPTE en az kaç çiftin TUTMASI gerektiği.
+        ///
+        /// <para>Tek çift bir ölçüm değil, bir örnektir. Güvenilir koşu böyle görünüyor: altı çift,
+        /// 0,780-0,892 (2026-09-24 14:53, dokulu oda). Arka plan yakınken yakın kareler eşleşmiyor
+        /// ve geriye tek uzak çift kalıyor — tam da ölçümün en az güvenilir olduğu durum.</para>
+        /// </summary>
+        public const int MinStrictPairs = 2;
+
+        /// <summary>
+        /// 🔴 KATI KİPTE tutan EN GENİŞ çiftin en küçük açıklığı — "uzak ile yakın kare
+        /// eşleşebildi mi".
+        ///
+        /// <para><b>Veriden (2026-09-22/24, 15 insan koşusu):</b></para>
+        /// <code>
+        /// desteklenen meşru (7)      : s = açıklık   1,93 · 1,96 · 1,97 · 2,06 · 2,09 · 2,12 · 2,14
+        /// sırt yüzeyde / yatak (8)   : s ＜ açıklık   1,16 · 1,33 · 1,34 · 1,43 · 1,44 · 1,46 · 1,48 · 1,73
+        /// </code>
+        /// <para>Meşru koşuların HEPSİNDE en geniş çift tuttu; arka planı yakın olanların HİÇBİRİNDE
+        /// tutmadı. Sebep fiziksel: arka plan yakınsa yakın karede halka arka planın çok büyümüş,
+        /// bulanık bir parçasıyla dolar ve uzak kareyle eşleşecek desen kalmaz. Yakın çıpa fikrinin
+        /// ta kendisi — bağlayıcı kısıt yakın uçta.</para>
+        ///
+        /// <para>1,5: bantlara uyan meşru kullanıcıda uzak↔yakın oranı en az 0,60 / 0,32 = 1,875 —
+        /// %25 pay. Yakın-arka-plan koşularının 7/8'i 1,48'in altında; eşiği geçen tek koşu (yatak,
+        /// 1,73) P = 0,242 ile zaten düz sayılıyor.</para>
+        /// </summary>
+        public const double MinStrictWidestSpan = 1.5;
+
+        /// <summary>Son ölçümde P'ye giren çift sayısı.</summary>
+        internal int LastPairCount => _lastPairCount;
+        private int _lastPairCount;
 
         /// <summary>
         /// Önceden çözülmüş karelerden durumu ve parallaksı hesaplar. Kareler en uzaktan en
@@ -221,12 +258,14 @@ namespace VerifyBlind.Enclave.Services
             double span = interocular[^1] / interocular[0];
             outcome.IedRatio = Math.Round(span, 4);
 
-            var parallax = MeasureParallax(gray, faceBox, interocular);
+            var parallax = MeasureParallax(gray, faceBox, interocular,
+                minPairSpan: strict ? MinStrictPairSpan : DefaultMinPairSpan);
             outcome.Delta = parallax.Ratio;
             outcome.NearResidual = parallax.P;
             outcome.FarResidual = parallax.Span;
             outcome.NearMeasured = parallax.Inliers;
             _lastPairDetail = parallax.PairDetail;
+            _lastPairCount = parallax.Pairs;
 
             // 🔴 SIRA ÖNEMLİ: P hesaplanabildiyse KAPI HER ŞEYDEN ÖNCE ÇALIŞIR.
             //
@@ -245,8 +284,10 @@ namespace VerifyBlind.Enclave.Services
             if (parallax.P is { } p && p < MinParallaxP)
                 // Ölçtük ve DÜZ çıktı. Diğer tüm durumlardan farkı: bu bir RED sebebi.
                 outcome.Status = PlanarityStatuses.FlatSurface;
-            else if (strict && (parallax.P is null || parallax.Span is not { } s || s < MinStrictSpan))
-                // Duruş kanıtında ölçülemeyen ya da yetersiz açıklıkla ölçülen akış GEÇMEZ.
+            else if (strict && (parallax.P is null || parallax.Pairs < MinStrictPairs ||
+                                parallax.Span is not { } widest || widest < MinStrictWidestSpan))
+                // Duruş kanıtında ölçülemeyen, tek çifte dayanan ya da uzak↔yakın çifti
+                // eşleşmeyen akış GEÇMEZ.
                 outcome.Status = PlanarityStatuses.Unmeasured;
             else if (interocular.Count < MinFrames)
                 outcome.Status = PlanarityStatuses.NotEnoughFrames;
@@ -270,7 +311,14 @@ namespace VerifyBlind.Enclave.Services
         }
 
         /// <summary>B ölçümünün sonucu: oran, göreli arka plan derinliği ve dayandığı uyum sayısı.</summary>
-        internal readonly record struct ParallaxResult(double? Ratio, double? P, double? Span, int Inliers, string PairDetail);
+        internal readonly record struct ParallaxResult(
+            double? Ratio, double? P, double? Span, int Inliers, string PairDetail, int Pairs = 0);
+
+        /// <summary>
+        /// Eski kanıtta bir çiftin P'ye girmesi için en küçük yüz ölçeği — ölçek farkı yoksa
+        /// P'nin paydası sıfıra gider. Katı kipte <see cref="MinStrictPairSpan"/>.
+        /// </summary>
+        internal const double DefaultMinPairSpan = 1.02;
 
         /// <summary>
         /// PARALLAKS ÖLÇÜMÜ — <c>B = yüz ölçeği / arka plan ölçeği</c> ve ondan türetilen
@@ -305,7 +353,8 @@ namespace VerifyBlind.Enclave.Services
         /// <para>Hiçbir çift ölçülemezse boş döner: "ölçemedik", "sahte" DEĞİL.</para>
         /// </summary>
         internal static ParallaxResult MeasureParallax(
-            List<GrayImage?> gray, List<Rect> faceBox, List<double> interocular)
+            List<GrayImage?> gray, List<Rect> faceBox, List<double> interocular,
+            double minPairSpan = DefaultMinPairSpan)
         {
             var candidates = new List<(int i, int j, double faceScale)>();
             for (int i = 0; i < gray.Count; i++)
@@ -339,7 +388,7 @@ namespace VerifyBlind.Enclave.Services
             foreach (var (i, j, faceScale) in candidates)
             {
                 if (attempts >= MaxPairAttempts) break;
-                if (faceScale <= 1.02) continue;   // ölçek farkı yoksa P'nin paydası sıfıra gider
+                if (faceScale <= minPairSpan) continue;   // dar çiftin P'si gürültüdür
                 attempts++;
 
                 var background = BackgroundScaleEstimator.Estimate(FeaturesOf(i), FeaturesOf(j));
@@ -380,7 +429,8 @@ namespace VerifyBlind.Enclave.Services
                 ? normalized[normalized.Count / 2]
                 : (normalized[normalized.Count / 2 - 1] + normalized[normalized.Count / 2]) / 2;
 
-            return new ParallaxResult(widestRatio, Math.Round(p, 4), widestSpan, widestInliers, detail);
+            return new ParallaxResult(widestRatio, Math.Round(p, 4), widestSpan, widestInliers, detail,
+                Pairs: normalized.Count);
         }
 
         /// <summary>

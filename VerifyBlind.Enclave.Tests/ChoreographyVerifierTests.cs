@@ -29,6 +29,9 @@ public class ChoreographyVerifierTests
     private static readonly Blob[] BgBlobs = MakeBlobs(0xB6_1105, 1100, 330);
     private static readonly Blob[] FaceBlobs = MakeBlobs(0xFACE_01, 70, 34);
 
+    /// <summary>Başka bir oda: yakın karede arka planın eşleşmediği durumu kurmak için.</summary>
+    private static readonly Blob[] AltBgBlobs = MakeBlobs(0x0DD_BA11, 1100, 330);
+
     private readonly record struct Blob(double X, double Y, double W, double H, byte V1, byte V2);
 
     private static Blob[] MakeBlobs(uint seed, int count, int spread)
@@ -52,15 +55,16 @@ public class ChoreographyVerifierTests
     /// Sahneyi çizip JPEG'e kodlar. <paramref name="jitter"/> px kadar kaydırma: elde tutulan
     /// telefonun titremesi (0 = donmuş kare).
     /// </summary>
-    private static byte[] RenderJpeg(double bgScale, double faceScale, double jitter = 0)
+    private static byte[] RenderJpeg(double bgScale, double faceScale, double jitter = 0, bool altBackground = false)
     {
         var px = new byte[W * H];
+        double phase = altBackground ? 2.1 : 0;
         for (int y = 0; y < H; y++)
             for (int x = 0; x < W; x++)
             {
                 double wx = (x - W / 2.0 - jitter) / bgScale, wy = (y - H / 2.0) / bgScale;
-                double v = 110 + 38 * Math.Sin(wx / 53.0) + 32 * Math.Cos(wy / 41.0)
-                               + 24 * Math.Sin((wx + wy) / 71.0);
+                double v = 110 + 38 * Math.Sin(wx / 53.0 + phase) + 32 * Math.Cos(wy / 41.0 + phase)
+                               + 24 * Math.Sin((wx + wy) / 71.0 + phase);
                 px[y * W + x] = (byte)Math.Clamp(v, 0, 255);
             }
 
@@ -78,7 +82,7 @@ public class ChoreographyVerifierTests
             }
         }
 
-        Draw(BgBlobs, bgScale);
+        Draw(altBackground ? AltBgBlobs : BgBlobs, bgScale);
         Draw(FaceBlobs, faceScale);
 
         using var img = Image.LoadPixelData<L8>(px, W, H);
@@ -106,9 +110,10 @@ public class ChoreographyVerifierTests
     {
         private readonly Dictionary<string, (double scale, double jitter, string who)> _frames = new();
 
-        public string Add(double bgScale, double faceScale, string who = "victim", double jitter = 0)
+        public string Add(double bgScale, double faceScale, string who = "victim", double jitter = 0,
+            bool altBackground = false)
         {
-            var bytes = RenderJpeg(bgScale, faceScale, jitter);
+            var bytes = RenderJpeg(bgScale, faceScale, jitter, altBackground);
             var b64 = Convert.ToBase64String(bytes);
             _frames[b64] = (faceScale, jitter, who);
             return b64;
@@ -278,6 +283,9 @@ public class ChoreographyVerifierTests
         // Titreşim var (2 px kaydırma), donmuş kare değil.
         Assert.True(c.HoldMotionMin > 1.0, $"titreşim={c.HoldMotionMin}");
 
+        // Uzak↔yakın ve orta↔uzak/yakın çiftlerinin hepsi yeterince geniş ve tutuyor.
+        Assert.True(c.ParallaxPairs >= PlanarityMeasurementService.MinStrictPairs, $"çift={c.ParallaxPairs}");
+
         Assert.Equal("N,F+blink,M,N+smile", c.Demanded);
         Assert.Equal(10, c.Frames);
         Assert.Equal(10, c.Faces);
@@ -325,6 +333,103 @@ public class ChoreographyVerifierTests
         var proof = Perform(scene, Typical, (_, _) => (1.0, 1.0));
 
         var o = new ChoreographyVerifier(scene.Models().Object).Measure(proof, Typical, new byte[] { 1 });
+        Assert.Equal(PlanarityStatuses.Unmeasured, o.Status);
+    }
+
+    /// <summary>
+    /// Kullanıcı mesafeleri yalnız kısmen uyguladı: en geniş çift bile 1,25'in altında. Dar
+    /// çiftin P'si gürültüdür (1,16'da ±0,19) — gerçek bir sahne olsa da ölçülmüş sayılmaz.
+    /// </summary>
+    [Fact]
+    public void DarCiftlerPyeGirmez()
+    {
+        var scene = new Scene();
+        var narrow = new Dictionary<StancePosition, double>
+        {
+            [StancePosition.Far] = 1.0, [StancePosition.Mid] = 1.1, [StancePosition.Near] = 1.2,
+        };
+        var proof = Perform(scene, Typical, (i, _) =>
+        {
+            double s = narrow[Typical.Stops[i].Position];
+            return (RealBackground(s), s);
+        });
+
+        var o = new ChoreographyVerifier(scene.Models().Object).Measure(proof, Typical, new byte[] { 1 });
+        Assert.Equal(PlanarityStatuses.Unmeasured, o.Status);
+        Assert.Equal(0, o.Choreography!.ParallaxPairs);
+    }
+
+    /// <summary>
+    /// 🔴 SIRTI PERDEDE (2026-09-24 14:52): yakın karelerde arka plan eşleşmiyor, geriye tek
+    /// uzak↔orta çifti kalıyor. Sahada o tek çift eşiği 0,003 farkla geçirdi. Tek çift bir
+    /// ölçüm değil — sonuç "ölçülemedi", yani red ve "bir adım uzaklaşın".
+    /// </summary>
+    [Fact]
+    public void TekCiftYetmez()
+    {
+        var scene = new Scene();
+        var proof = new ChoreographyProof { Version = 1, BgTexture = 18, ElapsedMs = 14000 };
+        for (int i = 0; i < Typical.Stops.Count; i++)
+        {
+            var stop = Typical.Stops[i];
+            double s = ScaleOf[stop.Position];
+            bool near = stop.Position == StancePosition.Near;   // yakında arka plan eşleşmiyor
+            var sent = new ChoreographyProofStop
+            {
+                Hold =
+                {
+                    scene.Add(RealBackground(s), s, altBackground: near),
+                    scene.Add(RealBackground(s), s, jitter: 2, altBackground: near),
+                },
+            };
+            if (stop.Event != StanceEvent.None)
+                sent.Event.Add(scene.Add(RealBackground(s), s, jitter: 1, altBackground: near));
+            proof.Stops.Add(sent);
+        }
+
+        var o = new ChoreographyVerifier(scene.Models().Object).Measure(proof, Typical, new byte[] { 1 });
+        Assert.Equal(1, o.Choreography!.ParallaxPairs);
+        Assert.Equal(PlanarityStatuses.Unmeasured, o.Status);
+        // Mesaj seçimi dokudan: desen var (18) → "arka plan çok yakın, bir adım uzaklaşın".
+        Assert.Equal(VerifyBlind.Core.EnclaveErrorCodes.ParallaxFlat, EnclaveService.StanceGate(o)!.ErrorCode);
+    }
+
+    /// <summary>
+    /// Uzak↔orta çiftleri bol (dört tane, hepsi 1,41) ama YAKIN kareler hiçbir şeyle eşleşmiyor.
+    /// Çift sayısı yeterli, en geniş tutan çift değil: arka plan yakın uçta ölçülemedi demek —
+    /// sahadaki sırt-yüzeyde koşularının 8/8'inin imzası.
+    /// </summary>
+    [Fact]
+    public void UzakYakinCiftiTutmazsaOlculemez()
+    {
+        var demanded = Demand(
+            (StancePosition.Near, StanceEvent.None), (StancePosition.Far, StanceEvent.Blink),
+            (StancePosition.Mid, StanceEvent.None), (StancePosition.Far, StanceEvent.None),
+            (StancePosition.Mid, StanceEvent.Smile));
+        var scene = new Scene();
+        var proof = new ChoreographyProof { Version = 1, BgTexture = 18, ElapsedMs = 16000 };
+        for (int i = 0; i < demanded.Stops.Count; i++)
+        {
+            var stop = demanded.Stops[i];
+            double s = ScaleOf[stop.Position];
+            bool near = stop.Position == StancePosition.Near;
+            var sent = new ChoreographyProofStop
+            {
+                Hold =
+                {
+                    scene.Add(RealBackground(s), s, altBackground: near),
+                    scene.Add(RealBackground(s), s, jitter: 2, altBackground: near),
+                },
+            };
+            if (stop.Event != StanceEvent.None)
+                sent.Event.Add(scene.Add(RealBackground(s), s, jitter: 1, altBackground: near));
+            proof.Stops.Add(sent);
+        }
+
+        var o = new ChoreographyVerifier(scene.Models().Object).Measure(proof, demanded, new byte[] { 1 });
+        Assert.True(o.Choreography!.ParallaxPairs >= PlanarityMeasurementService.MinStrictPairs,
+            $"çift={o.Choreography.ParallaxPairs}");
+        Assert.True(o.FarResidual < PlanarityMeasurementService.MinStrictWidestSpan, $"s={o.FarResidual}");
         Assert.Equal(PlanarityStatuses.Unmeasured, o.Status);
     }
 

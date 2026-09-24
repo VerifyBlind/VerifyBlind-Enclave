@@ -2192,7 +2192,7 @@ string? partnerId = null;
 
         return $"{c.Status}{(c.InvalidReason is null ? "" : ":" + c.InvalidReason)} dizi={c.Demanded} " +
                $"kimlik=[{Join(c.Identity)}] olay-kimlik=[{Join(c.EventIdentity)}] " +
-               $"ölçek=[{Join(c.StopScales)}] konum-hata={Num(c.PositionErrMax)} " +
+               $"ölçek=[{Join(c.StopScales)}] konum-hata={Num(c.PositionErrMax)} p-çift={c.ParallaxPairs} " +
                $"titreşim={Num(c.HoldMotionMin, "F2")} kayma={Num(c.HoldScaleDevMax)} " +
                $"kontur={Num(c.ContourFar)}→{Num(c.ContourNear)} (×{Num(c.ContourRatio)}) " +
                $"olaylar=[{events}] kare={c.Faces}/{c.Frames} sıfırlama={c.Resets?.ToString() ?? "-"} yakın-doku={Num(c.BgTextureNear, "F1")} " +

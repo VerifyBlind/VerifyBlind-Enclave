@@ -228,6 +228,7 @@ namespace VerifyBlind.Enclave.Services.Stance
 
             _planarity.Evaluate(outcome, interocular, gray, faceBox, proof.BgTexture,
                 framesSent: demanded.Stops.Count, complete: true, strict: true);
+            outcome.Choreography!.ParallaxPairs = _planarity.LastPairCount;
         }
 
         /// <summary>

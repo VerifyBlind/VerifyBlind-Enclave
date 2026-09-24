@@ -238,6 +238,13 @@ public class ChoreographyOutcome
     [JsonPropertyName("contour_ratio")]
     public double? ContourRatio { get; set; }
 
+    /// <summary>
+    /// P'ye giren (tutan, yeterince geniş) çift sayısı. Katı kipte en az 2 — tek çift gürültüdür
+    /// (sahada 1,16 açıklıklı tek çift, sırtı perdeye dayalı koşuyu eşiğin 0,003 üstüne taşıdı).
+    /// </summary>
+    [JsonPropertyName("parallax_pairs")]
+    public int ParallaxPairs { get; set; }
+
     [JsonPropertyName("frames")]
     public int Frames { get; set; }
 
