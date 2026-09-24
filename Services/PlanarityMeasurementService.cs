@@ -178,11 +178,40 @@ namespace VerifyBlind.Enclave.Services
                 gray.Add(GrayDecoder.Decode(bytes));
             }
 
+            return Evaluate(outcome, interocular, gray, faceBox, proof.BgTexture,
+                framesSent: proof.Frames.Count, complete: proof.Complete, strict: false);
+        }
+
+        /// <summary>
+        /// 🔴 KATI KİPTE istenen en küçük açıklık (ölçümün yapıldığı çiftin yüz ölçeği).
+        ///
+        /// <para>P'nin gürültüsü açıklıkla ters orantılı: B'deki ±0,03'lük hata P'de
+        /// ±0,03/(s−1) eder. s = 1,1'de ±0,3 — düz bir ekran şans eseri 0,30'u aşabilir.
+        /// Saldırganın en ucuz kaçamağı tam budur: hareketi küçük tut, gürültü işini görsün.
+        /// 1,25'te hata ±0,12; sahte bant 0'da kalır.</para>
+        ///
+        /// <para>Meşru kullanıcıya maliyeti yok: duruş dizisi uzak (0,31) ile yakın (0,62)
+        /// arasında 2,0× açıklık dayatıyor. Yatak koşularında bile tutan en geniş çift 1,34-1,73.</para>
+        /// </summary>
+        public const double MinStrictSpan = 1.25;
+
+        /// <summary>
+        /// Önceden çözülmüş karelerden durumu ve parallaksı hesaplar. Kareler en uzaktan en
+        /// yakına SIRALI.
+        /// </summary>
+        /// <param name="strict">
+        /// Duruş kanıtı: "ölçemedik" de RED sebebidir (<see cref="PlanarityStatuses.Unmeasured"/>).
+        /// Eski kanıtta ölçülemeyen akış geçer; gerekçe <see cref="PlanarityStatuses.Unmeasured"/>.
+        /// </param>
+        internal PlanarityOutcome Evaluate(
+            PlanarityOutcome outcome, List<double> interocular, List<GrayImage?> gray,
+            List<Rect> faceBox, double? bgTexture, int framesSent, bool complete, bool strict)
+        {
             outcome.FarMeasured = interocular.Count;
 
             if (interocular.Count == 0)
             {
-                outcome.Status = PlanarityStatuses.NoFaceFar;
+                outcome.Status = strict ? PlanarityStatuses.Unmeasured : PlanarityStatuses.NoFaceFar;
                 return outcome;
             }
 
@@ -216,9 +245,12 @@ namespace VerifyBlind.Enclave.Services
             if (parallax.P is { } p && p < MinParallaxP)
                 // Ölçtük ve DÜZ çıktı. Diğer tüm durumlardan farkı: bu bir RED sebebi.
                 outcome.Status = PlanarityStatuses.FlatSurface;
+            else if (strict && (parallax.P is null || parallax.Span is not { } s || s < MinStrictSpan))
+                // Duruş kanıtında ölçülemeyen ya da yetersiz açıklıkla ölçülen akış GEÇMEZ.
+                outcome.Status = PlanarityStatuses.Unmeasured;
             else if (interocular.Count < MinFrames)
                 outcome.Status = PlanarityStatuses.NotEnoughFrames;
-            else if (parallax.P is null && proof.BgTexture is { } t && t < MinBackgroundTexture)
+            else if (parallax.P is null && bgTexture is { } t && t < MinBackgroundTexture)
                 // Ölçemedik VE sebebi belli: arka planda eşleştirilecek desen yok.
                 outcome.Status = PlanarityStatuses.NoTexture;
             else if (span < 1.2)
@@ -228,11 +260,11 @@ namespace VerifyBlind.Enclave.Services
                 outcome.Status = PlanarityStatuses.Measured;
 
             Console.WriteLine(
-                $"[Parallax] durum={outcome.Status} kare={outcome.FarMeasured}/{proof.Frames.Count} " +
+                $"[Parallax] durum={outcome.Status} kare={outcome.FarMeasured}/{framesSent} " +
                 $"açıklık={span:F2} B={outcome.Delta?.ToString("F3") ?? "-"} " +
                 $"P={outcome.NearResidual?.ToString("F3") ?? "-"} s={outcome.FarResidual?.ToString("F2") ?? "-"} uyum={outcome.NearMeasured} " +
-                $"doku={proof.BgTexture?.ToString("F1") ?? "-"} " +
-                $"tam={proof.Complete}");
+                $"doku={bgTexture?.ToString("F1") ?? "-"} " +
+                $"tam={complete}");
 
             return outcome;
         }
@@ -358,7 +390,7 @@ namespace VerifyBlind.Enclave.Services
         /// yaklaşır ve oran 1'e, yani saldırı lehine kayar. Fazla dışlamanın bedeli yalnız
         /// "ölçemedik"tir; az dışlamanın bedeli yanlış bir sayıdır.</para>
         /// </summary>
-        private static Rect FaceBoxFrom(float[] lm, double interocularDistance)
+        internal static Rect FaceBoxFrom(float[] lm, double interocularDistance)
         {
             double cx = (lm[0] + lm[2]) / 2.0;
             double cy = (lm[1] + lm[3]) / 2.0 + 0.5 * interocularDistance;

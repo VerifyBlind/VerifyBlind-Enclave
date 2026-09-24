@@ -87,6 +87,37 @@ public class EnclaveServiceTests
             Assert.NotEqual(response.Challenges[i - 1], response.Challenges[i]);
     }
 
+    /// <summary>
+    /// 🔴 El sıkışmadaki duruş dizisi, register'da nonce'tan yeniden türetilenle AYNI olmalı.
+    /// Değilse enclave istemcinin kanıtını, istemciye söylediğinden başka bir diziye göre ölçer
+    /// ve her meşru kayıt "yapı bozuk" diye düşer.
+    /// </summary>
+    [Fact]
+    public void Handshake_ChoreographyIsDerivedFromNonce()
+    {
+        var response = _service.Handshake(new DiagLog());
+
+        Assert.NotNull(response.Choreography);
+        var rederived = VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.FromNonce(response.Nonce);
+        Assert.Equal(
+            VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.Describe(rederived),
+            VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.Describe(response.Choreography!));
+    }
+
+    /// <summary>Alan JSON'da "choreography" adıyla, konum/olay SAYI olarak gider — istemci sözleşmesi.</summary>
+    [Fact]
+    public void Handshake_ChoreographySerializesAsNumbers()
+    {
+        var response = _service.Handshake(new DiagLog());
+        var json = System.Text.Json.JsonSerializer.Serialize(response);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var stops = doc.RootElement.GetProperty("choreography").GetProperty("stops");
+        Assert.Equal(System.Text.Json.JsonValueKind.Number, stops[0].GetProperty("pos").ValueKind);
+        Assert.Equal(3, stops[0].GetProperty("pos").GetInt32());   // yakın çıpa
+        Assert.Equal(System.Text.Json.JsonValueKind.Number, stops[0].GetProperty("event").ValueKind);
+    }
+
     // ── Login Handshake ───────────────────────────────────────────────────────
 
     [Fact]

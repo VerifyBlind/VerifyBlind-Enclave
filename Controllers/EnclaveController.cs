@@ -43,6 +43,9 @@ public class EnclaveController : ControllerBase
                 attestation_document = result.AttestationDocument,
                 enclave_pub_key = _keyService.GetEnclavePublicKey(),
                 challenges = result.Challenges,
+                // Duruş + olay dizisi — yeni istemci jestler yerine bunu yürütür. Nonce'tan türetilir;
+                // register'da enclave aynı diziyi yeniden türetip kanıtı ona göre ölçer.
+                choreography = result.Choreography,
                 enclave_diag = diag.Entries
             });
         }

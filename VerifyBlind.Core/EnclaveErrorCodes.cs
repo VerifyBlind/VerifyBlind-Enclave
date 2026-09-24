@@ -45,6 +45,19 @@ public static class EnclaveErrorCodes
     /// AYRI eylem — kullanıcı uzaklaşmakla değil, dokulu bir yere geçmekle çözer.
     /// </summary>
     public const string ParallaxBare          = "ERR_PARALLAX_BARE";
+
+    /// <summary>
+    /// Duruş karelerinden en az birindeki yüz kimlik kartıyla eşleşmedi — derinlik bir
+    /// kaynaktan, kimlik başka kaynaktan (kaynak ayrımı). Kullanıcıya söylenecek şey
+    /// <see cref="BiometricMismatch"/> ile aynı: yüz kartla eşleşmedi, tekrar deneyin.
+    /// </summary>
+    public const string ChoreographyIdentity  = "ERR_CHOREO_IDENTITY";
+
+    /// <summary>
+    /// Duruş kanıtının yapısı istenen diziyle uyuşmuyor (eksik durak, eksik olay karesi,
+    /// çözülemeyen kare). Meşru istemcide OLUŞMAMALI: ya bizim hatamız ya kurcalama.
+    /// </summary>
+    public const string ChoreographyInvalid   = "ERR_CHOREO_INVALID";
     public const string TicketRevoked         = "ERR_TICKET_REVOKED";
 
     /// <summary>Girişte canlı selfie, ticket'taki yüz referansıyla eşleşmedi (skor

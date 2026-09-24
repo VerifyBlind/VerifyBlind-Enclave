@@ -89,12 +89,71 @@ namespace VerifyBlind.Enclave.Services.FaceAlignment
             _isLoaded ? DetectBestLandmarks(source) : null;
 
         /// <summary>
+        /// En büyük yüzün 5 noktası VE kutusu, ORİJİNAL koordinatlarda. Yüz yoksa null.
+        ///
+        /// <para>Kutu, duruş kanıtının kontur ölçümü için açıldı: yüz kutusu genişliği ile
+        /// göz-arası mesafenin oranı, kafanın yanları gözlerden geride olduğu için mesafeyle
+        /// değişir; düz yüzeyde sabittir.</para>
+        /// </summary>
+        public FaceDetection? DetectFace(Image<Rgb24> source)
+        {
+            if (!_isLoaded) return null;
+            var (best, scale) = DetectBest(source);
+            if (best == null) return null;
+
+            var face = new FaceDetection
+            {
+                Score = best.Score,
+                X = best.X / scale,
+                Y = best.Y / scale,
+                W = best.W / scale,
+                H = best.H / scale,
+            };
+            for (int i = 0; i < 10; i++) face.Landmarks[i] = best.Landmarks[i] / scale;
+            return face;
+        }
+
+        /// <summary>
+        /// Verilen 5 noktayla hizalar — YuNet'i YENİDEN çalıştırmadan.
+        ///
+        /// <para>Duruş kanıtında her kare zaten bir kez tespit ediliyor (ölçek, kutu, parallaks
+        /// için). Kimlik ve olay ölçümü aynı kareyi yeniden hizalamak zorunda; <see cref="Align"/>
+        /// bunu tespiti tekrarlayarak yapardı. 640×640 YuNet çıkarımı kare başına en pahalı
+        /// adım, iki kez ödemenin anlamı yok.</para>
+        /// </summary>
+        public static Image<Rgb24> AlignWith(Image<Rgb24> source, float[] landmarks)
+        {
+            if (landmarks is not { Length: 10 })
+                throw new ArgumentException("5 nokta (10 değer) bekleniyor.", nameof(landmarks));
+            float[] m = Umeyama.SimilarityTransform(landmarks, ArcfaceDst);
+            return WarpAffineBilinear(source, InvertAffine(m), OutputSize, OutputSize);
+        }
+
+        /// <summary>Hizalanmış 112×112 karedeki kanonik nokta konumları (x0,y0,...,x4,y4).</summary>
+        public static ReadOnlySpan<float> CanonicalLandmarks => ArcfaceDst;
+
+        /// <summary>
         /// Kaynağı 640x640'a letterbox'lar, YuNet'i çalıştırır, 3-stride decode + NMS yapar,
         /// en büyük yüzün 5 landmark'ını ORİJİNAL koordinatlara çevirir. Yüz yoksa null.
         /// </summary>
         private float[]? DetectBestLandmarks(Image<Rgb24> source)
         {
-            if (_session == null) return null;
+            var (best, scale) = DetectBest(source);
+            if (best == null) return null;
+
+            // 640-canvas → orijinal koordinatlar (paste sol-üstte, ofset yok).
+            var lmk = new float[10];
+            for (int i = 0; i < 10; i++) lmk[i] = best.Landmarks[i] / scale;
+            return lmk;
+        }
+
+        /// <summary>
+        /// YuNet'i çalıştırır ve en büyük yüzü 640-canvas koordinatlarında döndürür; ölçek,
+        /// orijinale dönüş için. Model yoksa ya da yüz yoksa (null, 1).
+        /// </summary>
+        private (FaceDetection? best, float scale) DetectBest(Image<Rgb24> source)
+        {
+            if (_session == null) return (null, 1f);
 
             int sw = source.Width, sh = source.Height;
             float scale = (float)InputSize / Math.Max(sw, sh);
@@ -142,13 +201,7 @@ namespace VerifyBlind.Enclave.Services.FaceAlignment
                     s, InputSize, ScoreThreshold));
             }
 
-            FaceDetection? best = YunetDecoder.SelectBestFace(all, NmsThreshold);
-            if (best == null) return null;
-
-            // 640-canvas → orijinal koordinatlar (paste sol-üstte, ofset yok).
-            var lmk = new float[10];
-            for (int i = 0; i < 10; i++) lmk[i] = best.Landmarks[i] / scale;
-            return lmk;
+            return (YunetDecoder.SelectBestFace(all, NmsThreshold), scale);
         }
 
         /// <summary>2x3 afin matrisin tersini döndürür ([a,b,tx,c,d,ty]).</summary>

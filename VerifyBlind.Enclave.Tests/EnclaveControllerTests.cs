@@ -53,6 +53,30 @@ public class EnclaveControllerTests
         Assert.Contains("challenges", json);
     }
 
+    /// <summary>
+    /// 🔴 Controller yanıtı anonim nesneyle kuruyor, <c>HandshakeResponse</c>'u doğrudan dönmüyor.
+    /// Servise eklenen alan buraya da eklenmezse istemciye HİÇ ulaşmaz ve yeni istemci sessizce
+    /// eski jest akışına düşer — hiçbir test kırılmadan.
+    /// </summary>
+    [Fact]
+    public void Handshake_ResponseCarriesChoreographyMatchingNonce()
+    {
+        var result = Assert.IsType<OkObjectResult>(_controller.Handshake());
+        var json = System.Text.Json.JsonSerializer.Serialize(result.Value);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var nonce = doc.RootElement.GetProperty("nonce").GetString()!;
+        var stops = doc.RootElement.GetProperty("choreography").GetProperty("stops");
+
+        var expected = VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.FromNonce(nonce);
+        Assert.Equal(expected.Stops.Count, stops.GetArrayLength());
+        for (int i = 0; i < expected.Stops.Count; i++)
+        {
+            Assert.Equal((int)expected.Stops[i].Position, stops[i].GetProperty("pos").GetInt32());
+            Assert.Equal((int)expected.Stops[i].Event, stops[i].GetProperty("event").GetInt32());
+        }
+    }
+
     [Fact]
     public void Handshake_ServiceThrows_ReturnsBadRequest()
     {

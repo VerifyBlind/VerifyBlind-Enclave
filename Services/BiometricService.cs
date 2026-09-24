@@ -40,7 +40,26 @@ namespace VerifyBlind.Enclave.Services
         /// bir model kopyası demek olurdu.</para>
         /// </summary>
         float[]? DetectLandmarks(byte[] imageBytes);
+
+        /// <summary>
+        /// En büyük yüzün 5 noktası + kutusu + görüntü boyutu. Yüz yoksa ya da görüntü
+        /// çözülemezse null — ölçüm yolu, FIRLATMAZ.
+        /// </summary>
+        FaceObservation? DetectFace(byte[] imageBytes);
+
+        /// <summary>
+        /// Önceden bulunmuş noktalarla hizalayıp gömme vektörü çıkarır — YuNet'i tekrar
+        /// çalıştırmaz. Duruş kanıtında her kare zaten bir kez tespit ediliyor.
+        /// </summary>
+        float[] ComputeEmbedding(byte[] imageBytes, float[] landmarks);
     }
+
+    /// <summary>
+    /// Bir karedeki en büyük yüz: 5 YuNet noktası (sağ göz, sol göz, burun, sağ ağız, sol ağız),
+    /// kutu ve görüntü boyutu — hepsi ORİJİNAL koordinatlarda.
+    /// </summary>
+    public sealed record FaceObservation(
+        float[] Landmarks, float BoxX, float BoxY, float BoxW, float BoxH, int ImageWidth, int ImageHeight);
 
     public class BiometricService : IBiometricService
     {
@@ -177,6 +196,34 @@ namespace VerifyBlind.Enclave.Services
             }
         }
 
+        /// <summary><see cref="IBiometricService.DetectFace"/>.</summary>
+        public FaceObservation? DetectFace(byte[] imageBytes)
+        {
+            try
+            {
+                using var source = Image.Load<Rgb24>(imageBytes);
+                var face = _aligner.DetectFace(source);
+                if (face == null) return null;
+                return new FaceObservation(face.Landmarks, face.X, face.Y, face.W, face.H,
+                    source.Width, source.Height);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[BiometricService] Yüz tespiti başarısız (ölçüm atlanıyor): {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary><see cref="IBiometricService.ComputeEmbedding(byte[], float[])"/>.</summary>
+        public float[] ComputeEmbedding(byte[] imageBytes, float[] landmarks)
+        {
+            if (!_isLoaded)
+                throw new InvalidOperationException("Biyometrik Doğrulama Başarısız: YZ Modeli (w600k_r50.onnx) bulunamadı.");
+            using var source = Image.Load<Rgb24>(imageBytes);
+            using var aligned = FaceAligner.AlignWith(source, landmarks);
+            return EmbeddingOf(aligned);
+        }
+
         // internal: offline eşik kalibrasyonu (CalibrationLfwTests) + gelecekteki biyometrik
         // karşılaştırma/step-up primitifi. VerifyFace bunun üstüne kosinüs ekler.
         internal float[] GetEmbedding(byte[] imageBytes)
@@ -186,6 +233,14 @@ namespace VerifyBlind.Enclave.Services
             // FaceAligner merkez-kare kırpmaya düşer.
             using (var source = Image.Load<Rgb24>(imageBytes))
             using (var image = _aligner.Align(source))
+            {
+                return EmbeddingOf(image);
+            }
+        }
+
+        /// <summary>Hizalanmış 112×112 görüntünün ArcFace gömmesi.</summary>
+        private float[] EmbeddingOf(Image<Rgb24> image)
+        {
             {
                 var input = new DenseTensor<float>(new[] { 1, 3, 112, 112 });
 

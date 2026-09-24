@@ -327,6 +327,14 @@ public class PlanarityOutcome
     /// </summary>
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
+
+    /// <summary>
+    /// Duruş + olay ölçümü — parallaks bu kanıttan çıktıysa dolu. Ayrı bir alan yerine
+    /// buraya iliştirildi: iki ölçüm AYNI karelerden geliyor ve relay onları aynı satıra
+    /// yazıyor; ayrı taşımak red yolundaki her iliştirme noktasını ikiye katlardı.
+    /// </summary>
+    [JsonPropertyName("choreography")]
+    public ChoreographyOutcome? Choreography { get; set; }
 }
 
 /// <summary>
@@ -452,11 +460,22 @@ public static class PlanarityStatuses
     /// </summary>
     public const string FlatSurface = "flat_surface";
 
+    /// <summary>
+    /// 🔴 ÖLÇÜLEMEDİ — ve bu duruş kanıtında RED sebebidir.
+    ///
+    /// <para>Eski kanıtta "ölçemedik" geçiyordu: düz duvarın önündeki meşru kullanıcı
+    /// reddedilmesin diye. Duruş kanıtında bu, saldırgana açık bir kapı: hareketsiz kareler ya
+    /// da desensiz bir düzenek göndermek P'yi hesaplanamaz kılar ve kapı hiç çalışmaz.
+    /// Kullanıcı kararı (2026-09-24): "Sürtünmeyi arttırmak pahasına güvenliği yüksek
+    /// tutmalıyız. Yeter ki kullanıcıyı yeterince bilgilendirelim." Mesaj eylem bildirir.</para>
+    /// </summary>
+    public const string Unmeasured = "unmeasured";
+
 
     /// <summary>Sayı hesaplandı ama pencerede yeterli kare yok — dağılıma KATILMAZ.</summary>
     public const string NotEnoughFrames = "not_enough_frames";
 
     public static bool IsValid(string? v) =>
         v is Measured or NoProof or NoFaceFar or NoFaceNear or NotApproached
-          or NotEnoughFrames or NoTexture or FlatSurface;
+          or NotEnoughFrames or NoTexture or FlatSurface or Unmeasured;
 }
