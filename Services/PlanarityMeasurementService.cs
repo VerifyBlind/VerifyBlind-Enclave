@@ -199,17 +199,31 @@ namespace VerifyBlind.Enclave.Services
             outcome.NearMeasured = parallax.Inliers;
             _lastPairDetail = parallax.PairDetail;
 
-            if (interocular.Count < MinFrames)
+            // 🔴 SIRA ÖNEMLİ: P hesaplanabildiyse KAPI HER ŞEYDEN ÖNCE ÇALIŞIR.
+            //
+            // Önceki sürümde doku kontrolü öndeydi ve sahada şunu yaptı (2026-09-24, duvar dibi
+            // koşusu): istemci doku 12,0 bildirdi → `no_texture` → kapı hiç çalışmadı → akış
+            // GEÇTİ. Oysa aynı koşuda P = 0,109 ile HESAPLANMIŞTI, 23 uyumla. Yani ölçtük, sonra
+            // "ölçemedik" diye etiketledik.
+            //
+            // İki sonucu vardı: (a) saldırgana düşük dokulu bir düzenekle kapıyı tamamen atlama
+            // yolu; (b) fiziksel olarak AYNI durumun (sırt bir yüzeye dayalı) bazen geçip bazen
+            // düşmesi — farkı belirleyen şey geometri değil, İSTEMCİNİN BİLDİRDİĞİ bir sayıydı.
+            //
+            // Ölçülebilirliğin doğru ölçütü bizim kendi uyum sayımız, istemcinin doku raporu
+            // değil. Doku artık yalnız P HESAPLANAMADIĞINDA anlamlı: o zaman "neden ölçemedik"
+            // sorusunu cevaplıyor.
+            if (parallax.P is { } p && p < MinParallaxP)
+                // Ölçtük ve DÜZ çıktı. Diğer tüm durumlardan farkı: bu bir RED sebebi.
+                outcome.Status = PlanarityStatuses.FlatSurface;
+            else if (interocular.Count < MinFrames)
                 outcome.Status = PlanarityStatuses.NotEnoughFrames;
-            else if (proof.BgTexture is { } t && t < MinBackgroundTexture)
-                // Doku yoksa arka plan ölçeği çıkarılamaz — ama bu bir RED sebebi değil.
+            else if (parallax.P is null && proof.BgTexture is { } t && t < MinBackgroundTexture)
+                // Ölçemedik VE sebebi belli: arka planda eşleştirilecek desen yok.
                 outcome.Status = PlanarityStatuses.NoTexture;
             else if (span < 1.2)
                 // Kullanıcı yeterince yaklaşmadı → sinyalin anlamı yok.
                 outcome.Status = PlanarityStatuses.NotApproached;
-            else if (parallax.P is { } p && p < MinParallaxP)
-                // Ölçtük ve DÜZ çıktı. Diğer tüm durumlardan farkı: bu bir red sebebi.
-                outcome.Status = PlanarityStatuses.FlatSurface;
             else
                 outcome.Status = PlanarityStatuses.Measured;
 

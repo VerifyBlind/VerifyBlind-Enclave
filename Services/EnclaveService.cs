@@ -35,6 +35,13 @@ public class EnclaveService
     /// </summary>
     public const float BiometricThreshold = 0.20f;
 
+    /// <summary>
+    /// Düz yüzey reddinde "arkanda hiç desen yok" ile "desen var ama çok yakın" ayrımının eşiği.
+    /// İstemcinin doku ölçümüyle aynı sayı; yalnız HANGİ MESAJIN gösterileceğini belirler,
+    /// reddin kendisini değil.
+    /// </summary>
+    private const double ParallaxBareBackgroundTexture = 14.0;
+
     public EnclaveService(IEnclaveKeyService enclaveKeys, IBiometricService biometricService,
         ITicketMacService ticketMac, IIdentityHmacService idHmac, IAntiSpoofService antiSpoof,
         FlowEmbeddingCache flowEmbeddings, IPlanarityMeasurementService? planarity = null)
@@ -389,8 +396,16 @@ public class EnclaveService
                 $"B={planarity.Delta?.ToString("F3") ?? "-"} " +
                 $"s={planarity.FarResidual?.ToString("F2") ?? "-"} " +
                 $"uyum={planarity.NearMeasured} eşik={PlanarityMeasurementService.MinParallaxP}");
-            throw new RegistrationException(RegistrationStep.BiometricVerification, "ERR_PARALLAX_FLAT",
-                "Yüz ve arka plan aynı düzlemde ölçüldü — düz bir yüzey (ekran/baskı) sunuluyor olabilir.")
+            // İki farklı sebep, iki farklı eylem. Kullanıcı "arkanda desen yok" ile "desen var
+            // ama çok yakın" durumlarında BAŞKA şey yapmalı; tek mesaj ikisini de yanlış yönlendirir.
+            // Ayrım dokudan: düz yüzey ölçüldüğünde doku hâlâ yüksekse arka plan VAR ama yakın.
+            bool bareBackground = planarity.BgTexture is { } bg && bg < ParallaxBareBackgroundTexture;
+            string code = bareBackground ? "ERR_PARALLAX_BARE" : "ERR_PARALLAX_FLAT";
+
+            throw new RegistrationException(RegistrationStep.BiometricVerification, code,
+                bareBackground
+                    ? "Arka planda eşleştirilecek desen yok — kullanıcı düz bir duvarın önünde."
+                    : "Yüz ve arka plan aynı düzlemde ölçüldü — arka plan çok yakın ya da düz bir yüzey sunuluyor.")
             { Planarity = planarity };
         }
 

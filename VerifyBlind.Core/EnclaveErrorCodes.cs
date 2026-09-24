@@ -39,6 +39,12 @@ public static class EnclaveErrorCodes
     /// TV'deki fotoğrafı geçirirken geometri aynı düzeneği yakaladı.
     /// </summary>
     public const string ParallaxFlat          = "ERR_PARALLAX_FLAT";
+
+    /// <summary>
+    /// Düz yüzey reddinin ALT TÜRÜ: arka planda hiç desen yok (düz duvar). Aynı geometri,
+    /// AYRI eylem — kullanıcı uzaklaşmakla değil, dokulu bir yere geçmekle çözer.
+    /// </summary>
+    public const string ParallaxBare          = "ERR_PARALLAX_BARE";
     public const string TicketRevoked         = "ERR_TICKET_REVOKED";
 
     /// <summary>Girişte canlı selfie, ticket'taki yüz referansıyla eşleşmedi (skor
