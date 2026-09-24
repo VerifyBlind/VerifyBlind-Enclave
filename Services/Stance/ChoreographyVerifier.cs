@@ -30,6 +30,12 @@ namespace VerifyBlind.Enclave.Services.Stance
         /// </param>
         PlanarityOutcome Measure(ChoreographyProof proof, Choreography demanded, byte[]? idPhotoBytes);
 
+        /// <summary>
+        /// Erken önizleme: yakın çıpa + ilk uzak durak karelerinde register'daki parallaks
+        /// ölçümünün aynısı. BİLGİ verir, karar vermez.
+        /// </summary>
+        ParallaxPreviewResult Preview(IReadOnlyList<string> frames);
+
         /// <summary>Son ölçümün çift-başına P listesi — teşhis metnine girer.</summary>
         string LastPairDetail { get; }
     }
@@ -163,6 +169,50 @@ namespace VerifyBlind.Enclave.Services.Stance
             result.Status = StatusMeasured;
             result.CostMs = (int)clock.ElapsedMilliseconds;
             return outcome;
+        }
+
+        /// <summary>Önizlemede işlenecek en fazla kare — her kare bir YuNet çıkarımı.</summary>
+        public const int MaxPreviewFrames = 3;
+
+        /// <inheritdoc/>
+        public ParallaxPreviewResult Preview(IReadOnlyList<string> frames)
+        {
+            var clock = Stopwatch.StartNew();
+            var result = new ParallaxPreviewResult();
+
+            var analyzed = frames.Take(MaxPreviewFrames)
+                .Select(Analyze)
+                .Where(f => f is { HasFace: true })
+                .Select(f => f!)
+                .OrderBy(f => f.Interocular)   // uzaktan yakına
+                .ToList();
+
+            if (analyzed.Count >= 2)
+            {
+                var interocular = analyzed.Select(f => f.Interocular!.Value).ToList();
+                var faceBox = analyzed.Select(f => PlanarityMeasurementService.FaceBoxFrom(f.Face!.Landmarks, f.Interocular!.Value)).ToList();
+                var gray = analyzed.Select(f => GrayDecoder.Decode(f.Bytes)).ToList();
+
+                // Register'daki katı ölçümle AYNI kurallar: dar çift P'ye girmez, en geniş tutan
+                // çift uzak↔yakın olmalı. Farklı kural önizlemeyi register'dan ayırır ve kullanıcı
+                // "önizleme geçti ama kayıt reddedildi" durumuna düşer.
+                var parallax = PlanarityMeasurementService.MeasureParallax(gray, faceBox, interocular,
+                    minPairSpan: PlanarityMeasurementService.MinStrictPairSpan);
+                result.P = parallax.P;
+                result.Span = parallax.Span;
+                result.Inliers = parallax.Inliers;
+
+                if (parallax.P is { } p && p < PlanarityMeasurementService.MinParallaxP)
+                    result.Status = ParallaxPreviewStatuses.Flat;
+                else if (parallax.P is null || parallax.Span is not { } s ||
+                         s < PlanarityMeasurementService.MinStrictWidestSpan)
+                    result.Status = ParallaxPreviewStatuses.Unmeasured;
+                else
+                    result.Status = ParallaxPreviewStatuses.Ok;
+            }
+
+            result.CostMs = (int)clock.ElapsedMilliseconds;
+            return result;
         }
 
         private static PlanarityOutcome Invalid(PlanarityOutcome outcome, ChoreographyOutcome result,

@@ -118,6 +118,24 @@ public class EnclaveServiceTests
         Assert.Equal(System.Text.Json.JsonValueKind.Number, stops[0].GetProperty("event").ValueKind);
     }
 
+    /// <summary>
+    /// 🔴 Önizleme yalnız HAZIRLANMIŞ akışta çalışır: uydurma akış numarası hiçbir şey ölçmeden
+    /// reddedilir (hazırlık gerçek bir NFC okuması ister). Yoksa uç, kartı olmayan birinin
+    /// düzeneğini hızla denediği bir araca dönüşür.
+    /// </summary>
+    [Fact]
+    public void ParallaxPreview_UnpreparedFlow_IsRejectedBeforeDecrypting()
+    {
+        var request = new ParallaxPreviewRequest
+        {
+            FlowId = Guid.NewGuid().ToString(),
+            EncryptedKey = "x",
+            AesBlob = "y",
+        };
+        Assert.Throws<InvalidOperationException>(() => _service.ParallaxPreview(request, new DiagLog()));
+        _enclaveKeys.Verify(k => k.DecryptWithEnclaveKey(It.IsAny<string>()), Times.Never);
+    }
+
     // ── Login Handshake ───────────────────────────────────────────────────────
 
     [Fact]

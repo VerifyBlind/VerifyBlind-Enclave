@@ -183,6 +183,34 @@ public class EnclaveController : ControllerBase
     }
 
     /// <summary>
+    /// POST /api/Enclave/parallax-preview — yakın çıpa + ilk uzak durakta erken parallaks ölçümü.
+    /// Kayıt kararı burada VERİLMEZ; yalnız kullanıcıyı akış sırasında uyarmak için.
+    /// </summary>
+    [HttpPost("parallax-preview")]
+    public IActionResult ParallaxPreview([FromBody] ParallaxPreviewRequest request)
+    {
+        var diag = new VerifyBlind.Enclave.Services.DiagLog();
+        try
+        {
+            var result = _service.ParallaxPreview(request, diag);
+            return Ok(new
+            {
+                status = result.Status,
+                p = result.P,
+                s = result.Span,
+                inliers = result.Inliers,
+                enclave_diag = diag.Entries
+            });
+        }
+        catch (Exception ex)
+        {
+            diag.Fail("ParallaxPreview", ex.Message);
+            Console.WriteLine($"[Enclave Controller] PARALLAX-PREVIEW ERROR: {ex.Message}");
+            return BadRequest(new { error = ex.Message, enclave_diag = diag.Entries });
+        }
+    }
+
+    /// <summary>
     /// POST /api/Enclave/streaming-release — akış bitti, gömme vektörünü RAM'den sil.
     ///
     /// Best-effort: çağrılmasa da TTL (15 dk) girdiyi zaten düşürür.

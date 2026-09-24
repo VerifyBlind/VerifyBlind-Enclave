@@ -2036,6 +2036,32 @@ string? partnerId = null;
     /// P(live) yörüngesi, 24 Ağustos'taki %46,2 anomalisinin hangi koşulda oluştuğunu
     /// gösterebilecek TEK veri.
     /// </summary>
+    /// <summary>
+    /// ERKEN PARALLAKS ÖNİZLEMESİ — yakın çıpa + ilk uzak durak. Bilgi verir, karar vermez.
+    ///
+    /// <para>🔴 Yalnız HAZIRLANMIŞ akış: uydurma bir akış numarası hiçbir şey ölçmeden reddedilir,
+    /// hazırlık ise gerçek bir NFC okuması ister (canlı benzerlikle aynı kapı). Böylece uç, kartı
+    /// olmayan birinin düzeneğini hızla denediği bir araca dönüşmez.</para>
+    /// </summary>
+    public ParallaxPreviewResult ParallaxPreview(ParallaxPreviewRequest request, DiagLog diag)
+    {
+        if (!Guid.TryParse(request.FlowId, out _))
+            throw new InvalidOperationException("Geçersiz akış numarası.");
+        if (_flowEmbeddings.Get(request.FlowId) is null)
+            throw new InvalidOperationException("Akış referansı yok ya da süresi doldu (prepare gerekli).");
+
+        var aesKeyBase64 = _enclaveKeys.DecryptWithEnclaveKey(request.EncryptedKey);
+        var payloadJson = CryptoUtils.AesDecrypt(request.AesBlob, aesKeyBase64);
+        var payload = JsonSerializer.Deserialize<ParallaxPreviewPayload>(payloadJson)
+            ?? throw new InvalidOperationException("Önizleme yükü çözülemedi.");
+
+        var result = _choreography.Preview(payload.Frames);
+        diag.Ok("ParallaxPreview",
+            $"{result.Status} P={result.P?.ToString("F3") ?? "-"} s={result.Span?.ToString("F2") ?? "-"} " +
+            $"uyum={result.Inliers} kare={payload.Frames.Count} ({result.CostMs}ms)");
+        return result;
+    }
+
     public StreamingCheckResponse StreamingCheck(StreamingCheckRequest request, DiagLog diag)
     {
         if (!Guid.TryParse(request.FlowId, out _))

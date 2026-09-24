@@ -317,3 +317,70 @@ public class EventMeasurement
     [JsonPropertyName("mouth_dark")]
     public double? MouthDark { get; set; }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ERKEN PARALLAKS ÖNİZLEMESİ
+//
+// Telefon "arka plan çok yakın" durumunu kendisi bilemez: bu derinlik ölçümü, o da enclave'de.
+// Sahada (2026-09-24) kullanıcı perde dibinde bütün diziyi yapıp sonunda reddedildi ve haklı
+// olarak "keşke bunu akış sırasında görseydim" dedi. Yakın çıpa ile ilk uzak durak alınınca
+// telefon bu iki kareyi gönderir; enclave register'daki ölçümün aynısını bu çiftte yapar.
+//
+// ⚠️ BİLGİ, KARAR DEĞİL: son karar register'da, tüm duruş kareleriyle verilir. Önizleme yalnız
+// kullanıcıyı sonuna kadar yürütüp reddetmemek için.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Önizleme isteği — kareler relay'e AÇIK GİTMEZ, canlı benzerlikle aynı zarf (AES + enclave RSA).
+/// Yalnız hazırlanmış (NFC ile okunmuş) bir akış için çalışır.
+/// </summary>
+public class ParallaxPreviewRequest
+{
+    [JsonPropertyName("flow_id")]
+    public string FlowId { get; set; } = string.Empty;
+
+    [JsonPropertyName("encrypted_key")]
+    public string EncryptedKey { get; set; } = string.Empty;
+
+    /// <summary>AES-GCM ile şifreli <see cref="ParallaxPreviewPayload"/>.</summary>
+    [JsonPropertyName("aes_blob")]
+    public string AesBlob { get; set; } = string.Empty;
+}
+
+/// <summary>Şifreli yük: yakın çıpa ve ilk uzak durağın duruş kareleri (Base64 JPEG, tam kare).</summary>
+public class ParallaxPreviewPayload
+{
+    [JsonPropertyName("frames")]
+    public List<string> Frames { get; set; } = new();
+}
+
+/// <summary>Önizleme sonucu durumları.</summary>
+public static class ParallaxPreviewStatuses
+{
+    /// <summary>Arka plan derinliği ölçüldü ve yeterli.</summary>
+    public const string Ok = "ok";
+
+    /// <summary>Ölçüldü ve düz — arka plan yüze çok yakın (ya da düz bir yüzey).</summary>
+    public const string Flat = "flat";
+
+    /// <summary>Uzak ile yakın kare eşleşmedi — arka plan yakın uçta ölçülemedi.</summary>
+    public const string Unmeasured = "unmeasured";
+}
+
+public class ParallaxPreviewResult
+{
+    [JsonPropertyName("status")]
+    public string Status { get; set; } = ParallaxPreviewStatuses.Unmeasured;
+
+    [JsonPropertyName("p")]
+    public double? P { get; set; }
+
+    [JsonPropertyName("s")]
+    public double? Span { get; set; }
+
+    [JsonPropertyName("inliers")]
+    public int Inliers { get; set; }
+
+    [JsonPropertyName("cost_ms")]
+    public int CostMs { get; set; }
+}

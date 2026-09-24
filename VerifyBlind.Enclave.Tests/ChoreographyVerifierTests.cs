@@ -494,6 +494,49 @@ public class ChoreographyVerifierTests
         Assert.Null(ChoreographyVerifier.SanitizeTrace(null));
     }
 
+    // ── Erken önizleme ───────────────────────────────────────────────────────
+
+    [Fact]
+    public void OnizlemeGercekSahnedeGecer()
+    {
+        var scene = new Scene();
+        var near = scene.Add(RealBackground(2.0), 2.0);
+        var far = scene.Add(RealBackground(1.0), 1.0);
+
+        var r = new ChoreographyVerifier(scene.Models().Object).Preview(new[] { near, far });
+        Assert.Equal(ParallaxPreviewStatuses.Ok, r.Status);
+        Assert.True(r.P > PlanarityMeasurementService.MinParallaxP, $"P={r.P}");
+    }
+
+    [Fact]
+    public void OnizlemeDuzYuzeyiYakalar()
+    {
+        var scene = new Scene();
+        var r = new ChoreographyVerifier(scene.Models().Object)
+            .Preview(new[] { scene.Add(2.0, 2.0), scene.Add(1.0, 1.0) });
+        Assert.Equal(ParallaxPreviewStatuses.Flat, r.Status);
+    }
+
+    /// <summary>Perde dibi: yakın karede arka plan uzak kareyle eşleşmiyor → ölçülemedi.</summary>
+    [Fact]
+    public void OnizlemeYakinArkaPlaniYakalar()
+    {
+        var scene = new Scene();
+        var near = scene.Add(RealBackground(2.0), 2.0, altBackground: true);
+        var far = scene.Add(RealBackground(1.0), 1.0);
+
+        var r = new ChoreographyVerifier(scene.Models().Object).Preview(new[] { near, far });
+        Assert.Equal(ParallaxPreviewStatuses.Unmeasured, r.Status);
+    }
+
+    [Fact]
+    public void OnizlemeTekKareyleOlculemez()
+    {
+        var scene = new Scene();
+        var r = new ChoreographyVerifier(scene.Models().Object).Preview(new[] { scene.Add(1.0, 1.0) });
+        Assert.Equal(ParallaxPreviewStatuses.Unmeasured, r.Status);
+    }
+
     /// <summary>Kontur: sahte YuNet kutusu göz-arasıyla orantılı → oran 1 (düz yüzeyin imzası).</summary>
     [Fact]
     public void KonturOraniOlculur()
