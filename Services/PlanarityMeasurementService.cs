@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using VerifyBlind.Core.Models;
 using VerifyBlind.Enclave.Services.FaceAlignment;
 using VerifyBlind.Enclave.Services.Vision;
-using System.Collections.Generic;
 
 namespace VerifyBlind.Enclave.Services
 {
@@ -108,6 +107,10 @@ namespace VerifyBlind.Enclave.Services
 
         private readonly IBiometricService _biometric;
 
+        /// <summary>Son ölçümün çift-başına P listesi — teşhis metnine eklenir.</summary>
+        internal string LastPairDetail => _lastPairDetail;
+        private string _lastPairDetail = "-";
+
         public PlanarityMeasurementService(IBiometricService biometric) => _biometric = biometric;
 
         public PlanarityOutcome Measure(ParallaxProof? proof)
@@ -194,6 +197,7 @@ namespace VerifyBlind.Enclave.Services
             outcome.NearResidual = parallax.P;
             outcome.FarResidual = parallax.Span;
             outcome.NearMeasured = parallax.Inliers;
+            _lastPairDetail = parallax.PairDetail;
 
             if (interocular.Count < MinFrames)
                 outcome.Status = PlanarityStatuses.NotEnoughFrames;
@@ -220,11 +224,17 @@ namespace VerifyBlind.Enclave.Services
         }
 
         /// <summary>B ölçümünün sonucu: oran, göreli arka plan derinliği ve dayandığı uyum sayısı.</summary>
-        internal readonly record struct ParallaxResult(double? Ratio, double? P, double? Span, int Inliers);
+        internal readonly record struct ParallaxResult(double? Ratio, double? P, double? Span, int Inliers, string PairDetail);
 
         /// <summary>
         /// PARALLAKS ÖLÇÜMÜ — <c>B = yüz ölçeği / arka plan ölçeği</c> ve ondan türetilen
         /// normalize pay <c>P</c>.
+        ///
+        /// <para>⚠️ "En geniş çift" <b>ilk↔son DEĞİL</b>, tüm çiftler arasında ölçeği en büyük
+        /// olandır. Göz-arası ölçümleri tam monoton olmadığı için (kafa oynar, YuNet gürültüsü)
+        /// aradaki bir çift daha geniş çıkabiliyor: sahada `[..]` dizisinde `son/ilk = 1,2618`
+        /// iken kullanılan çift 1,2806 verdi. Bu yüzden <c>parallax_span</c>, <c>ied_ratio</c>'yu
+        /// AŞABİLİR ve bu bir tutarsızlık değildir — B ile s aynı çiftten geldiği için P doğrudur.</para>
         ///
         /// <para>🔴 <b>EN GENİŞ ÇİFTTEN BAŞLANIR ve TUTAN ÇİFTLERİN HEPSİ KULLANILIR.</b>
         /// Fizik: yüz kameradan <i>N</i>, arka plan yüzden <i>g</i> geride, çiftin yüz ölçeği
@@ -308,18 +318,23 @@ namespace VerifyBlind.Enclave.Services
                 }
             }
 
-            if (normalized.Count == 0) return new ParallaxResult(null, null, null, 0);
+            if (normalized.Count == 0) return new ParallaxResult(null, null, null, 0, "-");
 
-            // Çift başına P'ler günlüğe yazılır: meşru bir kullanıcı reddedildiğinde tek bir
-            // medyana bakıp körleşmemek için, ölçümün hangi çiftlerden geldiğini görmek şart.
-            Console.WriteLine($"[Parallax] çift P = {string.Join(" · ", normalized.ConvertAll(v => v.ToString("F3")))}");
+            // 🔴 Çift başına P'ler TEŞHİS KANALINA yazılır, Console'a DEĞİL.
+            //
+            // Enclave üretimde debug-mode olmadığı için konsolu dışarı bağlı değil ve
+            // Console.WriteLine çıktısı hiçbir yere ulaşmıyor (debug-mode PCR0'ı sıfırlar,
+            // uygulama onu zaten reddeder). İlk sürümde buraya Console.WriteLine yazmıştım ve
+            // relay logunda hiç görünmedi — teşhis için eklenen satır sessizce ölüydü.
+            // Dışarı çıkan tek kanal diag: onun metni yanıtta taşınıyor ve relay logluyor.
+            string detail = string.Join(" · ", normalized.ConvertAll(v => v.ToString("F3")));
 
             normalized.Sort();
             double p = normalized.Count % 2 == 1
                 ? normalized[normalized.Count / 2]
                 : (normalized[normalized.Count / 2 - 1] + normalized[normalized.Count / 2]) / 2;
 
-            return new ParallaxResult(widestRatio, Math.Round(p, 4), widestSpan, widestInliers);
+            return new ParallaxResult(widestRatio, Math.Round(p, 4), widestSpan, widestInliers, detail);
         }
 
         /// <summary>

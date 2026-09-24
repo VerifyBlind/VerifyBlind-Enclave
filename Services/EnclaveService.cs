@@ -366,7 +366,15 @@ public class EnclaveService
         diag.Begin("Planarity");
         var planarity = _planarity.Measure(payload.ParallaxProof);
         onPlanarityMeasured(planarity);
-        diag.Ok("Planarity", $"{planarity.Status} delta={planarity.Delta?.ToString("F5") ?? "-"}");
+        // Çift-başına P teşhis metnine giriyor: meşru bir kullanıcı reddedildiğinde tek bir
+        // medyana bakıp körleşmemek için ölçümün hangi çiftlerden geldiği görünmeli. Enclave'in
+        // Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
+        string pairDetail = (_planarity as PlanarityMeasurementService)?.LastPairDetail ?? "-";
+        diag.Ok("Planarity",
+            $"{planarity.Status} delta={planarity.Delta?.ToString("F5") ?? "-"} " +
+            $"P={planarity.NearResidual?.ToString("F3") ?? "-"} " +
+            $"s={planarity.FarResidual?.ToString("F2") ?? "-"} " +
+            $"uyum={planarity.NearMeasured} çiftler=[{pairDetail}]");
 
         // 🔴 PARALLAKS KAPISI. Yalnız ÖLÇÜLEBİLEN ve DÜZ çıkan akış reddedilir; ölçülemeyen
         // akış geçer ("ölçemedik" ≠ "sahte"). Ölçüm belge kontrollerinden sonra, adaylardan
