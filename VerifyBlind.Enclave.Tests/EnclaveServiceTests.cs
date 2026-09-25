@@ -4,6 +4,7 @@ using VerifyBlind.Core.Models;
 using VerifyBlind.Enclave.Services;
 using Moq;
 using Xunit;
+using VerifyBlind.Enclave.Services.Liveness;
 
 namespace VerifyBlind.Enclave.Tests;
 
@@ -88,7 +89,7 @@ public class EnclaveServiceTests
     }
 
     /// <summary>
-    /// 🔴 El sıkışmadaki duruş dizisi, register'da nonce'tan yeniden türetilenle AYNI olmalı.
+    /// 🔴 El sıkışmadaki olay dizisi, register'da nonce'tan yeniden türetilenle AYNI olmalı.
     /// Değilse enclave istemcinin kanıtını, istemciye söylediğinden başka bir diziye göre ölçer
     /// ve her meşru kayıt "yapı bozuk" diye düşer.
     /// </summary>
@@ -98,13 +99,13 @@ public class EnclaveServiceTests
         var response = _service.Handshake(new DiagLog());
 
         Assert.NotNull(response.Choreography);
-        var rederived = VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.FromNonce(response.Nonce);
+        var rederived = ChoreographyGenerator.FromNonce(response.Nonce);
         Assert.Equal(
-            VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.Describe(rederived),
-            VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.Describe(response.Choreography!));
+            ChoreographyGenerator.Describe(rederived),
+            ChoreographyGenerator.Describe(response.Choreography!));
     }
 
-    /// <summary>Alan JSON'da "choreography" adıyla, konum/olay SAYI olarak gider — istemci sözleşmesi.</summary>
+    /// <summary>Alan JSON'da "choreography" adıyla, olaylar SAYI olarak gider — istemci sözleşmesi.</summary>
     [Fact]
     public void Handshake_ChoreographySerializesAsNumbers()
     {
@@ -112,28 +113,12 @@ public class EnclaveServiceTests
         var json = System.Text.Json.JsonSerializer.Serialize(response);
 
         using var doc = System.Text.Json.JsonDocument.Parse(json);
-        var stops = doc.RootElement.GetProperty("choreography").GetProperty("stops");
-        Assert.Equal(System.Text.Json.JsonValueKind.Number, stops[0].GetProperty("pos").ValueKind);
-        Assert.Equal(3, stops[0].GetProperty("pos").GetInt32());   // yakın çıpa
-        Assert.Equal(System.Text.Json.JsonValueKind.Number, stops[0].GetProperty("event").ValueKind);
-    }
-
-    /// <summary>
-    /// 🔴 Önizleme yalnız HAZIRLANMIŞ akışta çalışır: uydurma akış numarası hiçbir şey ölçmeden
-    /// reddedilir (hazırlık gerçek bir NFC okuması ister). Yoksa uç, kartı olmayan birinin
-    /// düzeneğini hızla denediği bir araca dönüşür.
-    /// </summary>
-    [Fact]
-    public void ParallaxPreview_UnpreparedFlow_IsRejectedBeforeDecrypting()
-    {
-        var request = new ParallaxPreviewRequest
-        {
-            FlowId = Guid.NewGuid().ToString(),
-            EncryptedKey = "x",
-            AesBlob = "y",
-        };
-        Assert.Throws<InvalidOperationException>(() => _service.ParallaxPreview(request, new DiagLog()));
-        _enclaveKeys.Verify(k => k.DecryptWithEnclaveKey(It.IsAny<string>()), Times.Never);
+        var choreography = doc.RootElement.GetProperty("choreography");
+        Assert.Equal(ChoreographyGenerator.Version, choreography.GetProperty("version").GetInt32());
+        var events = choreography.GetProperty("events");
+        Assert.Equal(ChoreographyGenerator.EventCount, events.GetArrayLength());
+        Assert.Equal(System.Text.Json.JsonValueKind.Number, events[0].ValueKind);
+        Assert.InRange(events[0].GetInt32(), 1, 4);
     }
 
     // ── Login Handshake ───────────────────────────────────────────────────────

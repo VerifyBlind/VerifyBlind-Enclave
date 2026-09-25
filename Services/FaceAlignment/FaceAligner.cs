@@ -77,23 +77,10 @@ namespace VerifyBlind.Enclave.Services.FaceAlignment
         }
 
         /// <summary>
-        /// Görüntüdeki en büyük yüzün 5 noktasını ORİJİNAL koordinatlarda döndürür
-        /// (x0,y0,...,x4,y4 — sağ göz, sol göz, burun, sağ ağız, sol ağız). Yüz yoksa null.
-        ///
-        /// <para>Hizalamanın yan ürünü olarak zaten hesaplanıyordu; <see cref="PlanarityProbe"/>
-        /// düzlem-dışılık ölçümü için AYNI noktalara ihtiyaç duyduğundan dışarı açıldı. Ölçümün
-        /// enclave içinde kalması esastır: istemci daha zengin nokta kümesi (kulak, yanak) üretebilir
-        /// ama güvenilmeyen taraftır.</para>
-        /// </summary>
-        public float[]? DetectLandmarks(Image<Rgb24> source) =>
-            _isLoaded ? DetectBestLandmarks(source) : null;
-
-        /// <summary>
         /// En büyük yüzün 5 noktası VE kutusu, ORİJİNAL koordinatlarda. Yüz yoksa null.
         ///
-        /// <para>Kutu, duruş kanıtının kontur ölçümü için açıldı: yüz kutusu genişliği ile
-        /// göz-arası mesafenin oranı, kafanın yanları gözlerden geride olduğu için mesafeyle
-        /// değişir; düz yüzeyde sabittir.</para>
+        /// <para>Olay dizisinin her karesi bununla okunur: noktalar hem kimlik hizalamasına hem
+        /// olay ölçümüne gider, kutu ölçüm satırında yüzün bulunduğunu gösterir.</para>
         /// </summary>
         public FaceDetection? DetectFace(Image<Rgb24> source)
         {
@@ -116,8 +103,8 @@ namespace VerifyBlind.Enclave.Services.FaceAlignment
         /// <summary>
         /// Verilen 5 noktayla hizalar — YuNet'i YENİDEN çalıştırmadan.
         ///
-        /// <para>Duruş kanıtında her kare zaten bir kez tespit ediliyor (ölçek, kutu, parallaks
-        /// için). Kimlik ve olay ölçümü aynı kareyi yeniden hizalamak zorunda; <see cref="Align"/>
+        /// <para>Olay dizisinde her kare zaten bir kez tespit ediliyor. Kimlik ve olay ölçümü
+        /// aynı kareyi yeniden hizalamak zorunda; <see cref="Align"/>
         /// bunu tespiti tekrarlayarak yapardı. 640×640 YuNet çıkarımı kare başına en pahalı
         /// adım, iki kez ödemenin anlamı yok.</para>
         /// </summary>

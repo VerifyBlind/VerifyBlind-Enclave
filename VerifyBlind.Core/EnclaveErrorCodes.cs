@@ -34,27 +34,14 @@ public static class EnclaveErrorCodes
     public const string Antispoofing          = "ERR_ANTISPOOFING";
 
     /// <summary>
-    /// Parallaks ölçümü yüzü ve arka planı AYNI DÜZLEMDE buldu — ekran, baskı, tablet.
-    /// <see cref="Antispoofing"/> bir MODEL hükmüdür (doku), bu GEOMETRİDİR: doku modeli
-    /// TV'deki fotoğrafı geçirirken geometri aynı düzeneği yakaladı.
-    /// </summary>
-    public const string ParallaxFlat          = "ERR_PARALLAX_FLAT";
-
-    /// <summary>
-    /// Düz yüzey reddinin ALT TÜRÜ: arka planda hiç desen yok (düz duvar). Aynı geometri,
-    /// AYRI eylem — kullanıcı uzaklaşmakla değil, dokulu bir yere geçmekle çözer.
-    /// </summary>
-    public const string ParallaxBare          = "ERR_PARALLAX_BARE";
-
-    /// <summary>
-    /// Duruş karelerinden en az birindeki yüz kimlik kartıyla eşleşmedi — derinlik bir
-    /// kaynaktan, kimlik başka kaynaktan (kaynak ayrımı). Kullanıcıya söylenecek şey
+    /// Olay dizisinin karelerinden en az birindeki yüz kimlik kartıyla eşleşmedi — hareketi
+    /// başka bir yüz yaptı ya da kare çok kötü (kaynak ayrımı). Kullanıcıya söylenecek şey
     /// <see cref="BiometricMismatch"/> ile aynı: yüz kartla eşleşmedi, tekrar deneyin.
     /// </summary>
     public const string ChoreographyIdentity  = "ERR_CHOREO_IDENTITY";
 
     /// <summary>
-    /// Duruş kanıtının yapısı istenen diziyle uyuşmuyor (eksik durak, eksik olay karesi,
+    /// Olay dizisi kanıtının yapısı istenen diziyle uyuşmuyor (eksik adım, eksik olay karesi,
     /// çözülemeyen kare). Meşru istemcide OLUŞMAMALI: ya bizim hatamız ya kurcalama.
     /// </summary>
     public const string ChoreographyInvalid   = "ERR_CHOREO_INVALID";

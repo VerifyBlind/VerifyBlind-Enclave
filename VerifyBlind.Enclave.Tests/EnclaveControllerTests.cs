@@ -66,15 +66,12 @@ public class EnclaveControllerTests
 
         using var doc = System.Text.Json.JsonDocument.Parse(json);
         var nonce = doc.RootElement.GetProperty("nonce").GetString()!;
-        var stops = doc.RootElement.GetProperty("choreography").GetProperty("stops");
+        var events = doc.RootElement.GetProperty("choreography").GetProperty("events");
 
-        var expected = VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.FromNonce(nonce);
-        Assert.Equal(expected.Stops.Count, stops.GetArrayLength());
-        for (int i = 0; i < expected.Stops.Count; i++)
-        {
-            Assert.Equal((int)expected.Stops[i].Position, stops[i].GetProperty("pos").GetInt32());
-            Assert.Equal((int)expected.Stops[i].Event, stops[i].GetProperty("event").GetInt32());
-        }
+        var expected = VerifyBlind.Enclave.Services.Liveness.ChoreographyGenerator.FromNonce(nonce);
+        Assert.Equal(expected.Events.Count, events.GetArrayLength());
+        for (int i = 0; i < expected.Events.Count; i++)
+            Assert.Equal((int)expected.Events[i], events[i].GetInt32());
     }
 
     [Fact]

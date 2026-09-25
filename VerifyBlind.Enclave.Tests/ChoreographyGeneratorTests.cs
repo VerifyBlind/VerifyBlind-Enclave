@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using VerifyBlind.Core.Models;
-using VerifyBlind.Enclave.Services.Stance;
+using VerifyBlind.Enclave.Services.Liveness;
 using Xunit;
 
 namespace VerifyBlind.Enclave.Tests;
 
 /// <summary>
-/// Duruş + olay dizisinin KURALLARI — kullanıcı kararlarıdır, her biri bir test.
+/// Olay dizisinin KURALLARI — kullanıcı kararlarıdır, her biri bir test.
 ///
 /// <para>Dizi nonce'tan türetildiği için belirlenimcilik bir güvenlik özelliği: register'da
 /// enclave aynı nonce'tan AYNI diziyi üretemezse istemcinin gönderdiğini neye göre ölçtüğünü
@@ -49,61 +49,50 @@ public class ChoreographyGeneratorTests
         foreach (var nonce in Nonces(5000))
         {
             var c = ChoreographyGenerator.FromNonce(nonce);
-            var stops = c.Stops;
             string d = ChoreographyGenerator.Describe(c);
 
             Assert.Equal(ChoreographyGenerator.Version, c.Version);
-            Assert.InRange(stops.Count, ChoreographyGenerator.MinStops, ChoreographyGenerator.MaxStops);
+            Assert.Equal(ChoreographyGenerator.EventCount, c.Events.Count);
 
-            // Yakın çıpa: arka plan kısıtı yakın uçta bağlıyor.
-            Assert.True(stops[0].Position == StancePosition.Near, d);
-
-            // Her mesafe en az bir kez.
-            foreach (var p in new[] { StancePosition.Far, StancePosition.Mid, StancePosition.Near })
-                Assert.True(stops.Any(s => s.Position == p), $"{p} yok: {d}");
-
-            // Ardışık iki durak aynı mesafede olamaz — aralarında hareket olmalı.
-            for (int i = 1; i < stops.Count; i++)
-                Assert.True(stops[i].Position != stops[i - 1].Position, d);
-
-            // Tam iki olay, iki farklı türde.
-            var events = stops.Where(s => s.Event != StanceEvent.None).Select(s => s.Event).ToList();
-            Assert.Equal(ChoreographyGenerator.EventCount, events.Count);
-            Assert.Equal(events.Count, events.Distinct().Count());
+            // Hepsi farklı ve hiçbiri "yok".
+            Assert.Equal(c.Events.Count, c.Events.Distinct().Count());
+            Assert.DoesNotContain(LivenessEvent.None, c.Events);
+            Assert.False(d.Contains("none"), d);
         }
     }
 
     /// <summary>
-    /// Çekiliş tüm kapsamayı kullanıyor mu: her olay türü, her durak sayısı ve her durakta
-    /// olay görülmeli. Biri hiç çıkmıyorsa saldırganın hazırlaması gereken klip sayısı
-    /// sessizce azalmış demektir.
+    /// Çekiliş tüm kapsamayı kullanıyor mu: her olay her konumda görülmeli ve 24 dizinin hepsi
+    /// çıkmalı. Biri hiç çıkmıyorsa saldırganın hazırlaması gereken klip sayısı sessizce
+    /// azalmış demektir.
     /// </summary>
     [Fact]
     public void CekilisKapsamayiKullanir()
     {
-        var eventCounts = new Dictionary<StanceEvent, int>();
-        var stopCounts = new Dictionary<int, int>();
-        var eventAt = new HashSet<int>();
+        var seen = new HashSet<string>();
+        var atPosition = new Dictionary<(LivenessEvent, int), int>();
 
-        foreach (var nonce in Nonces(4000))
+        foreach (var nonce in Nonces(6000))
         {
             var c = ChoreographyGenerator.FromNonce(nonce);
-            stopCounts[c.Stops.Count] = stopCounts.GetValueOrDefault(c.Stops.Count) + 1;
-            for (int i = 0; i < c.Stops.Count; i++)
-            {
-                var ev = c.Stops[i].Event;
-                if (ev == StanceEvent.None) continue;
-                eventCounts[ev] = eventCounts.GetValueOrDefault(ev) + 1;
-                eventAt.Add(i);
-            }
+            seen.Add(ChoreographyGenerator.Describe(c));
+            for (int i = 0; i < c.Events.Count; i++)
+                atPosition[(c.Events[i], i)] = atPosition.GetValueOrDefault((c.Events[i], i)) + 1;
         }
 
-        foreach (var ev in new[] { StanceEvent.Blink, StanceEvent.Smile, StanceEvent.MouthOpen, StanceEvent.DoubleBlink })
-            Assert.True(eventCounts.GetValueOrDefault(ev) > 1000, $"{ev}: {eventCounts.GetValueOrDefault(ev)}");
+        Assert.Equal(24, seen.Count);   // 4 × 3 × 2
+        foreach (var ev in new[] { LivenessEvent.Blink, LivenessEvent.Smile, LivenessEvent.MouthOpen, LivenessEvent.DoubleBlink })
+            for (int i = 0; i < ChoreographyGenerator.EventCount; i++)
+                Assert.True(atPosition.GetValueOrDefault((ev, i)) > 1000, $"{ev}@{i}: {atPosition.GetValueOrDefault((ev, i))}");
+    }
 
-        Assert.True(stopCounts.GetValueOrDefault(4) > 1000);
-        Assert.True(stopCounts.GetValueOrDefault(5) > 1000);
-        Assert.Equal(5, eventAt.Count);   // 0..4 her durakta olay çıkabiliyor
+    [Fact]
+    public void CiftKirpmaIkiKareIster()
+    {
+        Assert.Equal(2, ChoreographyGenerator.FramesFor(LivenessEvent.DoubleBlink));
+        Assert.Equal(1, ChoreographyGenerator.FramesFor(LivenessEvent.Blink));
+        Assert.Equal(1, ChoreographyGenerator.FramesFor(LivenessEvent.Smile));
+        Assert.Equal(1, ChoreographyGenerator.FramesFor(LivenessEvent.MouthOpen));
     }
 
     [Fact]

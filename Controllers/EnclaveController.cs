@@ -43,7 +43,7 @@ public class EnclaveController : ControllerBase
                 attestation_document = result.AttestationDocument,
                 enclave_pub_key = _keyService.GetEnclavePublicKey(),
                 challenges = result.Challenges,
-                // Duruş + olay dizisi — yeni istemci jestler yerine bunu yürütür. Nonce'tan türetilir;
+                // Olay dizisi — yeni istemci jestler yerine bunu yürütür. Nonce'tan türetilir;
                 // register'da enclave aynı diziyi yeniden türetip kanıtı ona göre ölçer.
                 choreography = result.Choreography,
                 enclave_diag = diag.Entries
@@ -95,8 +95,8 @@ public class EnclaveController : ControllerBase
                 // Aday sonuçları — relay ölçüm tablosuna yazar. Kişiye bağlanamaz: yalnız skaler
                 // skorlar ve sabit kümeli sonuç etiketi taşır.
                 candidate_outcomes = result.candidates,
-                // Yakınlaştırma ölçümü — relay ölçüm tablosuna yazar. Karar DEĞİL: kaydın
-                // geçip geçmediğiyle ilgisi yok, yalnız geometrik sinyalin dağılımını toplar.
+                // Olay dizisi ölçümü — relay ölçüm tablosuna yazar (alan adı tarihsel). Kapı
+                // kararı enclave'de verildi; bu satır dağılımı toplar.
                 planarity = result.planarity,
                 enclave_diag = diag.Entries
             });
@@ -178,34 +178,6 @@ public class EnclaveController : ControllerBase
         {
             diag.Fail("StreamingCheck", ex.Message);
             Console.WriteLine($"[Enclave Controller] STREAMING-CHECK ERROR: {ex.Message}");
-            return BadRequest(new { error = ex.Message, enclave_diag = diag.Entries });
-        }
-    }
-
-    /// <summary>
-    /// POST /api/Enclave/parallax-preview — yakın çıpa + ilk uzak durakta erken parallaks ölçümü.
-    /// Kayıt kararı burada VERİLMEZ; yalnız kullanıcıyı akış sırasında uyarmak için.
-    /// </summary>
-    [HttpPost("parallax-preview")]
-    public IActionResult ParallaxPreview([FromBody] ParallaxPreviewRequest request)
-    {
-        var diag = new VerifyBlind.Enclave.Services.DiagLog();
-        try
-        {
-            var result = _service.ParallaxPreview(request, diag);
-            return Ok(new
-            {
-                status = result.Status,
-                p = result.P,
-                s = result.Span,
-                inliers = result.Inliers,
-                enclave_diag = diag.Entries
-            });
-        }
-        catch (Exception ex)
-        {
-            diag.Fail("ParallaxPreview", ex.Message);
-            Console.WriteLine($"[Enclave Controller] PARALLAX-PREVIEW ERROR: {ex.Message}");
             return BadRequest(new { error = ex.Message, enclave_diag = diag.Entries });
         }
     }

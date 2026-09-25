@@ -1,6 +1,6 @@
 using System;
 using VerifyBlind.Enclave.Services.FaceAlignment;
-using VerifyBlind.Enclave.Services.Stance;
+using VerifyBlind.Enclave.Services.Liveness;
 using Xunit;
 
 namespace VerifyBlind.Enclave.Tests;

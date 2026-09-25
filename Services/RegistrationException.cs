@@ -35,14 +35,14 @@ public class RegistrationException : Exception
     public List<VerifyBlind.Core.Models.CandidateOutcome>? CandidateOutcomes { get; init; }
 
     /// <summary>
-    /// Yakınlaştırma (düzlem-dışılık) ölçümü — red yolunda da taşınır.
+    /// Olay dizisi ölçümü — red yolunda da taşınır (adı tarihsel, bkz. <c>PlanarityOutcome</c>).
     ///
     /// ⚠️ <b>Neden `init` değil `set`:</b> bu ölçüm akışın hangi adımda düştüğünden BAĞIMSIZDIR
     /// ve istisna kurulduktan sonra iliştirilir (<c>RegisterAsync</c> sarmalayıcısı). Diğer
     /// alanlar hatayı ÜRETEN adımın bilgisidir; bu ise akış boyu taşınan bir gözlemdir.
     ///
-    /// ⚠️ Reddedilen denemeleri kaydetmek işin ASIL amacı: monitör saldırılarının dağılımı
-    /// yalnız buradan görülebilir.
+    /// ⚠️ Reddedilen denemeleri kaydetmek işin ASIL amacı: kaynak ayrımı denemelerinin
+    /// dağılımı yalnız buradan görülebilir.
     /// </summary>
     public VerifyBlind.Core.Models.PlanarityOutcome? Planarity { get; set; }
 

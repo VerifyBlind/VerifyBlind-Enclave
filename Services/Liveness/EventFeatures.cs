@@ -3,7 +3,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using VerifyBlind.Enclave.Services.FaceAlignment;
 
-namespace VerifyBlind.Enclave.Services.Stance
+namespace VerifyBlind.Enclave.Services.Liveness
 {
     /// <summary>
     /// OLAY ÖZELLİKLERİ — göz kırpma, gülümseme, ağız açma'nın enclave tarafı ölçüsü.
@@ -14,8 +14,8 @@ namespace VerifyBlind.Enclave.Services.Stance
     /// ÖLÇÜYORUZ: hizalanmış 112×112 karede basit piksel istatistikleri olayı ayırt ediyor mu?
     /// Ediyorsa model gerekmez; etmiyorsa model kararına veriyle gideriz.</para>
     ///
-    /// <para>⚠️ Her ölçü aynı duraktaki NÖTR kareye GÖRE yorumlanır, mutlak değil: ışık, cilt
-    /// tonu, gözlük kareden kareye değil kişiden kişiye değişir; aynı durağın iki karesi aynı
+    /// <para>⚠️ Her ölçü aynı adımdaki NÖTR kareye GÖRE yorumlanır, mutlak değil: ışık, cilt
+    /// tonu, gözlük kareden kareye değil kişiden kişiye değişir; aynı adımın iki karesi aynı
     /// ışıkta, aynı ölçekte.</para>
     ///
     /// <para>Bölgeler ArcFace kanonik şablonundan türetildi: gözler (38,3 / 73,5 ; 51,6), ağız

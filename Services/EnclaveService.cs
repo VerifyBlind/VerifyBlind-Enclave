@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text;
 using System.Linq;
 using System.Collections.Concurrent; 
+using VerifyBlind.Enclave.Services.Liveness;
 
 namespace VerifyBlind.Enclave.Services;
 
@@ -23,11 +24,8 @@ public class EnclaveService
     // Canlı benzerlik akışı — YALNIZ streaming içindir. Register buraya ASLA bakmaz (K4).
     private readonly FlowEmbeddingCache _flowEmbeddings;
 
-    /// <summary>Yakınlaştırma (düzlem-dışılık) ölçümü — ÖLÇER, reddetmez. Bkz. <see cref="PlanarityMeasurementService"/>.</summary>
-    private readonly IPlanarityMeasurementService _planarity;
-
-    /// <summary>Duruş + olay kanıtının ölçücüsü — yeni istemciler parallaksı bundan geçirir.</summary>
-    private readonly VerifyBlind.Enclave.Services.Stance.IChoreographyVerifier _choreography;
+    /// <summary>Olay dizisi kanıtının ölçücüsü — yapı, her karede kimlik, olay özellikleri.</summary>
+    private readonly IChoreographyVerifier _choreography;
 
     /// <summary>
     /// ArcFace (w600k_r50) kosinüs eşiği — YuNet 5-nokta hizalı boru hattı için kalibre edildi.
@@ -38,17 +36,9 @@ public class EnclaveService
     /// </summary>
     public const float BiometricThreshold = 0.20f;
 
-    /// <summary>
-    /// Düz yüzey reddinde "arkanda hiç desen yok" ile "desen var ama çok yakın" ayrımının eşiği.
-    /// İstemcinin doku ölçümüyle aynı sayı; yalnız HANGİ MESAJIN gösterileceğini belirler,
-    /// reddin kendisini değil.
-    /// </summary>
-    private const double ParallaxBareBackgroundTexture = 14.0;
-
     public EnclaveService(IEnclaveKeyService enclaveKeys, IBiometricService biometricService,
         ITicketMacService ticketMac, IIdentityHmacService idHmac, IAntiSpoofService antiSpoof,
-        FlowEmbeddingCache flowEmbeddings, IPlanarityMeasurementService? planarity = null,
-        VerifyBlind.Enclave.Services.Stance.IChoreographyVerifier? choreography = null)
+        FlowEmbeddingCache flowEmbeddings, IChoreographyVerifier? choreography = null)
     {
         _enclaveKeys = enclaveKeys;
         _biometricService = biometricService;
@@ -56,11 +46,10 @@ public class EnclaveService
         _idHmac = idHmac;
         _antiSpoof = antiSpoof;
         _flowEmbeddings = flowEmbeddings;
-        // Varsayılan hizalayıcıyı biyometri servisiyle paylaşır — AYRI bir YuNet oturumu
+        // Varsayılan ölçücü hizalayıcıyı biyometri servisiyle paylaşır — AYRI bir YuNet oturumu
         // enclave belleğinde ikinci bir model kopyası demek olurdu. İsteğe bağlı parametre:
         // mevcut çağrı yerleri (ve testler) değişmeden çalışır.
-        _planarity = planarity ?? new PlanarityMeasurementService(biometricService);
-        _choreography = choreography ?? new VerifyBlind.Enclave.Services.Stance.ChoreographyVerifier(biometricService);
+        _choreography = choreography ?? new ChoreographyVerifier(biometricService);
     }
 
     public HandshakeResponse Handshake(DiagLog diag)
@@ -85,11 +74,11 @@ public class EnclaveService
         }
         diag.Ok("Challenges", string.Join(",", challenges));
 
-        // Duruş + olay dizisi — nonce'tan TÜRETİLİR, register'da aynı nonce'tan yeniden
-        // türetilip kanıt ona göre ölçülür. Eski jest dizisi eski istemciler için kalıyor;
-        // yeni istemci bu alanı görürse jestleri hiç sormaz.
-        var choreography = VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.FromNonce(nonce);
-        diag.Ok("Choreography", VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.Describe(choreography));
+        // Olay dizisi — nonce'tan TÜRETİLİR, register'da aynı nonce'tan yeniden türetilip kanıt
+        // ona göre ölçülür. Eski jest dizisi mağazadaki eski sürümler için kalıyor; yeni istemci
+        // yalnız bu diziyi yürütür.
+        var choreography = ChoreographyGenerator.FromNonce(nonce);
+        diag.Ok("Choreography", ChoreographyGenerator.Describe(choreography));
 
         Console.WriteLine("[Enclave] El sıkışma: HSM'den Tasdik Belgesi talep ediliyor...");
         var attestDoc = _enclaveKeys.GetAttestationDocument();
@@ -120,14 +109,14 @@ public class EnclaveService
 
     /// <returns>
     /// Ticket, kazanan adayın benzerlik skoru, kart numarası, HER adayın sonucu ve
-    /// yakınlaştırma ölçümü. Aday sonuçları relay tarafından ölçüm tablosuna yazılır —
+    /// olay dizisi ölçümü. Aday sonuçları relay tarafından ölçüm tablosuna yazılır —
     /// kazanan da kaybeden de (cihazın "en iyi" hükmü ile enclave'in hükmü arasındaki
     /// sapmanın etiketli örneği).
     /// </returns>
     public async Task<(string ticket, float faceScore, string cardId, List<CandidateOutcome> candidates,
         PlanarityOutcome? planarity)> RegisterAsync(RegistrationRequest request, DiagLog diag)
     {
-        // Yakınlaştırma ölçümü akışın HANGİ adımda düştüğünden bağımsızdır ve red yolunda
+        // Olay dizisi ölçümü akışın HANGİ adımda düştüğünden bağımsızdır ve red yolunda
         // KAYBEDİLMEMELİDİR: saldırı denemeleri ölçümün asıl konusu. Çekirdek akış ölçümü
         // yapınca buraya bildirir; hata hâlinde istisnaya iliştirip yeniden fırlatırız.
         //
@@ -376,55 +365,42 @@ public class EnclaveService
             throw new RegistrationException(RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.Dg1Parse, ex.Message);
         }
 
-        // --- Step 6a: Yakınlaştırma ölçümü (düzlem-dışılık) — KAPI DEĞİL ---
-        // Belge kontrolleri geçtikten SONRA ölçülür: geçersiz belge için YuNet çıkarımı yakmayalım.
-        // Adaylardan ÖNCE ölçülür ki red yolunda da elimizde olsun.
-        //
-        // ⚠️ Hiçbir kaydı reddetmez. Doku modeli monitörü kaçırıyor ve eşik bunu çözmüyor;
-        // geometrik sinyal modelden bağımsız. Önce dağılımı görüp sonra kapı açacağız.
-        diag.Begin("Planarity");
-        PlanarityOutcome planarity;
-        string pairDetail;
+        // --- Step 6a: OLAY DİZİSİ — yapı + her karede kimlik ---
+        // Belge kontrolleri geçtikten SONRA ölçülür: geçersiz belge için YuNet/ArcFace çıkarımı
+        // yakmayalım. Adaylardan ÖNCE: hareketi başka bir yüzün yaptığı diziyi aday
+        // değerlendirmesine sokmanın anlamı yok. Ölçüm red yolunda da relay'e ulaşır.
+        diag.Begin("Choreography");
+        PlanarityOutcome sequence;
         if (payload.ChoreographyProof is { } choreographyProof)
         {
-            // DURUŞ + OLAY KANITI: parallaks duruş karelerinden, kimlik AYNI karelerde.
             // Dizi nonce'tan yeniden türetilir — istemcinin "ne istendi" beyanı yok, olamaz.
             // Nonce bu noktada imzası ve tazeliğiyle doğrulanmış (3. adım).
-            var demanded = VerifyBlind.Enclave.Services.Stance.ChoreographyGenerator.FromNonce(payload.Nonce);
-            planarity = _choreography.Measure(choreographyProof, demanded, TryExtractIdPhoto(payload));
-            pairDetail = _choreography.LastPairDetail;
+            var demanded = ChoreographyGenerator.FromNonce(payload.Nonce);
+            var measured = _choreography.Measure(choreographyProof, demanded, TryExtractIdPhoto(payload));
+            sequence = new PlanarityOutcome
+            {
+                Status = measured.Status == ChoreographyVerifier.StatusInvalid
+                    ? PlanarityStatuses.Unmeasured : PlanarityStatuses.Measured,
+                ElapsedMs = choreographyProof.ElapsedMs,
+                Choreography = measured,
+            };
+            // Enclave'in Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
+            diag.Ok("Choreography", DescribeChoreography(measured));
         }
         else
         {
-            planarity = _planarity.Measure(payload.ParallaxProof);
-            pairDetail = (_planarity as PlanarityMeasurementService)?.LastPairDetail ?? "-";
+            // Mağazadaki eski jest akışı: kanıt yok, kapı yok — o sürümlerin sözleşmesi.
+            sequence = new PlanarityOutcome { Status = PlanarityStatuses.NoProof };
+            diag.Ok("Choreography", "kanıt yok (eski istemci)");
         }
-        onPlanarityMeasured(planarity);
-        // Çift-başına P teşhis metnine giriyor: meşru bir kullanıcı reddedildiğinde tek bir
-        // medyana bakıp körleşmemek için ölçümün hangi çiftlerden geldiği görünmeli. Enclave'in
-        // Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
-        diag.Ok("Planarity",
-            $"{planarity.Status} delta={planarity.Delta?.ToString("F5") ?? "-"} " +
-            $"P={planarity.NearResidual?.ToString("F3") ?? "-"} " +
-            $"s={planarity.FarResidual?.ToString("F2") ?? "-"} " +
-            $"uyum={planarity.NearMeasured} çiftler=[{pairDetail}]");
-        if (planarity.Choreography is { } measuredChoreo)
-            diag.Ok("Choreography", DescribeChoreography(measuredChoreo));
+        onPlanarityMeasured(sequence);
 
-        // 🔴 GEOMETRİ + KİMLİK KAPILARI — sıra ve kodlar StanceGate'te, test edilebilir hâlde.
-        // Belge kontrollerinden sonra, adaylardan önce: düz bir ekranı ya da başkasının
-        // kafasını ArcFace aday değerlendirmesine sokmanın anlamı yok.
-        if (StanceGate(planarity) is { } rejection)
+        if (ChoreographyGate(sequence) is { } rejection)
         {
-            diag.Fail(rejection.ErrorCode == VerifyBlind.Core.EnclaveErrorCodes.ChoreographyIdentity
-                    || rejection.ErrorCode == VerifyBlind.Core.EnclaveErrorCodes.ChoreographyInvalid
-                    ? "Choreography" : "Planarity",
-                rejection.TechnicalDetail ?? rejection.ErrorCode);
+            diag.Fail("Choreography", rejection.TechnicalDetail ?? rejection.ErrorCode);
             Console.WriteLine(
                 $"[Enclave] [{RegistrationStep.BiometricVerification}] {rejection.ErrorCode}: " +
-                $"durum={planarity.Status} P={planarity.NearResidual?.ToString("F3") ?? "-"} " +
-                $"B={planarity.Delta?.ToString("F3") ?? "-"} s={planarity.FarResidual?.ToString("F2") ?? "-"} " +
-                $"uyum={planarity.NearMeasured} kimlik-min={planarity.Choreography?.IdentityMin?.ToString("F3") ?? "-"}");
+                $"durum={sequence.Status} kimlik-min={sequence.Choreography?.IdentityMin?.ToString("F3") ?? "-"}");
             throw rejection;
         }
 
@@ -583,7 +559,7 @@ public class EnclaveService
             };
             
             diag.Ok("Response Encrypt");
-            return (JsonSerializer.Serialize(hybridResponse), faceScore, cardId, candidateOutcomes, planarity);
+            return (JsonSerializer.Serialize(hybridResponse), faceScore, cardId, candidateOutcomes, sequence);
         }
         catch (Exception ex)
         {
@@ -2036,32 +2012,6 @@ string? partnerId = null;
     /// P(live) yörüngesi, 24 Ağustos'taki %46,2 anomalisinin hangi koşulda oluştuğunu
     /// gösterebilecek TEK veri.
     /// </summary>
-    /// <summary>
-    /// ERKEN PARALLAKS ÖNİZLEMESİ — yakın çıpa + ilk uzak durak. Bilgi verir, karar vermez.
-    ///
-    /// <para>🔴 Yalnız HAZIRLANMIŞ akış: uydurma bir akış numarası hiçbir şey ölçmeden reddedilir,
-    /// hazırlık ise gerçek bir NFC okuması ister (canlı benzerlikle aynı kapı). Böylece uç, kartı
-    /// olmayan birinin düzeneğini hızla denediği bir araca dönüşmez.</para>
-    /// </summary>
-    public ParallaxPreviewResult ParallaxPreview(ParallaxPreviewRequest request, DiagLog diag)
-    {
-        if (!Guid.TryParse(request.FlowId, out _))
-            throw new InvalidOperationException("Geçersiz akış numarası.");
-        if (_flowEmbeddings.Get(request.FlowId) is null)
-            throw new InvalidOperationException("Akış referansı yok ya da süresi doldu (prepare gerekli).");
-
-        var aesKeyBase64 = _enclaveKeys.DecryptWithEnclaveKey(request.EncryptedKey);
-        var payloadJson = CryptoUtils.AesDecrypt(request.AesBlob, aesKeyBase64);
-        var payload = JsonSerializer.Deserialize<ParallaxPreviewPayload>(payloadJson)
-            ?? throw new InvalidOperationException("Önizleme yükü çözülemedi.");
-
-        var result = _choreography.Preview(payload.Frames);
-        diag.Ok("ParallaxPreview",
-            $"{result.Status} P={result.P?.ToString("F3") ?? "-"} s={result.Span?.ToString("F2") ?? "-"} " +
-            $"uyum={result.Inliers} kare={payload.Frames.Count} ({result.CostMs}ms)");
-        return result;
-    }
-
     public StreamingCheckResponse StreamingCheck(StreamingCheckRequest request, DiagLog diag)
     {
         if (!Guid.TryParse(request.FlowId, out _))
@@ -2131,58 +2081,35 @@ string? partnerId = null;
     /// <summary>Akış bitti — gömme vektörünü RAM'den hemen sil (TTL'i bekleme).</summary>
     public void StreamingRelease(string flowId) => _flowEmbeddings.Remove(flowId);
 
-    // --- GEOMETRİ + KİMLİK KAPILARI ---
+    // --- OLAY DİZİSİ KAPISI ---
 
     /// <summary>
-    /// Parallaks ölçümünden (ve varsa duruş ölçümünden) çıkan RED — yoksa null.
+    /// Olay dizisi ölçümünden çıkan RED — yoksa null.
     ///
-    /// <para><b>Sıra bilinçli:</b></para>
-    /// <list type="number">
-    ///   <item><b>Yapı.</b> Kanıt istenen diziyle uyuşmuyorsa ölçülen şey istenen dizi değildir;
-    ///     hiçbir sayı anlamlı değil.</item>
-    ///   <item><b>Parallaks.</b> Düz yüzey ya da (duruş kanıtında) ölçülemeyen akış. Kimlikten
-    ///     ÖNCE: duvar dibindeki meşru kullanıcıya "yüzünüz eşleşmedi" değil "uzaklaşın" demek
-    ///     gerekir — eylem bildiren mesaj burada.</item>
-    ///   <item><b>Kimlik.</b> Parallaksı ölçülen her duruş karesinde kart sahibinin yüzü.</item>
-    /// </list>
+    /// <para><b>Sıra:</b> önce yapı (kanıt istenen diziyle uyuşmuyorsa hiçbir sayı anlamlı
+    /// değil), sonra kimlik (nötr ve olay karelerinin hepsinde kart sahibinin yüzü).</para>
     ///
-    /// <para>Eski kanıtta (<see cref="ParallaxProof"/>) yalnız düz yüzey reddedilir; ölçülemeyen
-    /// akış geçer. Duruş kanıtında ölçülemeyen akış <see cref="PlanarityStatuses.Unmeasured"/>
-    /// olur ve reddedilir — gerekçe orada.</para>
+    /// <para>Kanıt yoksa (mağazadaki eski jest akışı) kapı çalışmaz. Kanıtı zorunlu kılmak,
+    /// eski sürümler kullanımdan kalktıktan sonra ayrı bir karar.</para>
     /// </summary>
-    internal static RegistrationException? StanceGate(PlanarityOutcome planarity)
+    internal static RegistrationException? ChoreographyGate(PlanarityOutcome sequence)
     {
-        if (planarity.Choreography is { Status: VerifyBlind.Enclave.Services.Stance.ChoreographyVerifier.StatusInvalid } broken)
+        if (sequence.Choreography is not { } c) return null;
+
+        if (c.Status == ChoreographyVerifier.StatusInvalid)
             return new RegistrationException(RegistrationStep.BiometricVerification,
                 VerifyBlind.Core.EnclaveErrorCodes.ChoreographyInvalid,
-                $"Duruş kanıtı istenen diziyle uyuşmuyor ({broken.InvalidReason}).")
-            { Planarity = planarity };
+                $"Olay dizisi kanıtı istenen diziyle uyuşmuyor ({c.InvalidReason}).")
+            { Planarity = sequence };
 
-        if (planarity.Status is PlanarityStatuses.FlatSurface or PlanarityStatuses.Unmeasured)
-        {
-            // İki farklı sebep, iki farklı eylem. Kullanıcı "arkanda desen yok" ile "desen var
-            // ama çok yakın" durumlarında BAŞKA şey yapmalı; tek mesaj ikisini de yanlış yönlendirir.
-            // Ayrım dokudan: düz yüzey ölçüldüğünde doku hâlâ yüksekse arka plan VAR ama yakın.
-            bool bareBackground = planarity.BgTexture is { } bg && bg < ParallaxBareBackgroundTexture;
-            return new RegistrationException(RegistrationStep.BiometricVerification,
-                bareBackground ? VerifyBlind.Core.EnclaveErrorCodes.ParallaxBare : VerifyBlind.Core.EnclaveErrorCodes.ParallaxFlat,
-                bareBackground
-                    ? "Arka planda eşleştirilecek desen yok — kullanıcı düz bir duvarın önünde."
-                    : planarity.Status == PlanarityStatuses.Unmeasured
-                        ? "Parallaks ölçülemedi — arka plan eşleşmedi ya da yeterli hareket yok."
-                        : "Yüz ve arka plan aynı düzlemde ölçüldü — arka plan çok yakın ya da düz bir yüzey sunuluyor.")
-            { Planarity = planarity };
-        }
-
-        // Kapattığı saldırı KAYNAK AYRIMI: derinliği saldırganın kendi kafası sağlıyor,
-        // benzerliği kart sahibinin fotoğrafı. Eşik adaylarınkiyle AYNI: aynı model, aynı
-        // çözünürlük mertebesi (uzak durakta yüz ~110 px, hizalama 112 px'e çıkarıyor).
-        if (planarity.Choreography?.IdentityMin is { } identityMin && identityMin < BiometricThreshold)
+        // Kapattığı saldırı KAYNAK AYRIMI: benzerliği kart sahibinin fotoğrafı, hareketi başka
+        // bir yüz sağlıyor. Eşik adaylarınkiyle AYNI: aynı model, aynı hizalama.
+        if (c.IdentityMin is { } identityMin && identityMin < BiometricThreshold)
             return new RegistrationException(RegistrationStep.BiometricVerification,
                 VerifyBlind.Core.EnclaveErrorCodes.ChoreographyIdentity,
-                $"Duruş karelerinden en az birindeki yüz kimlik kartıyla eşleşmiyor (min={identityMin:F3}).")
+                $"Olay dizisi karelerinden en az birindeki yüz kimlik kartıyla eşleşmiyor (min={identityMin:F3}).")
             {
-                Planarity = planarity,
+                Planarity = sequence,
                 FaceScore = (float)identityMin,
             };
 
@@ -2192,7 +2119,7 @@ string? partnerId = null;
     // --- BIOMETRIC VERIFICATION ---
 
     /// <summary>
-    /// Duruş kanıtının kimlik ölçümü için DG2 yüzü. Başarısızsa null: kimlik ölçülmez ve
+    /// Olay dizisinin kimlik ölçümü için DG2 yüzü. Başarısızsa null: kimlik ölçülmez ve
     /// kapı çalışmaz — ama bu fail-open DEĞİL, çünkü aynı çıkarım aday değerlendirmesinde
     /// fail-closed tekrarlanıyor ve orada kayıt düşer.
     /// </summary>
@@ -2202,27 +2129,24 @@ string? partnerId = null;
         try { return Dg2FaceExtractor.ExtractFaceImage(Convert.FromBase64String(payload.DG2)); }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Enclave] Duruş kimliği için DG2 yüzü çıkarılamadı: {ex.GetType().Name}");
+            Console.WriteLine($"[Enclave] Olay dizisi kimliği için DG2 yüzü çıkarılamadı: {ex.GetType().Name}");
             return null;
         }
     }
 
-    /// <summary>Duruş ölçümünün teşhis satırı — relay logunda görünen tek kanal.</summary>
+    /// <summary>Olay dizisi ölçümünün teşhis satırı — relay logunda görünen tek kanal.</summary>
     internal static string DescribeChoreography(ChoreographyOutcome c)
     {
         static string Num(double? v, string fmt = "F3") => v?.ToString(fmt) ?? "-";
         static string Join(IEnumerable<double>? v) => v is null ? "-" : string.Join("/", v.Select(x => x.ToString("F2")));
 
         var events = c.Events is null ? "-" : string.Join(" ", c.Events.Select(e =>
-            $"{e.Type}@{e.Stop}(göz={Num(e.EyeClosure, "F2")},gen={Num(e.MouthWiden, "F2")},ağız={Num(e.MouthDark, "F2")})"));
+            $"{e.Type}@{e.Step}(göz={Num(e.EyeClosure, "F2")},gen={Num(e.MouthWiden, "F2")},ağız={Num(e.MouthDark, "F2")})"));
 
         return $"{c.Status}{(c.InvalidReason is null ? "" : ":" + c.InvalidReason)} dizi={c.Demanded} " +
-               $"kimlik=[{Join(c.Identity)}] olay-kimlik=[{Join(c.EventIdentity)}] " +
-               $"ölçek=[{Join(c.StopScales)}] konum-hata={Num(c.PositionErrMax)} p-çift={c.ParallaxPairs} " +
-               $"titreşim={Num(c.HoldMotionMin, "F2")} kayma={Num(c.HoldScaleDevMax)} " +
-               $"kontur={Num(c.ContourFar)}→{Num(c.ContourNear)} (×{Num(c.ContourRatio)}) " +
-               $"olaylar=[{events}] kare={c.Faces}/{c.Frames} sıfırlama={c.Resets?.ToString() ?? "-"} yakın-doku={Num(c.BgTextureNear, "F1")} " +
-               $"takip-değişimi={c.TrackingChanges?.ToString() ?? "-"} tekrar={c.Redos?.ToString() ?? "-"} " +
+               $"kimlik=[{Join(c.Identity)}] olay-kimlik=[{Join(c.EventIdentity)}] kimlik-min={Num(c.IdentityMin)} " +
+               $"olaylar=[{events}] kare={c.Faces}/{c.Frames} sıfırlama={c.Resets?.ToString() ?? "-"} " +
+               $"takip-değişimi={c.TrackingChanges?.ToString() ?? "-"} " +
                $"yanlış={c.WrongEvents?.ToString() ?? "-"} ({c.CostMs}ms)";
     }
 

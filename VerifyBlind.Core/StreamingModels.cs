@@ -214,125 +214,33 @@ public class RegistrationCandidate
 }
 
 /// <summary>
-/// PARALLAKS KANITI — dört farklı mesafeden TAM kareler (en uzaktan en yakına sıralı).
+/// Olay dizisi ölçümünün ölçüm tablosundaki satırı — relay bunu akış başına TEK satır olarak
+/// yazar (<c>phase = "zoom"</c>).
 ///
-/// <para><b>Fikir:</b> yüz ve arka plan farklı derinlikte olduğu için telefon uzaklaşıp
-/// yaklaşırken farklı oranda büyür. Düz bir yüzeyde (TV, monitör, baskı) ikisi AYNI
-/// düzlemdedir ve aynı oranda büyür.</para>
-///
-/// <code>
-/// B = yüz ölçeği / arka plan ölçeği
-///   düz yüzey  → 1,00   ölçülen 0,997-1,025 (Xiaomi ve iPhone'da AYNI)
-///   gerçek yüz → 1,38-1,59
-/// </code>
-///
-/// <para>1,00 bir ölçüm değil <b>fizik sabitidir</b>: tek düzlemde iki bölge de aynı
-/// dönüşüme uğrar. Ekranı eğmek, kaydırmak, büyütmek bunu değiştirmez.</para>
-///
-/// <para>⚠️ Kareler TAM KARE, yüz kırpması DEĞİL — ölçülen şey yüz ile ARKA PLAN arasındaki
-/// fark; arka plan kesilirse ölçülecek bir şey kalmaz.</para>
-///
-/// <para>⚠️ Arka planda DOKU zorunludur. Dokusuz arka planda ölçüm imkânsız (düz duvar:
-/// iki cihazda da 0/8) ve saldırganın düz arka planlı fotoğrafı da aynı sonucu verir. Bu
-/// yüzden istemci dokuyu EN BAŞTA kontrol edip kullanıcıyı uyarır — kural sadece kullanıcı
-/// deneyimi değil, güvenliğin direği: doku zorunlu olunca saldırgan da dokulu bir arka plan
-/// sunmak zorunda kalır, sunduğu anda arka plan ekranla aynı düzleme düşer ve yakalanır.</para>
-///
-/// <para>⚠️ İsteğe bağlı: boş gelirse kayıt BUGÜNKÜ gibi çalışır.</para>
-/// </summary>
-public class ParallaxProof
-{
-    /// <summary>En uzaktan en yakına SIRALI tam kareler (Base64 JPEG).</summary>
-    [JsonPropertyName("frames")]
-    public List<string> Frames { get; set; } = new();
-
-    /// <summary>Her karenin yüz genişliği (px) — DOĞRULANMAZ, enclave ölçümüyle kıyas için.</summary>
-    [JsonPropertyName("face_widths")]
-    public List<float> FaceWidths { get; set; } = new();
-
-    /// <summary>
-    /// İstemcinin uzak karede ölçtüğü arka plan doku enerjisi.
-    /// Eşik kalibre EDİLMEDİ; gerçek değer bu alanın dağılımından konacak.
-    /// </summary>
-    [JsonPropertyName("bg_texture")]
-    public double? BgTexture { get; set; }
-
-    /// <summary>
-    /// En yakın/en uzak yüz genişliği oranı.
-    /// ⚠️ Küçükse sinyalin ANLAMI YOKTUR — sinyal mesafe değişiminden doğar. Ölçümde arka plan
-    /// 83 cm'deyken 2,1× açıklıkta oran 1,26 (güvenli), 1,3× açıklıkta 1,08 (ekran bandında).
-    /// </summary>
-    [JsonPropertyName("span_ratio")]
-    public double? SpanRatio { get; set; }
-
-    [JsonPropertyName("elapsed_ms")]
-    public int? ElapsedMs { get; set; }
-
-    /// <summary>Dört mesafenin dördü de toplanabildi mi.</summary>
-    [JsonPropertyName("complete")]
-    public bool Complete { get; set; }
-}
-
-/// <summary>
-/// Enclave'in yakınlaştırma kanıtından ürettiği ÖLÇÜM — karar değil, satır.
-/// Relay bunu ölçüm tablosuna yazar; eşik canlı veriyle kalibre edilecek.
+/// <para>⚠️ <b>Adı tarihsel.</b> Bu satır önce yakınlaştırma (düzlem-dışılık), sonra parallaks
+/// ölçümünü taşıyordu; ikisi de 2026-09-25'te kaldırıldı (mesafe tabanlı yöntemler patent
+/// riski — bkz. <see cref="ChoreographyProof"/> dosyasının başı). Tel alanı (<c>planarity</c>),
+/// DB sütunları ve bu sınıf ölçüm geçmişi bozulmasın diye aynı adla kalıyor; bugün taşıdığı
+/// tek ölçüm <see cref="Choreography"/>.</para>
 /// </summary>
 public class PlanarityOutcome
 {
-    /// <summary>measured | no_proof | no_face_far | no_face_near | not_enough_frames</summary>
+    /// <summary>Sabit küme: <see cref="PlanarityStatuses"/>.</summary>
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
 
-    /// <summary>Enclave'in yüz bulabildiği kare sayıları (gönderilen değil, ÖLÇÜLEBİLEN).</summary>
-    [JsonPropertyName("far_measured")]
-    public int FarMeasured { get; set; }
-
-    [JsonPropertyName("near_measured")]
-    public int NearMeasured { get; set; }
-
     /// <summary>
-    /// 🔴 ASIL SİNYAL: uzak ve yakın medyan burun sapma vektörleri arasındaki uzaklık
-    /// (kanonik gözler-arası mesafenin oranı). Düz yüzeyde ~0, gerçek yüzde ~0,03.
-    /// </summary>
-    [JsonPropertyName("delta")]
-    public double? Delta { get; set; }
-
-    /// <summary>Uzak/yakın pencerelerin sapma büyüklükleri — teşhis için.</summary>
-    [JsonPropertyName("far_residual")]
-    public double? FarResidual { get; set; }
-
-    [JsonPropertyName("near_residual")]
-    public double? NearResidual { get; set; }
-
-    /// <summary>
-    /// Yakın/uzak gözler-arası mesafe oranı — "kullanıcı gerçekten yaklaştı mı".
-    /// ⚠️ Sahtecilik ölçüsü DEĞİLDİR (ekran da büyür); Delta'yı yorumlamak için gerekli bağlam.
-    /// </summary>
-    [JsonPropertyName("ied_ratio")]
-    public double? IedRatio { get; set; }
-
-    /// <summary>İstemcinin bildirdiği arka plan doku enerjisi — eşik kalibrasyonu için.</summary>
-    [JsonPropertyName("bg_texture")]
-    public double? BgTexture { get; set; }
-
-    /// <summary>
-    /// Adımın kullanıcıya SÜRE maliyeti (ms) — istemciden gelir, olduğu gibi taşınır.
+    /// Dizinin kullanıcıya SÜRE maliyeti (ms) — istemciden gelir, olduğu gibi taşınır.
     ///
     /// <para><b>Neden kaydedilmeli:</b> bu adım her meşru kayda eklenen bir yüktür ve
-    /// "ne kadar sürüyor" sorusunun cevabı, kapının açılıp açılmayacağı kararının yarısıdır.
-    /// Sinyal ne kadar iyi olursa olsun, adım kullanıcıyı 20 saniye tutuyorsa bu bilinerek
-    /// kabul edilmeli — sonradan fark edilmemeli.</para>
+    /// "ne kadar sürüyor" sorusunun cevabı, dizinin uzunluğu kararının yarısıdır.</para>
     ///
     /// <para>⚠️ Cihazdan gelir, DOĞRULANMAZ; relay aralık kontrolünden geçirir.</para>
     /// </summary>
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
 
-    /// <summary>
-    /// Duruş + olay ölçümü — parallaks bu kanıttan çıktıysa dolu. Ayrı bir alan yerine
-    /// buraya iliştirildi: iki ölçüm AYNI karelerden geliyor ve relay onları aynı satıra
-    /// yazıyor; ayrı taşımak red yolundaki her iliştirme noktasını ikiye katlardı.
-    /// </summary>
+    /// <summary>Olay dizisinin ölçümü — kanıt geldiyse dolu, eski istemcide boş.</summary>
     [JsonPropertyName("choreography")]
     public ChoreographyOutcome? Choreography { get; set; }
 }
@@ -413,69 +321,28 @@ public static class FrameOutcomes
 }
 
 /// <summary>
-/// Yakınlaştırma (düzlem-dışılık) ölçümünün durumu — sabit küme.
+/// Ölçüm satırının durumu — sabit küme.
 ///
 /// <para>⚠️ <b>PAYLAŞILAN tanım.</b> Enclave üretir, relay saklar. İki tarafta ayrı sabitler
 /// tutmak <c>EnclaveErrorCodes</c>'ta sapmaya yol açmıştı: enclave'in ürettiği bir etiket relay'de
 /// "bilinmeyen" sayılırsa satır sessizce boş yazılır ve ölçüm görünmez olur.</para>
 ///
-/// <para>⚠️ <see cref="Measured"/> DIŞINDAKİ her değer "ÖLÇEMEDİK" demektir, "sahte" DEĞİL.
-/// Kapı ileride açıldığında bu ayrım korunmalı — ölçülemeyen akışı reddetmek, kamerası zayıf
-/// kullanıcıyı cezalandırır.</para>
+/// <para>Eski satırlarda parallaks dönemine ait başka değerler de var (flat_surface, no_texture
+/// …); onlar geçmişte kalıyor, yenileri yalnız bu kümeden.</para>
 /// </summary>
 public static class PlanarityStatuses
 {
-    /// <summary>Her iki pencerede de yeterli kare ölçüldü — eşik çalışmasına YALNIZ bunlar girer.</summary>
+    /// <summary>Olay dizisi ölçüldü.</summary>
     public const string Measured = "measured";
 
-    /// <summary>İstemci yakınlaştırma adımını hiç göndermedi (eski sürüm ya da atlanmış adım).</summary>
+    /// <summary>İstemci dizi kanıtı göndermedi — mağazadaki eski jest akışı.</summary>
     public const string NoProof = "no_proof";
 
-    public const string NoFaceFar  = "no_face_far";
-    public const string NoFaceNear = "no_face_near";
-
     /// <summary>
-    /// Kullanıcı yaklaşma hedefine ULAŞMADI — istemci bu yüzden yakın kare toplamadı.
-    ///
-    /// <para><see cref="NoFaceNear"/>'dan AYRI tutulur: biri kullanıcının hareketi yapmaması,
-    /// öteki kameranın yüzü görememesidir. Tek etikette toplanırsa adımın neden çalışmadığı
-    /// (yönerge mi anlaşılmıyor, kamera mı yetersiz) öğrenilemez.</para>
-    /// </summary>
-    public const string NotApproached = "not_approached";
-
-    /// <summary>
-    /// Arka planda eşleştirilecek doku YOK (düz duvar vb.).
-    ///
-    /// <para>⚠️ Bu bir RED sebebi DEĞİLDİR — düz duvarın önündeki meşru kullanıcı giriş
-    /// yapamaz hale gelirdi. Akış bugünkü davranışa düşer. Ama bu satırların ORANI, doku
-    /// zorunluluğunun meşru kullanıcıya maliyetini ölçmenin tek yoludur.</para>
-    /// </summary>
-    public const string NoTexture = "no_texture";
-
-    /// <summary>
-    /// 🔴 DÜZ YÜZEY — yüz ve arka plan aynı düzlemde. Ekran, baskı, tablet.
-    ///
-    /// <para><c>measured</c> DIŞINDAKİ diğer değerlerden farkı: bu "ölçemedik" değil,
-    /// <b>ölçtük ve düz çıktı</b>. Kaydı REDDEDEN tek parallaks durumu budur.</para>
-    /// </summary>
-    public const string FlatSurface = "flat_surface";
-
-    /// <summary>
-    /// 🔴 ÖLÇÜLEMEDİ — ve bu duruş kanıtında RED sebebidir.
-    ///
-    /// <para>Eski kanıtta "ölçemedik" geçiyordu: düz duvarın önündeki meşru kullanıcı
-    /// reddedilmesin diye. Duruş kanıtında bu, saldırgana açık bir kapı: hareketsiz kareler ya
-    /// da desensiz bir düzenek göndermek P'yi hesaplanamaz kılar ve kapı hiç çalışmaz.
-    /// Kullanıcı kararı (2026-09-24): "Sürtünmeyi arttırmak pahasına güvenliği yüksek
-    /// tutmalıyız. Yeter ki kullanıcıyı yeterince bilgilendirelim." Mesaj eylem bildirir.</para>
+    /// Kanıt geldi ama yapısı istenen diziyle uyuşmuyor (eksik adım, çözülemeyen kare). Kayıt
+    /// <c>ERR_CHOREO_INVALID</c> ile reddedilir; ayrıntı <see cref="ChoreographyOutcome.InvalidReason"/>.
     /// </summary>
     public const string Unmeasured = "unmeasured";
 
-
-    /// <summary>Sayı hesaplandı ama pencerede yeterli kare yok — dağılıma KATILMAZ.</summary>
-    public const string NotEnoughFrames = "not_enough_frames";
-
-    public static bool IsValid(string? v) =>
-        v is Measured or NoProof or NoFaceFar or NoFaceNear or NotApproached
-          or NotEnoughFrames or NoTexture or FlatSurface or Unmeasured;
+    public static bool IsValid(string? v) => v is Measured or NoProof or Unmeasured;
 }

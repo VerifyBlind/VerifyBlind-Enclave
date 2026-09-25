@@ -44,9 +44,9 @@ public class HandshakeResponse
     public List<LivenessAction> Challenges { get; set; } = new();
 
     /// <summary>
-    /// Duruş + olay dizisi — <see cref="Challenges"/>'ın yerini alır. Eski istemci bu alanı
-    /// tanımaz ve jest dizisiyle devam eder; yeni istemci bunu görürse jestleri hiç sormaz.
-    /// Nonce'tan türetilir, ayrıntı <see cref="Models.Choreography"/>.
+    /// Olay dizisi — <see cref="Challenges"/>'ın yerini alır. Eski istemci bu alanı tanımaz ve
+    /// jest dizisiyle devam eder; yeni istemci yalnız bunu yürütür. Nonce'tan türetilir,
+    /// ayrıntı <see cref="Models.Choreography"/>.
     /// </summary>
     [JsonPropertyName("choreography")]
     public Choreography? Choreography { get; set; }
@@ -112,16 +112,12 @@ public class SecurePayload
     public List<RegistrationCandidate>? Candidates { get; set; }
 
     /// <summary>
-    /// Parallaks kanıtı — dört mesafeden TAM kareler. İsteğe bağlı.
-    /// Boşsa kayıt akışı BUGÜNKÜ gibi çalışır; ölçüm satırı "no_proof" yazar.
-    /// Ayrıntı ve gerekçe: <see cref="ParallaxProof"/>.
-    /// </summary>
-    public ParallaxProof? ParallaxProof { get; set; }
-
-    /// <summary>
-    /// Duruş + olay kanıtı. Varsa <see cref="ParallaxProof"/> YERİNE ölçülür: parallaks aynı
-    /// duruş karelerinden çıkar, kimlik de aynı karelerde doğrulanır. Ayrıntı:
-    /// <see cref="Models.ChoreographyProof"/>.
+    /// Olay dizisi kanıtı: her hareketin nötr ve olay kareleri. Varsa yapı ve kimlik kapısından
+    /// geçer; yoksa (mağazadaki eski jest akışı) kayıt bugünkü gibi çalışır ve ölçüm satırı
+    /// "no_proof" yazar. Ayrıntı: <see cref="Models.ChoreographyProof"/>.
+    ///
+    /// <para>Eski dev sürümlerin gönderdiği <c>ParallaxProof</c> alanı artık modelde yok;
+    /// serileştirici bilinmeyen alanı yok sayar.</para>
     /// </summary>
     public ChoreographyProof? ChoreographyProof { get; set; }
 

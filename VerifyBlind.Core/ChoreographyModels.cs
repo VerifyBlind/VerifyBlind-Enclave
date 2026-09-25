@@ -3,43 +3,36 @@ using System.Text.Json.Serialization;
 namespace VerifyBlind.Core.Models;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DURUŞ + OLAY ÇİFTLEMESİ (koreografi)
+// OLAY DİZİSİ (koreografi)
 //
-// Parallaks düz yüzeyi eliyor ama tek başına iki açığı kapatmıyor:
+// Sunucu nonce'tan rastgele sırada yüz hareketleri seçer (göz kırpma, gülümseme, ağız açma,
+// çift kırpma). İstemci her hareketten ÖNCE bir nötr kare, hareket ANINDA olay karesi toplar.
+// Enclave aynı nonce'tan diziyi yeniden türetir ve gönderilen kareleri ona göre ölçer:
+// yapı, HER karede kart sahibinin yüzü, olay özellikleri.
 //
-//   1. KAYNAK AYRIMI — parallaksı saldırganın kendi yüzü, benzerliği kart sahibinin
-//      fotoğrafı sağlıyordu. Parallaks karelerinde KİMİN yüzü olduğuna hiç bakılmıyordu.
-//   2. SARMA — yaklaş/uzaklaş hareketi kayıttan sarılarak üretilebiliyor; bir olay (göz
-//      kırpma) ise kayıttan talep üzerine üretilemiyor.
+// Kapattığı açık KAYNAK AYRIMI: benzerliği kart sahibinin fotoğrafı, hareketi başka bir yüz
+// sağlayamaz — hareketin yapıldığı karede de kimlik aranır. Fotoğraf ise hareket yapamaz.
 //
-// Koreografi ikisini aynı kare dizisine bağlar: sunucu hangi MESAFEDE hangi OLAYIN
-// isteneceğini seçer; enclave aynı karelerden parallaksı, kimliği ve olayı ölçer.
+// 🔴 2026-09-25: MESAFE KALDIRILDI. Önceki sürüm uzak/orta/yakın duraklarda duruş istiyor ve
+// yüz↔arka plan parallaksından 3B çıkarıyordu. İki mesafede görüntü karşılaştırarak 3B çıkaran
+// yöntemler FaceTec patent istemlerine düşüyor; kullanıcı kararıyla dizi tek mesafede. Son hâli
+// git'te (enclave 1c6dfa1). Mesafe/ölçek değişimine dayanan bir yöntem geri getirilmeden önce
+// o karar yeniden değerlendirilmeli.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// Durağın mesafesi — yüz kutusunun kadraj genişliğinde kapladığı hedef orana göre.
+/// Dizide istenebilen hareket.
 ///
-/// <para>Hedefler istemcinin parallaks adımındakilerle AYNI (0,31 ve 0,62; ortası
-/// geometrik orta 0,44). İstemci bu oranları DAYATIR ama enclave onlara GÜVENMEZ: kendi
-/// göz-arası ölçümünden duraklar arası ölçeği hesaplar.</para>
-/// </summary>
-public enum StancePosition
-{
-    Far = 1,
-    Mid = 2,
-    Near = 3,
-}
-
-/// <summary>
-/// Bir durakta istenen olay.
+/// <para><b>Dağarcık kullanıcı kararıyla seçildi.</b> Kafa çevirme DIŞARIDA: yüz profile döner,
+/// kimlik o karede ölçülemez — kimliğin ölçülemediği her kare saldırganın kaynak
+/// değiştirebileceği yerdir. Tek göz kırpma herkesin yapabildiği bir hareket değil; kaş kaldırma
+/// ve dudak büzme de elendi. Kod açık kaynak olduğu için "yapamayanlara atlanabilir" bir hareket,
+/// saldırganın da atlayacağı harekettir.</para>
 ///
-/// <para><b>Dağarcık kullanıcı kararıyla seçildi (2026-09-24).</b> Kafa çevirme ve yana
-/// yatırma DIŞARIDA: yüz kadrajdan çıkar ya da ölçek yörüngesi kopar — kopan her yer
-/// saldırganın kaynak değiştirebileceği yerdir. Tek göz kırpma herkesin yapabildiği bir
-/// hareket değil; kaş kaldırma ve dudak büzme de elendi. Kod açık kaynak olduğu için
-/// "yapamayanlara atlanabilir" bir hareket, saldırganın da atlayacağı harekettir.</para>
+/// <para>Eski jest akışının <see cref="LivenessAction"/>'ı mağazadaki eski sürümler için
+/// yaşıyor; bu tür yeni akışındır.</para>
 /// </summary>
-public enum StanceEvent
+public enum LivenessEvent
 {
     None = 0,
     Blink = 1,
@@ -48,75 +41,47 @@ public enum StanceEvent
     DoubleBlink = 4,
 }
 
-/// <summary>Koreografinin bir durağı: hangi mesafede, hangi olay.</summary>
-public class ChoreographyStop
-{
-    [JsonPropertyName("pos")]
-    public StancePosition Position { get; set; }
-
-    [JsonPropertyName("event")]
-    public StanceEvent Event { get; set; }
-}
-
 /// <summary>
 /// Sunucunun istediği dizi — el sıkışmada istemciye gider.
 ///
 /// <para>🔴 <b>Dizi nonce'tan TÜRETİLİR</b>, rastgele üretilip unutulmaz. Register'da enclave
 /// aynı nonce'tan aynı diziyi yeniden türetir ve kanıtı ona göre ölçer. Eski jest dizisi
 /// <c>new Random()</c> ile üretiliyordu ve enclave register anında neyin istendiğini
-/// bilmiyordu — istemci kendi dizisini de uydurabilirdi (Android eksik jestleri kendi
-/// rastgelesiyle tamamlıyordu).</para>
+/// bilmiyordu — istemci kendi dizisini de uydurabilirdi.</para>
 /// </summary>
 public class Choreography
 {
     [JsonPropertyName("version")]
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
 
-    [JsonPropertyName("stops")]
-    public List<ChoreographyStop> Stops { get; set; } = new();
+    /// <summary>İstenen hareketler, istenme sırasıyla (sayı olarak serileşir).</summary>
+    [JsonPropertyName("events")]
+    public List<LivenessEvent> Events { get; set; } = new();
 }
 
 /// <summary>
-/// İSTEMCİNİN KANITI — her durak için tam kareler.
+/// İSTEMCİNİN KANITI — her hareket için bir adım.
 ///
-/// <para>Kareler TAM KARE (uzun kenar 480, JPEG) — yüz kırpması DEĞİL: parallaks yüz ile
-/// arka plan arasındaki farkı ölçer, arka plan kesilirse ölçülecek bir şey kalmaz.</para>
+/// <para>Kareler yüzün çevresinden kırpılmış JPEG (uzun kenar en fazla 480). Arka plan artık
+/// ölçülmüyor; kırpma hem enclave'e daha çok yüz pikseli verir hem de kullanıcının odasını
+/// gereksiz yere taşımaz.</para>
 ///
-/// <para>⚠️ Buradaki sayıların HİÇBİRİNE güvenilmez. Enclave konumu, olayı ve kimliği
-/// kendi ölçümüyle çıkarır; istemcinin sayıları yalnız kıyas ve teşhis içindir.</para>
+/// <para>⚠️ Buradaki sayıların HİÇBİRİNE güvenilmez. Enclave olayı ve kimliği kendi ölçümüyle
+/// çıkarır; istemcinin sayıları yalnız kıyas ve teşhis içindir.</para>
 /// </summary>
 public class ChoreographyProof
 {
     [JsonPropertyName("version")]
     public int Version { get; set; }
 
-    /// <summary>Durak sırası koreografiyle AYNI olmak zorunda.</summary>
-    [JsonPropertyName("stops")]
-    public List<ChoreographyProofStop> Stops { get; set; } = new();
-
-    /// <summary>
-    /// Arka plan doku enerjisi — İLK UZAK durakta, eski parallaks adımıyla AYNI ölçüyle (tüm
-    /// kare, yüz kutusu × 1,6 dışarıda). Eşik (14) bu ölçüyle kalibre edildi; sunucu bu sayıyla
-    /// "arkanızda desen yok" / "arka plan çok yakın" mesajları arasında seçim yapıyor.
-    /// </summary>
-    [JsonPropertyName("bg_texture")]
-    public double? BgTexture { get; set; }
-
-    /// <summary>
-    /// Aynı ölçü YAKIN ÇIPADA (yüz kutusu × 1,15 dışarıda) — istemcinin erken uyarısı buna bakar.
-    ///
-    /// <para>Yaklaştıkça arka plan kadrajdan çıkar; yakın karede görünen, uzak karede
-    /// görünenin alt kümesidir. ORB'un eşleştireceği desen iki karede de bulunmalı, yani
-    /// bağlayıcı olan yakın uç. Yatak koşularında uzak karedeki doku 15-17 ile kapıyı geçti,
-    /// yakın uçta eşleşme dördünde de çöktü. ⚠️ Eşiği KALİBRE EDİLMEDİ; bu alan onun için.</para>
-    /// </summary>
-    [JsonPropertyName("bg_texture_near")]
-    public double? BgTextureNear { get; set; }
+    /// <summary>Adım sırası diziyle AYNI olmak zorunda.</summary>
+    [JsonPropertyName("steps")]
+    public List<ChoreographyProofStep> Steps { get; set; } = new();
 
     [JsonPropertyName("elapsed_ms")]
     public int? ElapsedMs { get; set; }
 
-    /// <summary>Dizinin baştan başlatılma sayısı (yüz kaybı, duruşta ölçek kayması).</summary>
+    /// <summary>Dizinin baştan başlatılma sayısı (yüz kaybı, takip numarası değişimi).</summary>
     [JsonPropertyName("resets")]
     public int? Resets { get; set; }
 
@@ -132,40 +97,32 @@ public class ChoreographyProof
     [JsonPropertyName("tracking_changes")]
     public int? TrackingChanges { get; set; }
 
-    /// <summary>Durak tekrarı sayısı — duruşta telefon kaydı, yalnız o durak baştan alındı.</summary>
-    [JsonPropertyName("redos")]
-    public int? Redos { get; set; }
-
     /// <summary>
-    /// İstemcinin karar zaman çizelgesi (ASCII): banda giriş/çıkış, duruş, tekrar/sıfırlama
-    /// sebepleri, olay sırasında göz/gülümseme/ağız değerleri. DOĞRULANMAZ — teşhis ve eşik
-    /// kalibrasyonu için. İlk saha testinde "neden baştan başladı" sorusunun cevabı yoktu.
+    /// İstemcinin karar zaman çizelgesi (ASCII): adım başlangıçları, olay sırasında
+    /// göz/gülümseme/ağız değerleri, yanlış hareketler, sıfırlama sebepleri. DOĞRULANMAZ —
+    /// teşhis ve eşik kalibrasyonu için.
     /// </summary>
     [JsonPropertyName("trace")]
     public string? Trace { get; set; }
 }
 
-/// <summary>Bir durağın kareleri.</summary>
-public class ChoreographyProofStop
+/// <summary>Bir hareketin kareleri.</summary>
+public class ChoreographyProofStep
 {
     /// <summary>
-    /// Duruş kareleri (nötr yüz) — en fazla iki: duruşun başı ve sonu.
+    /// Hareketten hemen ÖNCEKİ nötr kare — tam olarak bir tane.
     ///
-    /// <para>İlki parallaks ve kimlik ölçümüne girer. İkisinin farkı "donmuş kare" ölçüsüdür:
-    /// elde tutulan telefon her zaman titrer, duraklatılmış bir videoda iki kare aynıdır.</para>
+    /// <para>İki işi var: kimlik (hareketler ARASINDAKİ yüz de kart sahibi olmalı) ve olay
+    /// ölçümünün referansı (olay karesi aynı kişinin aynı ışıktaki nötr hâline göre okunur).</para>
     /// </summary>
-    [JsonPropertyName("hold")]
-    public List<string> Hold { get; set; } = new();
+    [JsonPropertyName("neutral")]
+    public List<string> Neutral { get; set; } = new();
 
-    /// <summary>Olay anının kareleri — olaysız durakta boş, çift kırpmada iki.</summary>
+    /// <summary>Olay anının kareleri — çift kırpmada iki, diğerlerinde bir.</summary>
     [JsonPropertyName("event")]
     public List<string> Event { get; set; } = new();
 
-    /// <summary>İstemcinin ölçtüğü yüz/kadraj oranı — DOĞRULANMAZ.</summary>
-    [JsonPropertyName("face_fraction")]
-    public double? FaceFraction { get; set; }
-
-    /// <summary>Bu durakta olay kaç denemede tuttu — teşhis.</summary>
+    /// <summary>Bu adımda olay kaç denemede tuttu — teşhis.</summary>
     [JsonPropertyName("attempts")]
     public int? Attempts { get; set; }
 }
@@ -173,9 +130,10 @@ public class ChoreographyProofStop
 /// <summary>
 /// ENCLAVE'İN ÖLÇÜMÜ — relay ölçüm tablosuna JSON olarak yazar.
 ///
-/// <para>Kapılar ayrı: yapı bozuksa ve kimlik tutmuyorsa kayıt reddedilir, parallaks kapısı
-/// <see cref="PlanarityOutcome"/> üzerinden çalışır. Buradaki diğer her sayı ÖLÇÜMDÜR; eşiği
-/// meşru dağılım görülmeden konmayacak.</para>
+/// <para>Kapılar: yapı bozuksa ve kimlik herhangi bir karede tutmuyorsa kayıt reddedilir.
+/// Olay özellikleri ÖLÇÜMDÜR: sahadaki ilk 11 koşuda (2026-09-24/25) göz kapanma ve ağız
+/// koyuluğu ölçüleri meşru hareketlerde de sıfır ya da negatif çıkabildi — eşik konursa meşru
+/// kullanıcı reddedilir.</para>
 /// </summary>
 public class ChoreographyOutcome
 {
@@ -183,79 +141,34 @@ public class ChoreographyOutcome
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
 
-    /// <summary>Yapı bozuksa NEDEN — sabit küme (stops, hold, event, frame).</summary>
+    /// <summary>Yapı bozuksa NEDEN — sabit küme (version, steps, neutral, event, frame).</summary>
     [JsonPropertyName("invalid_reason")]
     public string? InvalidReason { get; set; }
 
-    /// <summary>İstenen dizi, kısa biçim: "N,F+blink,M,N+smile".</summary>
+    /// <summary>İstenen dizi, kısa biçim: "blink,mouth_open,smile".</summary>
     [JsonPropertyName("demanded")]
     public string? Demanded { get; set; }
 
-    /// <summary>
-    /// Duraklar arası ölçek uyumu: istenen ölçek değişimi ile ölçülenin log farkının EN
-    /// BÜYÜĞÜ. 0 = kusursuz; ln(1,2) ≈ 0,18 "yüzde 20 sapma".
-    /// </summary>
-    [JsonPropertyName("position_err_max")]
-    public double? PositionErrMax { get; set; }
-
-    /// <summary>Durak başına enclave ölçeği (en uzak durağa göre).</summary>
-    [JsonPropertyName("stop_scales")]
-    public List<double>? StopScales { get; set; }
-
-    /// <summary>
-    /// Duruş içi hareketin EN KÜÇÜĞÜ — iki duruş karesi arasındaki ortalama piksel farkı
-    /// (0-255). Donmuş/duraklatılmış videoda ~0; elde tutulan telefonda belirgin.
-    /// </summary>
-    [JsonPropertyName("hold_motion_min")]
-    public double? HoldMotionMin { get; set; }
-
-    /// <summary>Duruş içi ölçek kaymasının EN BÜYÜĞÜ, |ln(s2/s1)|.</summary>
-    [JsonPropertyName("hold_scale_dev_max")]
-    public double? HoldScaleDevMax { get; set; }
-
-    /// <summary>
-    /// 🔴 KİMLİK — parallaksın ölçüldüğü her duruş karesinin çip fotoğrafına benzerliği.
-    /// Kapı bunların EN KÜÇÜĞÜNE bakar.
-    /// </summary>
+    /// <summary>Her adımın nötr karesinin çip fotoğrafına benzerliği.</summary>
     [JsonPropertyName("identity")]
     public List<double>? Identity { get; set; }
 
-    [JsonPropertyName("identity_min")]
-    public double? IdentityMin { get; set; }
-
-    /// <summary>Olay karelerinin çip benzerliği — YALNIZ ÖLÇÜM (gülümserken ne kadar düşüyor).</summary>
+    /// <summary>
+    /// Olay karelerinin çip fotoğrafına benzerliği. Sahada gülümseme ve ağız açma benzerliği
+    /// nötr kareye göre en fazla ~0,1 düşürdü (0,52-0,72); eşik 0,20 — kapıya girer.
+    /// </summary>
     [JsonPropertyName("event_identity")]
     public List<double>? EventIdentity { get; set; }
 
+    /// <summary>
+    /// 🔴 KAPI — nötr VE olay karelerinin EN KÜÇÜK benzerliği. Hareketi başka bir yüzün yaptığı
+    /// tek bir kare bile kaydı düşürür.
+    /// </summary>
+    [JsonPropertyName("identity_min")]
+    public double? IdentityMin { get; set; }
+
     [JsonPropertyName("events")]
     public List<EventMeasurement>? Events { get; set; }
-
-    /// <summary>
-    /// KONTUR ORANI (kulak fikri) — yüz kutusu genişliği / göz-arası mesafe, yakın durakta
-    /// uzak durağa bölünmüş.
-    ///
-    /// <para>Kafanın yanları gözlerden geride. Kamera yaklaştıkça perspektif gözleri yanlara
-    /// göre büyütür, yanlar görünmez olur (kulakların kaybolması bunun en belirgin hâli).
-    /// Düz yüzeyde oran SABİT → 1,00. Arka plandan bağımsız: duvar dibinde de çalışır.</para>
-    ///
-    /// <para>⚠️ YuNet kutusu kulakları değil yanak/çene hattını izler; aynı fizik, daha zayıf
-    /// sinyal. Ölçülebilir mi, önce dağılım.</para>
-    /// </summary>
-    [JsonPropertyName("contour_far")]
-    public double? ContourFar { get; set; }
-
-    [JsonPropertyName("contour_near")]
-    public double? ContourNear { get; set; }
-
-    [JsonPropertyName("contour_ratio")]
-    public double? ContourRatio { get; set; }
-
-    /// <summary>
-    /// P'ye giren (tutan, yeterince geniş) çift sayısı. Katı kipte en az 2 — tek çift gürültüdür
-    /// (sahada 1,16 açıklıklı tek çift, sırtı perdeye dayalı koşuyu eşiğin 0,003 üstüne taşıdı).
-    /// </summary>
-    [JsonPropertyName("parallax_pairs")]
-    public int ParallaxPairs { get; set; }
 
     [JsonPropertyName("frames")]
     public int Frames { get; set; }
@@ -275,16 +188,9 @@ public class ChoreographyOutcome
     [JsonPropertyName("tracking_changes")]
     public int? TrackingChanges { get; set; }
 
-    [JsonPropertyName("redos")]
-    public int? Redos { get; set; }
-
     /// <summary>İstemcinin iz kaydı — enclave 4000 karakterde kırpar, ASCII dışını ayıklar.</summary>
     [JsonPropertyName("trace")]
     public string? Trace { get; set; }
-
-    /// <summary>Yakın çıpadaki doku — istemci uyarısının eşiğini kalibre etmek için.</summary>
-    [JsonPropertyName("bg_texture_near")]
-    public double? BgTextureNear { get; set; }
 
     /// <summary>Ölçümün enclave'e maliyeti (ms).</summary>
     [JsonPropertyName("cost_ms")]
@@ -299,8 +205,8 @@ public class ChoreographyOutcome
 /// </summary>
 public class EventMeasurement
 {
-    [JsonPropertyName("stop")]
-    public int Stop { get; set; }
+    [JsonPropertyName("step")]
+    public int Step { get; set; }
 
     [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
@@ -316,71 +222,4 @@ public class EventMeasurement
     /// <summary>Ağız içi koyu piksel oranı farkı (olay − nötr). Açık ağız → pozitif.</summary>
     [JsonPropertyName("mouth_dark")]
     public double? MouthDark { get; set; }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ERKEN PARALLAKS ÖNİZLEMESİ
-//
-// Telefon "arka plan çok yakın" durumunu kendisi bilemez: bu derinlik ölçümü, o da enclave'de.
-// Sahada (2026-09-24) kullanıcı perde dibinde bütün diziyi yapıp sonunda reddedildi ve haklı
-// olarak "keşke bunu akış sırasında görseydim" dedi. Yakın çıpa ile ilk uzak durak alınınca
-// telefon bu iki kareyi gönderir; enclave register'daki ölçümün aynısını bu çiftte yapar.
-//
-// ⚠️ BİLGİ, KARAR DEĞİL: son karar register'da, tüm duruş kareleriyle verilir. Önizleme yalnız
-// kullanıcıyı sonuna kadar yürütüp reddetmemek için.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// <summary>
-/// Önizleme isteği — kareler relay'e AÇIK GİTMEZ, canlı benzerlikle aynı zarf (AES + enclave RSA).
-/// Yalnız hazırlanmış (NFC ile okunmuş) bir akış için çalışır.
-/// </summary>
-public class ParallaxPreviewRequest
-{
-    [JsonPropertyName("flow_id")]
-    public string FlowId { get; set; } = string.Empty;
-
-    [JsonPropertyName("encrypted_key")]
-    public string EncryptedKey { get; set; } = string.Empty;
-
-    /// <summary>AES-GCM ile şifreli <see cref="ParallaxPreviewPayload"/>.</summary>
-    [JsonPropertyName("aes_blob")]
-    public string AesBlob { get; set; } = string.Empty;
-}
-
-/// <summary>Şifreli yük: yakın çıpa ve ilk uzak durağın duruş kareleri (Base64 JPEG, tam kare).</summary>
-public class ParallaxPreviewPayload
-{
-    [JsonPropertyName("frames")]
-    public List<string> Frames { get; set; } = new();
-}
-
-/// <summary>Önizleme sonucu durumları.</summary>
-public static class ParallaxPreviewStatuses
-{
-    /// <summary>Arka plan derinliği ölçüldü ve yeterli.</summary>
-    public const string Ok = "ok";
-
-    /// <summary>Ölçüldü ve düz — arka plan yüze çok yakın (ya da düz bir yüzey).</summary>
-    public const string Flat = "flat";
-
-    /// <summary>Uzak ile yakın kare eşleşmedi — arka plan yakın uçta ölçülemedi.</summary>
-    public const string Unmeasured = "unmeasured";
-}
-
-public class ParallaxPreviewResult
-{
-    [JsonPropertyName("status")]
-    public string Status { get; set; } = ParallaxPreviewStatuses.Unmeasured;
-
-    [JsonPropertyName("p")]
-    public double? P { get; set; }
-
-    [JsonPropertyName("s")]
-    public double? Span { get; set; }
-
-    [JsonPropertyName("inliers")]
-    public int Inliers { get; set; }
-
-    [JsonPropertyName("cost_ms")]
-    public int CostMs { get; set; }
 }

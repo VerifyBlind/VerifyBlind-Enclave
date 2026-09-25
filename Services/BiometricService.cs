@@ -32,24 +32,15 @@ namespace VerifyBlind.Enclave.Services
         float CosineSimilarity(float[] a, float[] b);
 
         /// <summary>
-        /// Görüntüdeki en büyük yüzün 5 YuNet noktası, ORİJİNAL koordinatlarda
-        /// (x0,y0,...,x4,y4 — sağ göz, sol göz, burun, sağ ağız, sol ağız). Yüz yoksa null.
-        ///
-        /// <para>Düzlem-dışılık ölçümü (<see cref="FaceAlignment.PlanarityProbe"/>) için.
-        /// Hizalayıcı burada duruyor; AYRI bir YuNet oturumu açmak enclave belleğinde ikinci
-        /// bir model kopyası demek olurdu.</para>
-        /// </summary>
-        float[]? DetectLandmarks(byte[] imageBytes);
-
-        /// <summary>
         /// En büyük yüzün 5 noktası + kutusu + görüntü boyutu. Yüz yoksa ya da görüntü
-        /// çözülemezse null — ölçüm yolu, FIRLATMAZ.
+        /// çözülemezse null — ölçüm yolu, FIRLATMAZ: tek bir kötü kare yüzünden kaydı düşürmek
+        /// meşru kullanıcıyı cezalandırırdı. Olay dizisinin kareleri bununla okunur.
         /// </summary>
         FaceObservation? DetectFace(byte[] imageBytes);
 
         /// <summary>
         /// Önceden bulunmuş noktalarla hizalayıp gömme vektörü çıkarır — YuNet'i tekrar
-        /// çalıştırmaz. Duruş kanıtında her kare zaten bir kez tespit ediliyor.
+        /// çalıştırmaz. Olay dizisinde her kare zaten bir kez tespit ediliyor.
         /// </summary>
         float[] ComputeEmbedding(byte[] imageBytes, float[] landmarks);
     }
@@ -174,27 +165,6 @@ namespace VerifyBlind.Enclave.Services
 
         /// <summary><see cref="IBiometricService.CosineSimilarity"/>.</summary>
         public float CosineSimilarity(float[] a, float[] b) => ComputeCosineSimilarity(a, b);
-
-        /// <summary>
-        /// <see cref="IBiometricService.DetectLandmarks"/>.
-        ///
-        /// <para>Bozuk/çözülemeyen görüntüde FIRLATMAZ, null döner: bu bir ÖLÇÜM yoludur,
-        /// karar yolu değil. Tek bir kötü kare yüzünden kaydı düşürmek meşru kullanıcıyı
-        /// cezalandırırdı; ölçüm satırı "ölçülemedi" der ve akış devam eder.</para>
-        /// </summary>
-        public float[]? DetectLandmarks(byte[] imageBytes)
-        {
-            try
-            {
-                using var source = Image.Load<Rgb24>(imageBytes);
-                return _aligner.DetectLandmarks(source);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[BiometricService] Landmark tespiti başarısız (ölçüm atlanıyor): {ex.Message}");
-                return null;
-            }
-        }
 
         /// <summary><see cref="IBiometricService.DetectFace"/>.</summary>
         public FaceObservation? DetectFace(byte[] imageBytes)
