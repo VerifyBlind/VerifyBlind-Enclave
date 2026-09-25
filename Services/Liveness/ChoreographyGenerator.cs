@@ -22,12 +22,16 @@ namespace VerifyBlind.Enclave.Services.Liveness
     /// rastgeleyle üretir ve imzalar, istemci SEÇEMEZ. Yeni el sıkışmayla "kolay dizi" aramak
     /// mümkün ama bu her sunucu-rastgele tasarımda aynı; el sıkışma hız sınırlı.</para>
     ///
-    /// <para><b>Kurallar</b> (kullanıcı kararları, 2026-09-25):</para>
+    /// <para><b>Kurallar</b> (kullanıcı kararları):</para>
     /// <list type="bullet">
-    ///   <item>Tek mesafe — mesafe değişimine dayanan her yöntem kaldırıldı (patent riski).</item>
-    ///   <item>Dört hareketten ÜÇÜ, hepsi FARKLI, rastgele sırada: 24 olası dizi. Saldırganın
-    ///     kayıttan sunması için dört hareketin de klibi ve sırayı o an kurması gerekir. Her ek
-    ///     hareket meşru kullanıcıda çarpımsal düşüş demek; üç, ikisinin dengesi.</item>
+    ///   <item>Tek mesafe — mesafe değişimine dayanan her yöntem kaldırıldı (patent riski, 2026-09-25).</item>
+    ///   <item><b>Kart ekleme: BEŞ hareket</b> (2026-09-26; önce üç farklı hareketti, 24 dizi).
+    ///     Tekrar serbest, yalnız aynı hareket ART ARDA gelmez: 4 × 3⁴ = 324 dizi. Sahada algılama
+    ///     yüksek, yanlış hareketin bedeli ~1 sn; eski jest akışı da beşti. Art arda tekrar yok,
+    ///     çünkü aynı komut hemen yeniden gelince kullanıcı ilkinin kabul edilmediğini sanıyor.</item>
+    ///   <item><b>Doğrulama (giriş): TEK hareket</b> (<see cref="ForLogin"/>) — gülümseme, ağız açma
+    ///     ya da çift kırpma. Düz kırpma dışarıda: her videoda kendiliğinden var, tek hareketlik
+    ///     dizide videoyu zorlayan tek engel o olurdu.</item>
     /// </list>
     ///
     /// <para>Sürüm 1 (uzak/orta/yakın duraklar) kaldırıldı; türetme alanı sürümle değişir ki
@@ -40,27 +44,61 @@ namespace VerifyBlind.Enclave.Services.Liveness
         /// <summary>Alan ayrımı — aynı nonce'tan türetilen başka bir değerle (AA challenge) çakışmasın.</summary>
         private const string Domain = "vb-choreo-v2|";
 
-        public const int EventCount = 3;
+        /// <summary>
+        /// Girişin alan ayrımı — aynı nonce'tan kayıt dizisiyle ilişkili bir değer çıkmasın.
+        ///
+        /// <para>⚠️ Giriş hareketini İSTEMCİ de aynı kuralla türetiyor (Android ve iOS
+        /// <c>LoginEvent</c>): login-handshake QR okunmadan, nonce bilinmeden hazırlanıyor;
+        /// sunucunun hareketi söyleyeceği bir tur yok. Türetme değişirse üç yer birlikte değişir;
+        /// <c>ChoreographyGeneratorTests.GirisTuretmesiSabittir</c>'deki vektörler iki istemcinin
+        /// testlerinde de aynen duruyor. Karar yine enclave'de: istemci yanlış türetirse kanıt
+        /// istenen hareketle uyuşmaz ve giriş reddedilir.</para>
+        /// </summary>
+        private const string LoginDomain = "vb-choreo-login-v2|";
+
+        public const int EventCount = 5;
 
         private static readonly LivenessEvent[] Events =
             { LivenessEvent.Blink, LivenessEvent.Smile, LivenessEvent.MouthOpen, LivenessEvent.DoubleBlink };
 
+        /// <summary>Girişte istenebilen hareketler — sıra türetmenin parçası, değiştirilmez.</summary>
+        private static readonly LivenessEvent[] LoginEvents =
+            { LivenessEvent.Smile, LivenessEvent.MouthOpen, LivenessEvent.DoubleBlink };
+
+        /// <summary>Kart ekleme dizisi — bkz. sınıf belgesindeki kurallar.</summary>
         public static Choreography FromNonce(string nonce)
         {
             ArgumentException.ThrowIfNullOrEmpty(nonce);
             var draw = new DeterministicDraw(
                 SHA256.HashData(Encoding.UTF8.GetBytes(Domain + nonce)));
 
-            // Fisher-Yates'in ilk EventCount adımı: tekrarsız, yansız bir sıralı seçim.
-            var pool = new List<LivenessEvent>(Events);
+            // İlk hareket dördünden biri; sonrakiler bir öncekinden FARKLI üçünden biri (yansız).
             var choreography = new Choreography { Version = Version };
+            var previous = LivenessEvent.None;
             for (int i = 0; i < EventCount; i++)
             {
-                int pick = draw.Next(pool.Count);
-                choreography.Events.Add(pool[pick]);
-                pool.RemoveAt(pick);
+                var pool = Array.FindAll(Events, e => e != previous);
+                var pick = pool[draw.Next(pool.Length)];
+                choreography.Events.Add(pick);
+                previous = pick;
             }
             return choreography;
+        }
+
+        /// <summary>
+        /// Doğrulama (giriş) hareketi: TEK hareket, QR isteğinin nonce'undan. Enclave girişte
+        /// zarfın içindeki nonce'un QR'dakiyle aynı olduğunu zaten doğruluyor.
+        /// </summary>
+        public static Choreography ForLogin(string nonce)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(nonce);
+            var draw = new DeterministicDraw(
+                SHA256.HashData(Encoding.UTF8.GetBytes(LoginDomain + nonce)));
+            return new Choreography
+            {
+                Version = Version,
+                Events = { LoginEvents[draw.Next(LoginEvents.Length)] },
+            };
         }
 
         /// <summary>Teşhis için kısa biçim: <c>blink,mouth_open,smile</c>.</summary>

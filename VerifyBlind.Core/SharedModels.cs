@@ -436,8 +436,9 @@ public class LoginRequest
 /// Giriş anındaki canlı yüz kanıtı — <see cref="RegistrationCandidate"/> ile AYNI şekil
 /// (kasıtlı: iki akış da aynı ONNX boru hattından geçer, yeni bir biçim icat edilmedi).
 ///
-/// ⚠️ Kayıt akışındaki adayın aksine burada <c>Rank</c> yoktur: giriş tek karedir, aday listesi
-/// değildir (girişte jest yok, ~2 saniyede bitmeli).
+/// ⚠️ Kayıt akışındaki adayın aksine burada <c>Rank</c> yoktur: giriş tek "en iyi" karedir,
+/// aday listesi değildir. 2026-09-26'dan beri yanında TEK hareketin kanıtı gelir
+/// (<see cref="ChoreographyProof"/>).
 /// </summary>
 public class LoginFaceProof
 {
@@ -453,6 +454,15 @@ public class LoginFaceProof
     [JsonPropertyName("device_metrics")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DeviceFrameMetrics? DeviceMetrics { get; set; }
+
+    /// <summary>
+    /// Doğrulamanın TEK hareketi (2026-09-26) — kayıttaki olay dizisi kanıtıyla AYNI biçim, tek
+    /// adım. Hareket QR nonce'undan türetilir (<c>ChoreographyGenerator.ForLogin</c>). Yoksa (eski
+    /// istemci) kapı yok; kayıttaki kuralın aynısı.
+    /// </summary>
+    [JsonPropertyName("choreography_proof")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ChoreographyProof? ChoreographyProof { get; set; }
 }
 
 public class LoginResponse

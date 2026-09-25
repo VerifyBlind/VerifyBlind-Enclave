@@ -316,6 +316,23 @@ public class SharedModelsTests
         Assert.Equal("att-doc", des!.AttestationDocument);
     }
 
+    /// <summary>
+    /// Doğrulamanın tek hareketi <c>face_proof</c> içinde <c>choreography_proof</c> olarak gelir;
+    /// eski istemci alanı hiç göndermez ve boşken yazılmamalı (zarfı şişirmesin).
+    /// </summary>
+    [Fact]
+    public void LoginFaceProof_ChoreographyProof_WireName_AndOmittedWhenNull()
+    {
+        var bare = JsonSerializer.Serialize(new LoginFaceProof { UserSelfie = "s", AntiSpoofCrop = "c" });
+        Assert.DoesNotContain("choreography_proof", bare);
+
+        const string wire = "{\"user_selfie\":\"s\",\"anti_spoof_crop\":\"c\"," +
+            "\"choreography_proof\":{\"version\":2,\"steps\":[{\"neutral\":[\"n\"],\"event\":[\"e\"],\"attempts\":1}]}}";
+        var des = JsonSerializer.Deserialize<LoginFaceProof>(wire)!;
+        Assert.Equal(2, des.ChoreographyProof!.Version);
+        Assert.Equal("e", Assert.Single(Assert.Single(des.ChoreographyProof.Steps).Event));
+    }
+
     // ── LivenessAction enum ───────────────────────────────────────────────────
 
     [Fact]

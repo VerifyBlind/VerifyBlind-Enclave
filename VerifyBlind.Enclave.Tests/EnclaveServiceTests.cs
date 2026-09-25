@@ -1813,6 +1813,106 @@ public class EnclaveServiceTests
         Assert.DoesNotContain("is_test", json);
     }
 
+    // ── Doğrulamanın TEK hareketi (2026-09-26) ────────────────────────────────
+
+    /// <summary>Ölçücüsü taklit edilmiş servis — hareket kapısını yapı/kimlik sonucundan sınar.</summary>
+    private (EnclaveService service, Mock<IChoreographyVerifier> verifier) ServiceWithChoreography(ChoreographyOutcome outcome)
+    {
+        var verifier = new Mock<IChoreographyVerifier>();
+        verifier.Setup(v => v.Measure(It.IsAny<ChoreographyProof>(), It.IsAny<Choreography>(), It.IsAny<byte[]?>()))
+                .Returns(outcome);
+        var service = new EnclaveService(_enclaveKeys.Object, _biometrics.Object, _ticketMac.Object,
+            _idHmac.Object, _antiSpoof.Object, new FlowEmbeddingCache(), verifier.Object);
+        return (service, verifier);
+    }
+
+    private static LoginFaceProof FaceProofWithMove() => new()
+    {
+        UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
+        AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
+        ChoreographyProof = new ChoreographyProof
+        {
+            Version = ChoreographyGenerator.Version,
+            Steps = { new ChoreographyProofStep { Neutral = { "bg==" }, Event = { "ZQ==" } } },
+        },
+    };
+
+    [Fact]
+    public async Task LoginAsync_MoveProof_IdentityHolds_PassesAndMeasuresTheNonceMove()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Throws(new InvalidOperationException("kms-reached"));
+        var (service, verifier) = ServiceWithChoreography(new ChoreographyOutcome
+        {
+            Status = ChoreographyVerifier.StatusMeasured, IdentityMin = 0.55,
+        });
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.LoginAsync(request, new DiagLog()));
+
+        // Kapı geçildi (akış KMS'e ulaştı) ve hareket QR nonce'undan türetildi — istemci beyanı değil.
+        Assert.Equal("kms-reached", ex.Message);
+        var expected = ChoreographyGenerator.ForLogin("face-gate-nonce-1").Events;
+        verifier.Verify(v => v.Measure(It.IsAny<ChoreographyProof>(),
+            It.Is<Choreography>(c => c.Events.SequenceEqual(expected)),
+            It.Is<byte[]?>(b => b != null && Encoding.UTF8.GetString(b!) == "face-ref")), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginAsync_MoveProof_ForeignFaceInMoveFrame_Rejects()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        var (service, _) = ServiceWithChoreography(new ChoreographyOutcome
+        {
+            Status = ChoreographyVerifier.StatusMeasured, IdentityMin = 0.05,
+        });
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
+    }
+
+    [Fact]
+    public async Task LoginAsync_MoveProof_WrongShape_Rejects()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        var (service, _) = ServiceWithChoreography(new ChoreographyOutcome
+        {
+            Status = ChoreographyVerifier.StatusInvalid, InvalidReason = "event",
+        });
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
+    }
+
+    /// <summary>Kanıt VAR ama kimlik ölçülemedi → fail-closed.</summary>
+    [Fact]
+    public async Task LoginAsync_MoveProof_IdentityUnmeasured_Rejects()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        var (service, _) = ServiceWithChoreography(new ChoreographyOutcome
+        {
+            Status = ChoreographyVerifier.StatusMeasured, IdentityMin = null,
+        });
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
+    }
+
+    /// <summary>Eski istemci (kanıt yok) — kapı yok, ölçücü hiç çağrılmaz.</summary>
+    [Fact]
+    public async Task LoginAsync_NoMoveProof_OldClient_SkipsMoveGate()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Throws(new InvalidOperationException("kms-reached"));
+        var (service, verifier) = ServiceWithChoreography(new ChoreographyOutcome { Status = ChoreographyVerifier.StatusInvalid });
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.LoginAsync(request, new DiagLog()));
+
+        Assert.Equal("kms-reached", ex.Message);
+        verifier.Verify(v => v.Measure(It.IsAny<ChoreographyProof>(), It.IsAny<Choreography>(), It.IsAny<byte[]?>()), Times.Never);
+    }
+
     private const string SomeFaceRef = "ZmFjZS1yZWY=";   // base64("face-ref")
     private const string RealTckn    = "10000000146";    // biçimi geçerli, demo sentinel DEĞİL
 

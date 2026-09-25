@@ -984,7 +984,7 @@ string? partnerId = null;
         // yapılandırmadır ve zayıftır. Hem FaceRefJpegB64 hem TCKN, MAC ile mühürlü bilet
         // payload'ının içindedir → "bu demo bir bilettir" istemci beyanı değil, enclave'in
         // mühürden okuduğu otoriter olgudur.
-        var loginFace = EnforceLoginFaceProof(signedTicket.Payload, faceProof, diag);
+        var loginFace = EnforceLoginFaceProof(signedTicket.Payload, faceProof, reqNonce!, diag);
 
         if (derivesCodes)
         {
@@ -1198,7 +1198,9 @@ string? partnerId = null;
                 // Cihaz ölçüleri DOĞRULANMAZ (istemci beyanı) ama relay bunları kendi başına
                 // okuyamaz — face_proof şifreli zarfın içinde. Işık/kadraj/netlik, bir girişin
                 // neden sınırda kaldığını açıklayan birinci derece teşhistir.
-                device      = loginFace.Device
+                device      = loginFace.Device,
+                // Tek hareketin ölçümü (kimlik + olay özellikleri); eski istemcide null.
+                choreography = loginFace.Choreography
             }
         };
 
@@ -1388,10 +1390,14 @@ string? partnerId = null;
     /// <c>face_proof</c>, <c>EncrSignedTicket</c> zarfının içinde şifreli gider (canlı yüz karesi
     /// relay'e asla açılmaz). Ölçüm satırına yazılabilmesi için buradan taşınır.
     /// </param>
+    /// <param name="Choreography">Tek hareketin ölçümü — kanıt yoksa (eski istemci) null.</param>
     internal readonly record struct LoginFaceOutcome(
-        float MatchScore, AntiSpoofResult Spoof, DeviceFrameMetrics? Device);
+        float MatchScore, AntiSpoofResult Spoof, DeviceFrameMetrics? Device,
+        ChoreographyOutcome? Choreography = null);
 
-    internal LoginFaceOutcome EnforceLoginFaceProof(TicketPayload ticket, LoginFaceProof? proof, DiagLog diag)
+    /// <param name="nonce">QR isteğinin nonce'u — zarfın içindekiyle eşleştiği zaten doğrulandı.
+    /// Hareket buradan yeniden türetilir; istemcinin "ne istendi" beyanı yok.</param>
+    internal LoginFaceOutcome EnforceLoginFaceProof(TicketPayload ticket, LoginFaceProof? proof, string nonce, DiagLog diag)
     {
         var hasFaceRef = !string.IsNullOrEmpty(ticket.FaceRefJpegB64);
 
@@ -1442,10 +1448,11 @@ string? partnerId = null;
         }
 
         float score;
+        byte[] refBytes;
         diag.Begin("Biometric Login");
         try
         {
-            var refBytes = Convert.FromBase64String(ticket.FaceRefJpegB64);
+            refBytes = Convert.FromBase64String(ticket.FaceRefJpegB64);
             var probeBytes = Convert.FromBase64String(proof.UserSelfie);
 
             // Referans, kayıt anında SOD-doğrulanmış DG2'den ÇIKARILMIŞ yüz görüntüsüdür
@@ -1476,13 +1483,62 @@ string? partnerId = null;
 
         // Pasif canlılık — AYNI karenin kırpmasıyla, kayıt yolundaki fail-closed davranışın AYNISI
         // (model yok / kırpma bozuk / çıkarım patladı / P(live) düşük → REDDET; sessiz geçme YOK).
-        // Girişte JEST YOKTUR: giriş ~2 saniyede bitmeli, yoksa 2FA/step-up kullanım alanı ölür.
         // payload=null: giriş yolunda SecurePayload yoktur, crop doğrudan verilir.
         var spoof = EnforceAntiSpoof(null, diag, proof.AntiSpoofCrop, "Login");
 
-        // Buraya ulaşmak "geçti" demektir (her iki kapı da fail-closed). Skorlar relay'e taşınır
+        var choreography = EnforceLoginChoreography(proof, nonce, refBytes, diag);
+
+        // Buraya ulaşmak "geçti" demektir (bütün kapılar fail-closed). Skorlar relay'e taşınır
         // ve ölçüm tablosuna yazılır — eşiği veriyle ayarlayabilmek için.
-        return new LoginFaceOutcome(score, spoof, proof.DeviceMetrics);
+        return new LoginFaceOutcome(score, spoof, proof.DeviceMetrics, choreography);
+    }
+
+    /// <summary>
+    /// Doğrulamanın TEK hareketi (2026-09-26, kullanıcı kararı) — kayıttaki olay dizisi kapısının
+    /// giriş karşılığı: yapı + nötr ve hareket karelerinin HEPSİNDE kart sahibinin yüzü.
+    ///
+    /// <para><b>Neden:</b> hareketsiz girişte tek engel pasif canlılık modeliydi ve televizyonda
+    /// gösterilen bir FOTOĞRAF bile eşiği geçebiliyordu (2026-09-21 ölçümü: 0,66-0,72). Fotoğraf
+    /// hareket yapamaz. Hareketi başka bir yüzün yapması da kapanır: kimlik hareketin karesinde
+    /// aranır. Eskiden (2026-09-15) "girişe jest hayır" denmişti, çünkü jestler yalnız telefonda
+    /// karara bağlanıyordu; o gerekçe bu kapıyla ortadan kalktı.</para>
+    ///
+    /// <para>Kanıt yoksa (eski istemci) kapı yok — kayıttaki sözleşmenin aynısı; zorunlu kılmak
+    /// eski sürümler kalkınca ayrı karar. Kanıt VARSA her şey fail-closed: kimlik ölçülemediyse
+    /// de reddedilir (ana benzerlik aynı modelle az önce ölçüldü; burada ölçülememesi beklenmez).</para>
+    /// </summary>
+    private ChoreographyOutcome? EnforceLoginChoreography(LoginFaceProof proof, string nonce, byte[] refBytes, DiagLog diag)
+    {
+        if (proof.ChoreographyProof is not { } cp)
+        {
+            diag.Ok("Login Choreography", "kanıt yok (eski istemci)");
+            return null;
+        }
+
+        diag.Begin("Login Choreography");
+        var demanded = ChoreographyGenerator.ForLogin(nonce);
+        var measured = _choreography.Measure(cp, demanded, refBytes);
+        // Enclave'in Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
+        diag.Ok("Login Choreography", DescribeChoreography(measured));
+
+        if (measured.Status == ChoreographyVerifier.StatusInvalid)
+        {
+            diag.Fail("Login Choreography", $"kanıt istenen hareketle uyuşmuyor ({measured.InvalidReason})");
+            throw new LoginFaceMismatchException("Hareket kanıtı istenen hareketle uyuşmuyor.");
+        }
+        if (measured.IdentityMin is not { } identityMin)
+        {
+            diag.Fail("Login Choreography", "hareket karelerinde kimlik ölçülemedi");
+            throw new LoginFaceMismatchException("Hareket karelerinde canlı yüz doğrulaması yapılamadı.");
+        }
+        if (identityMin < BiometricThreshold)
+        {
+            // Skor mesaja YAZILMAZ (relay → Sentry/verification_logs); diag satırında var.
+            diag.Fail("Login Choreography", "hareket karelerinden birinde yüz eşleşmedi");
+            throw new LoginFaceMismatchException(
+                "Yüzünüz bu kimliği ekleyen kişiyle eşleşmedi. Doğrulamayı yalnız kimliğin sahibi tamamlayabilir.");
+        }
+        return measured;
     }
 
     // --- ACTIVE AUTHENTICATION (Chip Clone Protection) ---
