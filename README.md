@@ -49,16 +49,18 @@ Güven iki bağımsız ayakta kapanır:
 
 2. **Canlı enclave kriptografik olarak zorlanır (otomatik).** Mobil uygulama her el sıkışmada (handshake)
    sunucudan AWS Nitro **attestation belgesini** alır, AWS kök sertifikasına kadar zinciri doğrular,
-   içinden PCR0'ı çıkarır ve **imzalı izin listesiyle** karşılaştırır. PCR0 bilinen bir sürüme uymazsa
-   doğrulama reddedilir. Yani sunucuda farklı/kurcalanmış bir enclave çalışsaydı uygulamanız bunu
-   reddederdi — bu kontrolü sizin için uygulama yapar.
+   içinden PCR0'ı çıkarır ve o PCR0 için sunulan **VerifyBlind geliştirici imzasını**, uygulamaya gömülü
+   geliştirici genel anahtarıyla doğrular. İmzası olmayan bir PCR0 reddedilir. Yani sunucuda farklı/kurcalanmış
+   bir enclave çalışsaydı uygulamanız bunu reddederdi — bu kontrolü sizin için uygulama yapar. Partnerler de
+   aynı kontrolü yapabilir: doğrulama sonucuyla birlikte attestation belgesi ve PCR0 imzası gelir,
+   geliştirici genel anahtarı `https://api.verifyblind.com/api/public/developer-key` adresindedir.
 
 Kısacası: bu repo + release'teki PCR0, *yayınlanan kodun* parmak izini doğrulamanızı sağlar; AWS Nitro
 attestation ise *canlı sunucunun* o parmak izini taşıdığını garanti eder.
 
 ### Bileşenler
 - `Program.cs`, `Services/`, `Controllers/` — enclave uygulaması (handshake, register, login)
-- `Models/` — ONNX ML modelleri (yüz embedding + pasif canlılık); Dockerfile'da SHA256 ile pinlenir
+- `Models/` — ONNX ML modelleri (yüz hizalama, yüz embedding, pasif canlılık); Dockerfile'da SHA256 ile pinlenir
 - `Certificates/` — NFC için CSCA + CRL sertifikaları
 - `Dockerfile.enclave` — deterministik imaj tarifi
 
@@ -97,15 +99,18 @@ Trust closes through two independent legs:
 
 2. **The live enclave is cryptographically enforced (automatic).** On every handshake the mobile app
    fetches the AWS Nitro **attestation document** from the server, verifies the chain up to AWS's root
-   certificate, extracts PCR0, and compares it against a **signed allow-list**. If PCR0 doesn't match a
-   known release, verification is rejected. So if a different/tampered enclave were running on the server,
-   your app would refuse it — the app performs this check for you.
+   certificate, extracts PCR0, and verifies the **VerifyBlind developer signature** supplied for that PCR0
+   with the developer public key embedded in the app. A PCR0 without such a signature is rejected. So if a
+   different/tampered enclave were running on the server, your app would refuse it — the app performs this
+   check for you. Partners can run the same check: the attestation document and the PCR0 signature come with
+   each verification result, and the developer public key is at
+   `https://api.verifyblind.com/api/public/developer-key`.
 
 In short: this repo + the release PCR0 let you verify the fingerprint of the *published code*; AWS Nitro
 attestation guarantees the *live server* carries that fingerprint.
 
 ### Components
 - `Program.cs`, `Services/`, `Controllers/` — the enclave application (handshake, register, login)
-- `Models/` — ONNX ML models (face embedding + passive liveness); pinned by SHA256 in the Dockerfile
+- `Models/` — ONNX ML models (face alignment, face embedding, passive liveness); pinned by SHA256 in the Dockerfile
 - `Certificates/` — CSCA + CRL certificates for NFC
 - `Dockerfile.enclave` — the deterministic image recipe

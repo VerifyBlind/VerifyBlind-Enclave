@@ -5,9 +5,16 @@ and cannot fetch models at runtime. Dockerfile.enclave pins each model's SHA256 
 replace a model file, update the hash there too (PCR0 will change, as expected).
 
 Face recognition: w600k_r50.onnx
-  ArcFace R50 (buffalo_l). Replaced w600k_mbf.onnx (MobileFaceNet) — stronger model;
-  biometrics run ONLY at register. Threshold is calibrated separately (mbf logs do NOT
-  transfer to r50, different score scale). Used by BiometricService.cs.
+  ArcFace R50 (buffalo_l). Replaced w600k_mbf.onnx (MobileFaceNet) — stronger model.
+  Runs when a card is added and again at every verification (login), where the live frame
+  and the move frames are compared with the reference face sealed in the ticket.
+  Threshold is calibrated separately (mbf logs do NOT transfer to r50, different score
+  scale). Used by BiometricService.cs.
+
+Face detection / alignment: yunet.onnx
+  YuNet face detector. Finds the largest face and its five landmarks (eyes, nose, mouth
+  corners); the face is aligned to ArcFace's canonical 112x112 before embedding. Used by
+  FaceAlignment/FaceAligner.cs and BiometricService.cs.
 
 Anti-spoof (passive liveness): minifasnet_v2.onnx + minifasnet_v1se_40.onnx
   Silent-Face MiniFASNet, 80x80 BGR input, 3-class softmax [fake1, live, fake2].
