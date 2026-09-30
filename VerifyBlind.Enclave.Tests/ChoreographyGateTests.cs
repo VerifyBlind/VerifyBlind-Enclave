@@ -37,21 +37,15 @@ public class ChoreographyGateTests
         Assert.Same(p, ex.Planarity);
     }
 
-    /// <summary>Admin anahtarı kapatıldıysa (relay optional=true gönderir) eski davranış: kapı çalışmaz.</summary>
-    [Fact]
-    public void KanitYoksaAnahtarKapaliysaGecer()
+    /// <summary>Ölçüm yoksa durum etiketi ne olursa olsun red — kapıyı atlatan bir yol kalmamalı.</summary>
+    [Theory]
+    [InlineData(PlanarityStatuses.NoProof)]
+    [InlineData(PlanarityStatuses.Unmeasured)]
+    [InlineData(PlanarityStatuses.Measured)]
+    public void OlcumYoksaHerDurumdaReddedilir(string status)
     {
-        Assert.Null(EnclaveService.ChoreographyGate(
-            new PlanarityOutcome { Status = PlanarityStatuses.NoProof }, proofOptional: true));
-    }
-
-    /// <summary>Anahtar kapalı olsa bile kanıt GELDİYSE kapı tam çalışır — anahtar yalnız "kanıt yok" durumunu gevşetir.</summary>
-    [Fact]
-    public void AnahtarKapaliykenGelenKanitYineDenetlenir()
-    {
-        var p = Sequence(identityMin: 0.05);
-        Assert.Equal(EnclaveErrorCodes.ChoreographyIdentity,
-            EnclaveService.ChoreographyGate(p, proofOptional: true)!.ErrorCode);
+        var ex = EnclaveService.ChoreographyGate(new PlanarityOutcome { Status = status });
+        Assert.Equal(EnclaveErrorCodes.ChoreographyInvalid, ex!.ErrorCode);
     }
 
     [Fact]

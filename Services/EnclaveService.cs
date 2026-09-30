@@ -390,16 +390,13 @@ public class EnclaveService
         else
         {
             // Kanıt yok: eski istemci ya da kanıt göndermeyen değiştirilmiş bir istemci. 2026-09-30'dan
-            // beri reddedilir (aşağıdaki kapı); yalnız admin anahtarı kapalıysa eski davranış sürer.
+            // beri KOŞULSUZ reddedilir (aşağıdaki kapı). Bunu gevşeten bir ayar ya da bayrak YOK.
             sequence = new PlanarityOutcome { Status = PlanarityStatuses.NoProof };
-            if (request.ChoreographyProofOptional)
-                diag.Ok("Choreography", "kanıt yok — zorunluluk admin anahtarıyla KAPALI, kapı atlandı");
-            else
-                diag.Fail("Choreography", "kanıt yok — hareket kanıtı zorunlu");
+            diag.Fail("Choreography", "kanıt yok — hareket kanıtı zorunlu");
         }
         onPlanarityMeasured(sequence);
 
-        if (ChoreographyGate(sequence, request.ChoreographyProofOptional) is { } rejection)
+        if (ChoreographyGate(sequence) is { } rejection)
         {
             diag.Fail("Choreography", rejection.TechnicalDetail ?? rejection.ErrorCode);
             Console.WriteLine(
@@ -988,8 +985,7 @@ string? partnerId = null;
         // yapılandırmadır ve zayıftır. Hem FaceRefJpegB64 hem TCKN, MAC ile mühürlü bilet
         // payload'ının içindedir → "bu demo bir bilettir" istemci beyanı değil, enclave'in
         // mühürden okuduğu otoriter olgudur.
-        var loginFace = EnforceLoginFaceProof(signedTicket.Payload, faceProof, reqNonce!, diag,
-            moveProofOptional: request.ChoreographyProofOptional);
+        var loginFace = EnforceLoginFaceProof(signedTicket.Payload, faceProof, reqNonce!, diag);
 
         if (derivesCodes)
         {
@@ -1402,8 +1398,7 @@ string? partnerId = null;
 
     /// <param name="nonce">QR isteğinin nonce'u — zarfın içindekiyle eşleştiği zaten doğrulandı.
     /// Hareket buradan yeniden türetilir; istemcinin "ne istendi" beyanı yok.</param>
-    internal LoginFaceOutcome EnforceLoginFaceProof(TicketPayload ticket, LoginFaceProof? proof, string nonce, DiagLog diag,
-        bool moveProofOptional = false)
+    internal LoginFaceOutcome EnforceLoginFaceProof(TicketPayload ticket, LoginFaceProof? proof, string nonce, DiagLog diag)
     {
         var hasFaceRef = !string.IsNullOrEmpty(ticket.FaceRefJpegB64);
 
@@ -1492,7 +1487,7 @@ string? partnerId = null;
         // payload=null: giriş yolunda SecurePayload yoktur, crop doğrudan verilir.
         var spoof = EnforceAntiSpoof(null, diag, proof.AntiSpoofCrop, "Login");
 
-        var choreography = EnforceLoginChoreography(proof, nonce, refBytes, diag, moveProofOptional);
+        var choreography = EnforceLoginChoreography(proof, nonce, refBytes, diag);
 
         // Buraya ulaşmak "geçti" demektir (bütün kapılar fail-closed). Skorlar relay'e taşınır
         // ve ölçüm tablosuna yazılır — eşiği veriyle ayarlayabilmek için.
@@ -1509,21 +1504,15 @@ string? partnerId = null;
     /// aranır. Eskiden (2026-09-15) "girişe jest hayır" denmişti, çünkü jestler yalnız telefonda
     /// karara bağlanıyordu; o gerekçe bu kapıyla ortadan kalktı.</para>
     ///
-    /// <para>Kanıt yoksa (eski istemci) kapı yok — kayıttaki sözleşmenin aynısı; zorunlu kılmak
-    /// eski sürümler kalkınca ayrı karar. Kanıt VARSA her şey fail-closed: kimlik ölçülemediyse
-    /// de reddedilir (ana benzerlik aynı modelle az önce ölçüldü; burada ölçülememesi beklenmez).</para>
+    /// <para>2026-09-30'dan beri kanıt KOŞULSUZ zorunlu (kayıttaki kapının aynısı): kanıtsız istek
+    /// reddedilir, bunu gevşeten bir ayar yok. Kanıt gelince de her şey fail-closed: kimlik
+    /// ölçülemediyse de reddedilir (ana benzerlik aynı modelle az önce ölçüldü; burada ölçülememesi
+    /// beklenmez).</para>
     /// </summary>
-    private ChoreographyOutcome? EnforceLoginChoreography(LoginFaceProof proof, string nonce, byte[] refBytes, DiagLog diag,
-        bool moveProofOptional)
+    private ChoreographyOutcome EnforceLoginChoreography(LoginFaceProof proof, string nonce, byte[] refBytes, DiagLog diag)
     {
         if (proof.ChoreographyProof is not { } cp)
         {
-            // 2026-09-30'dan beri zorunlu. Yalnız admin anahtarı kapalıyken eski davranış (kapı yok).
-            if (moveProofOptional)
-            {
-                diag.Ok("Login Choreography", "kanıt yok — zorunluluk admin anahtarıyla KAPALI, kapı atlandı");
-                return null;
-            }
             diag.Fail("Login Choreography", "kanıt yok — hareket kanıtı zorunlu");
             throw new LoginFaceMismatchException(
                 "Doğrulama için hareket kanıtı gerekiyor. Lütfen uygulamayı güncelleyin ve tekrar deneyin.");
@@ -2159,21 +2148,18 @@ string? partnerId = null;
     /// <para><b>Sıra:</b> önce yapı (kanıt istenen diziyle uyuşmuyorsa hiçbir sayı anlamlı
     /// değil), sonra kimlik (nötr ve olay karelerinin hepsinde kart sahibinin yüzü).</para>
     ///
-    /// <para>Kanıt yoksa (mağazadaki eski jest akışı) kapı çalışmaz. Kanıtı zorunlu kılmak,
-    /// eski sürümler kullanımdan kalktıktan sonra ayrı bir karar.</para>
+    /// <para>Kanıt yoksa KOŞULSUZ red (2026-09-30'dan beri): bunu gevşeten bir ayar, bayrak ya da
+    /// relay alanı YOK. Ölçüm olmadan kayıt ilerlemez.</para>
     /// </summary>
-    internal static RegistrationException? ChoreographyGate(PlanarityOutcome sequence, bool proofOptional = false)
+    internal static RegistrationException? ChoreographyGate(PlanarityOutcome sequence)
     {
         if (sequence.Choreography is not { } c)
         {
-            // Kanıt hiç gelmedi. Zorunluysa (varsayılan) reddet — yeni kod EKLENMEDİ
-            // (EnclaveErrorCodes iki kopya): ChoreographyInvalid + ayırt edici mesaj.
-            if (sequence.Status == PlanarityStatuses.NoProof && !proofOptional)
-                return new RegistrationException(RegistrationStep.BiometricVerification,
-                    VerifyBlind.Core.EnclaveErrorCodes.ChoreographyInvalid,
-                    "Olay dizisi kanıtı yok (istemci güncel değil).")
-                { Planarity = sequence };
-            return null;
+            // Yeni kod EKLENMEDİ (EnclaveErrorCodes iki kopya): ChoreographyInvalid + ayırt edici mesaj.
+            return new RegistrationException(RegistrationStep.BiometricVerification,
+                VerifyBlind.Core.EnclaveErrorCodes.ChoreographyInvalid,
+                "Olay dizisi kanıtı yok (istemci güncel değil).")
+            { Planarity = sequence };
         }
 
         if (c.Status == ChoreographyVerifier.StatusInvalid)

@@ -15,6 +15,7 @@ public class EnclaveServiceTests
     private readonly Mock<IBiometricService> _biometrics = new();
     private readonly Mock<ITicketMacService> _ticketMac = new();
     private readonly Mock<IAntiSpoofService> _antiSpoof = new();
+    private readonly Mock<IChoreographyVerifier> _choreography = new();
     private readonly EnclaveService _service;
 
     public EnclaveServiceTests()
@@ -31,7 +32,12 @@ public class EnclaveServiceTests
         _antiSpoof.Setup(a => a.IsModelLoaded).Returns(true);
         _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0f, 1.0f, 0f });
 
-        _service = new EnclaveService(_enclaveKeys.Object, _biometrics.Object, _ticketMac.Object, _idHmac.Object, _antiSpoof.Object, new FlowEmbeddingCache());
+        // Hareket kanıtı zorunlu: varsayılan servis, gelen kanıtı "yapı doğru, kimlik tutuyor" ölçer.
+        // Hareket kapısının kendisi ServiceWithChoreography testlerinde sınanır.
+        _choreography.Setup(v => v.Measure(It.IsAny<ChoreographyProof>(), It.IsAny<Choreography>(), It.IsAny<byte[]?>()))
+                     .Returns(new ChoreographyOutcome { Status = ChoreographyVerifier.StatusMeasured, IdentityMin = 0.6 });
+
+        _service = new EnclaveService(_enclaveKeys.Object, _biometrics.Object, _ticketMac.Object, _idHmac.Object, _antiSpoof.Object, new FlowEmbeddingCache(), _choreography.Object);
     }
 
     // ── Handshake ─────────────────────────────────────────────────────────────
@@ -1709,7 +1715,7 @@ public class EnclaveServiceTests
     /// </summary>
     private LoginRequest BuildLoginRequestReachingFaceGate(
         string tckn, string faceRefB64, LoginFaceProof? faceProof = null,
-        object? validations = null, bool moveProofOptional = true)
+        object? validations = null)
     {
         var (_, reqPublicKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
         var (userPrivKey, userPubKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
@@ -1762,14 +1768,23 @@ public class EnclaveServiceTests
             }),
             UserSignature    = hokSig,
             UserSigTimestamp = ts,
-            // Yüz kapısını test eden eski testler hareket kanıtı göndermiyor; varsayılanda anahtar kapalı
-            // kabul edilir. Zorunluluğun kendisi aşağıdaki NoMoveProof testlerinde false ile denetlenir.
-            ChoreographyProofOptional = moveProofOptional,
         };
     }
 
-    /// <summary>Geçerli bir face_proof — selfie + AYNI karenin anti-spoof kırpması (K6).</summary>
+    /// <summary>Geçerli bir face_proof — selfie + AYNI karenin anti-spoof kırpması (K6) + tek hareketin kanıtı.</summary>
     private static LoginFaceProof ValidFaceProof() => new()
+    {
+        UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
+        AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
+        ChoreographyProof = new ChoreographyProof
+        {
+            Version = ChoreographyGenerator.Version,
+            Steps = { new ChoreographyProofStep { Neutral = { "bg==" }, Event = { "ZQ==" } } },
+        },
+    };
+
+    /// <summary>Hareket kanıtı OLMAYAN face_proof — eski ya da değiştirilmiş istemci.</summary>
+    private static LoginFaceProof FaceProofWithoutMove() => new()
     {
         UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
         AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
@@ -1799,7 +1814,7 @@ public class EnclaveServiceTests
     }
 
     /// <summary>
-    /// Hareket kanıtı zorunluyken (varsayılan) demo bilet yine geçer: demo biletinde yüz referansı
+    /// Hareket kanıtı zorunluyken demo bilet yine geçer: demo biletinde yüz referansı
     /// yoktur ve yüz/hareket kapıları demo için yapısal olarak atlanır. Pilot partnerlerin gerçek
     /// kart olmadan test etmesi bu zorunluluktan etkilenmemeli.
     /// </summary>
@@ -1811,8 +1826,7 @@ public class EnclaveServiceTests
 
         var request = BuildLoginRequestReachingFaceGate(
             EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
-            validations: new Dictionary<string, object> { ["age"] = "18+" },
-            moveProofOptional: false);
+            validations: new Dictionary<string, object> { ["age"] = "18+" });
 
         var json = await _service.LoginAsync(request, new DiagLog());
 
@@ -1850,17 +1864,6 @@ public class EnclaveServiceTests
         return (service, verifier);
     }
 
-    private static LoginFaceProof FaceProofWithMove() => new()
-    {
-        UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
-        AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
-        ChoreographyProof = new ChoreographyProof
-        {
-            Version = ChoreographyGenerator.Version,
-            Steps = { new ChoreographyProofStep { Neutral = { "bg==" }, Event = { "ZQ==" } } },
-        },
-    };
-
     [Fact]
     public async Task LoginAsync_MoveProof_IdentityHolds_PassesAndMeasuresTheNonceMove()
     {
@@ -1871,7 +1874,7 @@ public class EnclaveServiceTests
             Status = ChoreographyVerifier.StatusMeasured, IdentityMin = 0.55,
         });
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.LoginAsync(request, new DiagLog()));
 
         // Kapı geçildi (akış KMS'e ulaştı) ve hareket QR nonce'undan türetildi — istemci beyanı değil.
@@ -1891,7 +1894,7 @@ public class EnclaveServiceTests
             Status = ChoreographyVerifier.StatusMeasured, IdentityMin = 0.05,
         });
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
         await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
     }
 
@@ -1904,7 +1907,7 @@ public class EnclaveServiceTests
             Status = ChoreographyVerifier.StatusInvalid, InvalidReason = "event",
         });
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
         await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
     }
 
@@ -1918,11 +1921,11 @@ public class EnclaveServiceTests
             Status = ChoreographyVerifier.StatusMeasured, IdentityMin = null,
         });
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithMove());
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
         await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
     }
 
-    /// <summary>Kanıt zorunlu (varsayılan, relay optional=false): kanıtsız giriş reddedilir, kodlar üretilmez.</summary>
+    /// <summary>Kanıt KOŞULSUZ zorunlu: kanıtsız giriş reddedilir, kodlar üretilmez.</summary>
     [Fact]
     public async Task LoginAsync_NoMoveProof_Required_Rejects()
     {
@@ -1930,27 +1933,13 @@ public class EnclaveServiceTests
         _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Throws(new InvalidOperationException("kms-reached"));
         var (service, verifier) = ServiceWithChoreography(new ChoreographyOutcome { Status = ChoreographyVerifier.StatusMeasured, IdentityMin = 0.6 });
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof(), moveProofOptional: false);
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: FaceProofWithoutMove());
         var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
 
         Assert.Contains("hareket kanıtı", ex.Message);
         verifier.Verify(v => v.Measure(It.IsAny<ChoreographyProof>(), It.IsAny<Choreography>(), It.IsAny<byte[]?>()), Times.Never);
     }
 
-    /// <summary>Admin anahtarı kapalı (relay optional=true): eski davranış — kapı yok, ölçücü hiç çağrılmaz.</summary>
-    [Fact]
-    public async Task LoginAsync_NoMoveProof_SwitchOff_SkipsMoveGate()
-    {
-        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
-        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Throws(new InvalidOperationException("kms-reached"));
-        var (service, verifier) = ServiceWithChoreography(new ChoreographyOutcome { Status = ChoreographyVerifier.StatusInvalid });
-
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof(), moveProofOptional: true);
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.LoginAsync(request, new DiagLog()));
-
-        Assert.Equal("kms-reached", ex.Message);
-        verifier.Verify(v => v.Measure(It.IsAny<ChoreographyProof>(), It.IsAny<Choreography>(), It.IsAny<byte[]?>()), Times.Never);
-    }
 
     private const string SomeFaceRef = "ZmFjZS1yZWY=";   // base64("face-ref")
     private const string RealTckn    = "10000000146";    // biçimi geçerli, demo sentinel DEĞİL

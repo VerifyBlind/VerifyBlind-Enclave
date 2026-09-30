@@ -228,21 +228,6 @@ public class RegistrationRequest
     [JsonPropertyName("identity_hmac_secret_wrapped")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IdentityHmacSecretWrapped { get; set; }
-
-    /// <summary>
-    /// Relay tarafından HER istekte set edilir; istemcinin gövdede gönderdiği değer ezilir.
-    /// <c>false</c> (varsayılan) = olay dizisi (hareket) kanıtı ZORUNLU: kanıtsız istek reddedilir.
-    /// <c>true</c> yalnız admin panelindeki "hareket kanıtı zorunlu" anahtarı kapatıldığında gelir —
-    /// enclave deploy'u gerektirmeyen acil geri dönüş yolu.
-    ///
-    /// <para><b>Güven notu:</b> ele geçirilmiş bir relay bunu <c>true</c> yapabilir. Bu, 2026-09-30
-    /// öncesinden daha zayıf değildir: o zamana kadar kanıt her koşulda isteğe bağlıydı. Diğer tüm
-    /// enclave kapıları (NFC, yüz eşleşmesi, anti-spoof, kanıt GELDİĞİNDE hareket ve kimlik) bu
-    /// bayraktan bağımsızdır.</para>
-    /// </summary>
-    [JsonPropertyName("choreography_proof_optional")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool ChoreographyProofOptional { get; set; }
 }
 
 // PIN -> person_id türetme (Phone -> Relay -> Enclave). TCKN'siz kimliklerin bulut yedek
@@ -436,21 +421,6 @@ public class LoginRequest
     [JsonPropertyName("revocation_rules")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? RevocationRules { get; set; }
-
-    /// <summary>
-    /// Relay tarafından HER istekte set edilir; istemcinin gövdede gönderdiği değer ezilir.
-    /// <c>false</c> (varsayılan) = olay dizisi (hareket) kanıtı ZORUNLU: kanıtsız istek reddedilir.
-    /// <c>true</c> yalnız admin panelindeki "hareket kanıtı zorunlu" anahtarı kapatıldığında gelir —
-    /// enclave deploy'u gerektirmeyen acil geri dönüş yolu.
-    ///
-    /// <para><b>Güven notu:</b> ele geçirilmiş bir relay bunu <c>true</c> yapabilir. Bu, 2026-09-30
-    /// öncesinden daha zayıf değildir: o zamana kadar kanıt her koşulda isteğe bağlıydı. Diğer tüm
-    /// enclave kapıları (NFC, yüz eşleşmesi, anti-spoof, kanıt GELDİĞİNDE hareket ve kimlik) bu
-    /// bayraktan bağımsızdır.</para>
-    /// </summary>
-    [JsonPropertyName("choreography_proof_optional")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    public bool ChoreographyProofOptional { get; set; }
 
     // ⚠️ CANLI YÜZ KARESİ BURADA DEĞİL: face_proof, EncrSignedTicket zarfının İÇİNDE taşınır
     // ({signed_ticket, nonce, pk_hash, face_proof} — enclave public key ile şifreli). Gövdeye düz
