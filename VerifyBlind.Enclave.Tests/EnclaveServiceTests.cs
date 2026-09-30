@@ -1709,7 +1709,7 @@ public class EnclaveServiceTests
     /// </summary>
     private LoginRequest BuildLoginRequestReachingFaceGate(
         string tckn, string faceRefB64, LoginFaceProof? faceProof = null,
-        object? validations = null)
+        object? validations = null, bool moveProofOptional = true)
     {
         var (_, reqPublicKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
         var (userPrivKey, userPubKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
@@ -1762,6 +1762,9 @@ public class EnclaveServiceTests
             }),
             UserSignature    = hokSig,
             UserSigTimestamp = ts,
+            // Yüz kapısını test eden eski testler hareket kanıtı göndermiyor; varsayılanda anahtar kapalı
+            // kabul edilir. Zorunluluğun kendisi aşağıdaki NoMoveProof testlerinde false ile denetlenir.
+            ChoreographyProofOptional = moveProofOptional,
         };
     }
 
@@ -1789,6 +1792,27 @@ public class EnclaveServiceTests
         var request = BuildLoginRequestReachingFaceGate(
             EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
             validations: new Dictionary<string, object> { ["age"] = "18+" });
+
+        var json = await _service.LoginAsync(request, new DiagLog());
+
+        Assert.Contains("is_test", json);
+    }
+
+    /// <summary>
+    /// Hareket kanıtı zorunluyken (varsayılan) demo bilet yine geçer: demo biletinde yüz referansı
+    /// yoktur ve yüz/hareket kapıları demo için yapısal olarak atlanır. Pilot partnerlerin gerçek
+    /// kart olmadan test etmesi bu zorunluluktan etkilenmemeli.
+    /// </summary>
+    [Fact]
+    public async Task LoginAsync_DemoTicket_MoveProofRequired_StillPasses()
+    {
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
+            validations: new Dictionary<string, object> { ["age"] = "18+" },
+            moveProofOptional: false);
 
         var json = await _service.LoginAsync(request, new DiagLog());
 
@@ -1898,15 +1922,30 @@ public class EnclaveServiceTests
         await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
     }
 
-    /// <summary>Eski istemci (kanıt yok) — kapı yok, ölçücü hiç çağrılmaz.</summary>
+    /// <summary>Kanıt zorunlu (varsayılan, relay optional=false): kanıtsız giriş reddedilir, kodlar üretilmez.</summary>
     [Fact]
-    public async Task LoginAsync_NoMoveProof_OldClient_SkipsMoveGate()
+    public async Task LoginAsync_NoMoveProof_Required_Rejects()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Throws(new InvalidOperationException("kms-reached"));
+        var (service, verifier) = ServiceWithChoreography(new ChoreographyOutcome { Status = ChoreographyVerifier.StatusMeasured, IdentityMin = 0.6 });
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof(), moveProofOptional: false);
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(() => service.LoginAsync(request, new DiagLog()));
+
+        Assert.Contains("hareket kanıtı", ex.Message);
+        verifier.Verify(v => v.Measure(It.IsAny<ChoreographyProof>(), It.IsAny<Choreography>(), It.IsAny<byte[]?>()), Times.Never);
+    }
+
+    /// <summary>Admin anahtarı kapalı (relay optional=true): eski davranış — kapı yok, ölçücü hiç çağrılmaz.</summary>
+    [Fact]
+    public async Task LoginAsync_NoMoveProof_SwitchOff_SkipsMoveGate()
     {
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
         _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Throws(new InvalidOperationException("kms-reached"));
         var (service, verifier) = ServiceWithChoreography(new ChoreographyOutcome { Status = ChoreographyVerifier.StatusInvalid });
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof(), moveProofOptional: true);
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.LoginAsync(request, new DiagLog()));
 
         Assert.Equal("kms-reached", ex.Message);

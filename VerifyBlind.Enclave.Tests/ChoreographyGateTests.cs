@@ -26,11 +26,32 @@ public class ChoreographyGateTests
         Assert.Null(EnclaveService.ChoreographyGate(Sequence()));
     }
 
-    /// <summary>Mağazadaki eski jest akışı kanıt göndermez: kapı çalışmaz (o sürümlerin sözleşmesi).</summary>
+    /// <summary>2026-09-30'dan beri kanıt zorunlu: kanıtsız kayıt reddedilir (yeni kod yok, ChoreographyInvalid).</summary>
     [Fact]
-    public void KanitYoksaKapiCalismaz()
+    public void KanitYoksaReddedilir()
     {
-        Assert.Null(EnclaveService.ChoreographyGate(new PlanarityOutcome { Status = PlanarityStatuses.NoProof }));
+        var p = new PlanarityOutcome { Status = PlanarityStatuses.NoProof };
+
+        var ex = EnclaveService.ChoreographyGate(p);
+        Assert.Equal(EnclaveErrorCodes.ChoreographyInvalid, ex!.ErrorCode);
+        Assert.Same(p, ex.Planarity);
+    }
+
+    /// <summary>Admin anahtarı kapatıldıysa (relay optional=true gönderir) eski davranış: kapı çalışmaz.</summary>
+    [Fact]
+    public void KanitYoksaAnahtarKapaliysaGecer()
+    {
+        Assert.Null(EnclaveService.ChoreographyGate(
+            new PlanarityOutcome { Status = PlanarityStatuses.NoProof }, proofOptional: true));
+    }
+
+    /// <summary>Anahtar kapalı olsa bile kanıt GELDİYSE kapı tam çalışır — anahtar yalnız "kanıt yok" durumunu gevşetir.</summary>
+    [Fact]
+    public void AnahtarKapaliykenGelenKanitYineDenetlenir()
+    {
+        var p = Sequence(identityMin: 0.05);
+        Assert.Equal(EnclaveErrorCodes.ChoreographyIdentity,
+            EnclaveService.ChoreographyGate(p, proofOptional: true)!.ErrorCode);
     }
 
     [Fact]
