@@ -61,16 +61,8 @@ attestation ise *canlı sunucunun* o parmak izini taşıdığını garanti eder.
 ### Bileşenler
 - `Program.cs`, `Services/`, `Controllers/` — enclave uygulaması (handshake, register, login)
 - `Models/` — ONNX ML modelleri (yüz hizalama, yüz embedding, pasif canlılık); Dockerfile'da SHA256 ile pinlenir
-- `Certificates/` — NFC için CSCA + CRL sertifikaları; `Certificates/Escrow/` kurtarma açık anahtarı
+- `Certificates/` — NFC için CSCA + CRL sertifikaları
 - `Dockerfile.enclave` — deterministik imaj tarifi
-
-### Kimlik sırrının kurtarma kopyası
-`user_id`, `nsbd_id` ve `doc_id` kodlarını üreten sır AWS KMS ile sarılı durur ve yalnız bu enclave
-açabilir. AWS hesabı kaybolursa kodların değişmemesi için `POST /api/Enclave/escrow/identity-secret`
-ucu sırrı **yalnız** `Certificates/Escrow/identity-escrow-recipient.pem` dosyasındaki açık anahtara
-(RSA-OAEP-SHA256) şifreleyip verir. Anahtar istekle gelmez, imajın içindedir; bu yüzden PCR0'ın
-kapsamındadır ve sunucu onu değiştiremez. Özel yarısı yalnız kurucuda, çevrimdışıdır. Bilet imzalama
-sırrının kopyası üretilmez.
 
 ---
 
@@ -120,13 +112,5 @@ attestation guarantees the *live server* carries that fingerprint.
 ### Components
 - `Program.cs`, `Services/`, `Controllers/` — the enclave application (handshake, register, login)
 - `Models/` — ONNX ML models (face alignment, face embedding, passive liveness); pinned by SHA256 in the Dockerfile
-- `Certificates/` — CSCA + CRL certificates for NFC; `Certificates/Escrow/` holds the recovery public key
+- `Certificates/` — CSCA + CRL certificates for NFC
 - `Dockerfile.enclave` — the deterministic image recipe
-
-### Recovery copy of the identity secret
-The secret behind `user_id`, `nsbd_id` and `doc_id` is wrapped by AWS KMS and only this enclave can
-unwrap it. So that the codes survive the loss of the AWS account, `POST /api/Enclave/escrow/identity-secret`
-encrypts the secret **only** to the public key in `Certificates/Escrow/identity-escrow-recipient.pem`
-(RSA-OAEP-SHA256). The key does not come with the request; it is part of the image, so it is covered by
-PCR0 and the server cannot swap it. Only the founder holds the private half, offline. No copy of the
-ticket signing secret is produced.

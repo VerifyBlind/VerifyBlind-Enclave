@@ -28,7 +28,7 @@ public class EnclaveControllerTests
         _antiSpoof.Setup(a => a.Predict(It.IsAny<byte[]>())).Returns(new[] { 0f, 1.0f, 0f });
 
         _service = new EnclaveService(_enclaveKeys.Object, _biometrics.Object, _ticketMac.Object, _idHmac.Object, _antiSpoof.Object, new FlowEmbeddingCache());
-        _controller = new EnclaveController(_service, _enclaveKeys.Object, new Mock<IIdentityHmacService>().Object);
+        _controller = new EnclaveController(_service, _enclaveKeys.Object);
         _controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()
