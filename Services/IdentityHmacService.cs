@@ -41,6 +41,13 @@ public interface IIdentityHmacService
 
     /// <summary>base64(HMAC-SHA256(secret, label || data)) — eski KMS çıktısıyla aynı biçim.</summary>
     string ComputeHmac(string data);
+
+    /// <summary>
+    /// Sırrı verilen kurtarma açık anahtarına şifreleyip kurtarma dosyasını üretir (bkz.
+    /// <see cref="IdentityEscrow"/>). Ham sır bu sınıftan çıkmaz; dönen tek şey şifreli metin ve
+    /// sırrın parmak izidir.
+    /// </summary>
+    IdentityEscrowFile CreateEscrow(RSA recipient, string recipientSpkiSha256);
 }
 
 public class IdentityHmacService : IIdentityHmacService
@@ -113,6 +120,35 @@ public class IdentityHmacService : IIdentityHmacService
             }
         }
         finally { _gate.Release(); }
+    }
+
+    public IdentityEscrowFile CreateEscrow(RSA recipient, string recipientSpkiSha256)
+    {
+        var secret = _secret ?? throw new InvalidOperationException(
+            "Kimlik-HMAC secret yüklenmedi (EnsureSecretLoadedAsync çağrılmadı).");
+
+        var payload = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            v = 1,
+            purpose = "identity-hmac",
+            label = Encoding.UTF8.GetString(Label),
+            secret = Convert.ToBase64String(secret),
+        });
+        try
+        {
+            var ciphertext = recipient.Encrypt(payload, RSAEncryptionPadding.OaepSHA256);
+            return new IdentityEscrowFile
+            {
+                RecipientKeySha256 = recipientSpkiSha256,
+                SecretFingerprint  = IdentityEscrow.Fingerprint(secret),
+                Ciphertext         = Convert.ToBase64String(ciphertext),
+                CreatedAtUtc       = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            };
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(payload);
+        }
     }
 
     public string ComputeHmac(string data)

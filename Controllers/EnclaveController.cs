@@ -10,11 +10,50 @@ public class EnclaveController : ControllerBase
 {
     private readonly EnclaveService _service;
     private readonly IEnclaveKeyService _keyService;
+    private readonly IIdentityHmacService _idHmac;
 
-    public EnclaveController(EnclaveService service, IEnclaveKeyService keyService)
+    public EnclaveController(EnclaveService service, IEnclaveKeyService keyService, IIdentityHmacService idHmac)
     {
         _service = service;
         _keyService = keyService;
+        _idHmac = idHmac;
+    }
+
+    public class IdentityEscrowRequest
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("identity_hmac_secret_wrapped")]
+        public string? IdentityHmacSecretWrapped { get; set; }
+    }
+
+    /// <summary>
+    /// POST /api/Enclave/escrow/identity-secret — kimlik-HMAC sırrının çevrimdışı kurtarma dosyası.
+    /// Sır YALNIZ imaja gömülü kurtarma açık anahtarına şifrelenir (bkz. <see cref="IdentityEscrow"/>);
+    /// istekte anahtar alınmaz, bu yüzden çağıran kim olursa olsun eline yalnız kurucunun açabileceği
+    /// şifreli metin geçer. Anahtar imajda yoksa 503 ESCROW_NOT_CONFIGURED.
+    /// </summary>
+    [HttpPost("escrow/identity-secret")]
+    public async Task<IActionResult> EscrowIdentitySecret([FromBody] IdentityEscrowRequest? request)
+    {
+        try
+        {
+            var (recipient, recipientSha) = IdentityEscrow.LoadRecipient();
+            using (recipient)
+            {
+                await _idHmac.EnsureSecretLoadedAsync(request?.IdentityHmacSecretWrapped);
+                var file = _idHmac.CreateEscrow(recipient, recipientSha);
+                Console.WriteLine($"[Escrow] Kurtarma dosyası üretildi (alıcı {recipientSha[..16]}…, parmak izi {file.SecretFingerprint[..16]}…).");
+                return Ok(file);
+            }
+        }
+        catch (EscrowNotConfiguredException ex)
+        {
+            return StatusCode(503, new { error = ex.Message, error_code = "ESCROW_NOT_CONFIGURED" });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Escrow] HATA ({ex.GetType().Name}): {ex.Message}");
+            return StatusCode(500, new { error = ex.Message, error_code = "ESCROW_FAILED" });
+        }
     }
 
     /// <summary>
