@@ -53,4 +53,9 @@ public static class EnclaveErrorCodes
     /// orada kart fotoğrafıyla eşleşme, burada kayıt anındaki yüzle eşleşme aranır ve
     /// kullanıcıya söylenecek şey farklıdır ("yeniden kayıt ol" değil, "tekrar deneyin").</summary>
     public const string LoginFaceMismatch     = "ERR_LOGIN_FACE_MISMATCH";
+
+    /// <summary>Demo kartla gerçek (test olmayan) bir partnere doğrulama denendi. Demo kart yalnız
+    /// test partnerlerinde (demo uygulamaları, test.verifyblind.com) geçer; gerçek partnerde
+    /// doğrulanmış kişi gibi görünmesin diye reddedilir.</summary>
+    public const string DemoCardTestOnly      = "ERR_DEMO_CARD_TEST_ONLY";
 }

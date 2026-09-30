@@ -397,6 +397,12 @@ public class LoginRequest
     [JsonPropertyName("qr_payload_json")]
     public string? QrPayloadJson { get; set; } // Raw QR payload JSON from Redis
 
+    /// <summary>Relay API tarafından set edilir: QR'ı üreten partner test partneri mi
+    /// (<c>partners.is_test</c>). Demo kart YALNIZ test partnerlerinde geçer. Alan yoksa false →
+    /// demo kart reddedilir (fail-closed).</summary>
+    [JsonPropertyName("partner_is_test")]
+    public bool PartnerIsTest { get; set; }
+
     /// <summary>Relay API tarafından set edilir. Mobil istemcinin IPv4 adresi (ip4 validation için).</summary>
     [JsonPropertyName("client_ipv4")]
     public string? ClientIpV4 { get; set; }

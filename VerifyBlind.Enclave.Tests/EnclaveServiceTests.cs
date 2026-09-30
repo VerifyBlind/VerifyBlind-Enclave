@@ -1715,7 +1715,7 @@ public class EnclaveServiceTests
     /// </summary>
     private LoginRequest BuildLoginRequestReachingFaceGate(
         string tckn, string faceRefB64, LoginFaceProof? faceProof = null,
-        object? validations = null)
+        object? validations = null, bool partnerIsTest = false)
     {
         var (_, reqPublicKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
         var (userPrivKey, userPubKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
@@ -1768,6 +1768,7 @@ public class EnclaveServiceTests
             }),
             UserSignature    = hokSig,
             UserSigTimestamp = ts,
+            PartnerIsTest    = partnerIsTest,
         };
     }
 
@@ -1806,11 +1807,50 @@ public class EnclaveServiceTests
 
         var request = BuildLoginRequestReachingFaceGate(
             EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
-            validations: new Dictionary<string, object> { ["age"] = "18+" });
+            validations: new Dictionary<string, object> { ["age"] = "18+" }, partnerIsTest: true);
 
         var json = await _service.LoginAsync(request, new DiagLog());
 
         Assert.Contains("is_test", json);
+    }
+
+    /// <summary>
+    /// Demo kart test olmayan (gerçek) bir partnerde REDDEDİLİR — `TEST_`/is_test işaretini
+    /// okumayan bir partnerde demo kartla doğrulanan biri gerçek "doğrulandı" sonucu almasın.
+    /// Red, kimlik kodu türetilmeden ve yüz kapısına gelinmeden olur.
+    /// </summary>
+    [Fact]
+    public async Task LoginAsync_DemoTicket_NonTestPartner_Rejected()
+    {
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>()))
+               .Throws(new InvalidOperationException("kms-reached"));
+
+        var request = BuildLoginRequestReachingFaceGate(
+            EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
+            validations: new Dictionary<string, object> { ["age"] = "18+" }, partnerIsTest: false);
+
+        var ex = await Assert.ThrowsAsync<DemoCardNotAllowedException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_DEMO_CARD_TEST_ONLY", ex.ErrorCode);
+        _idHmac.Verify(h => h.ComputeHmac(It.IsAny<string>()), Times.Never);
+    }
+
+    /// <summary>Kural yalnız demo bileti içindir: gerçek bilet test olmayan partnerde geçer.</summary>
+    [Fact]
+    public async Task LoginAsync_RealTicket_NonTestPartner_NotAffectedByDemoRule()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            RealTckn, SomeFaceRef, faceProof: ValidFaceProof(),
+            validations: new Dictionary<string, object> { ["age"] = "18+" }, partnerIsTest: false);
+
+        var json = await _service.LoginAsync(request, new DiagLog());
+
+        Assert.Contains("encrypted_response", json);
     }
 
     /// <summary>
@@ -1826,7 +1866,7 @@ public class EnclaveServiceTests
 
         var request = BuildLoginRequestReachingFaceGate(
             EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
-            validations: new Dictionary<string, object> { ["age"] = "18+" });
+            validations: new Dictionary<string, object> { ["age"] = "18+" }, partnerIsTest: true);
 
         var json = await _service.LoginAsync(request, new DiagLog());
 
@@ -2003,7 +2043,7 @@ public class EnclaveServiceTests
         _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>()))
                .Throws(new InvalidOperationException("kms-reached"));
 
-        var request = BuildLoginRequestReachingFaceGate("00000000000", faceRefB64: "", faceProof: null);
+        var request = BuildLoginRequestReachingFaceGate("00000000000", faceRefB64: "", faceProof: null, partnerIsTest: true);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
             () => _service.LoginAsync(request, new DiagLog()));

@@ -340,6 +340,13 @@ public class EnclaveController : ControllerBase
             Console.WriteLine($"[Enclave Controller] LOGIN CARD EXPIRED: {ex.Message}");
             return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
         }
+        catch (VerifyBlind.Enclave.Services.DemoCardNotAllowedException ex)
+        {
+            // Demo kart test olmayan bir partnere denendi → ERR_DEMO_CARD_TEST_ONLY; relay resx ile lokalize eder.
+            diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
+            Console.WriteLine($"[Enclave Controller] LOGIN DEMO CARD REJECTED: {ex.Message}");
+            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
+        }
         catch (Exception ex)
         {
             diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");

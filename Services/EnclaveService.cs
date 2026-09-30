@@ -964,6 +964,22 @@ string? partnerId = null;
         }
         diag.Ok("Revocation Check");
 
+        // Demo kart yalnız TEST partnerlerinde geçer (demo uygulamaları, test.verifyblind.com).
+        //
+        // Demo kart gerçek bir kişiyi kanıtlamaz. Sonucu `TEST_` önekiyle ve is_test ile işaretlemek
+        // dikkatli partneri korur; bu işaretleri okumayan bir partnerde ise demo kartla doğrulanan
+        // biri gerçek "doğrulandı" rozeti alırdı. Demo düğmesi artık gizli bir dokunuşla her
+        // sürümde açılabildiği için bu kapı sürüm ayarına değil partnerin kendisine bağlanır.
+        //
+        // "Demo mu" kararı MAC ile mühürlü payload'dan okunur (istemci beyanı değil). "Partner test mi"
+        // bilgisini relay veritabanından verir; iptal kuralları gibi. Alan yoksa false → red.
+        if (signedTicket.Payload.TCKN == DemoTckn && !request.PartnerIsTest)
+        {
+            diag.Fail("Demo Partner Check", "demo bileti test olmayan bir partnere");
+            throw new DemoCardNotAllowedException(
+                "Demo kart yalnızca test ortamlarında kullanılabilir. Bu site için kendi kimliğinizi ekleyin.");
+        }
+
         // 5.5 CANLI YÜZ KAPISI — giriş anında kişinin kendisi orada mı?
         //
         // Buraya kadarki her kontrol TELEFONUN meşru olduğunu kanıtlar (bilet, bağlama, nonce,
