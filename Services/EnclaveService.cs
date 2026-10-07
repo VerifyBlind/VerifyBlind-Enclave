@@ -1062,6 +1062,13 @@ string? partnerId = null;
 
                         var result = CheckAgeConstraint(age, rawValue);
                         validationsOutput["age"] = result;
+                        // Hangi koşulun sorulduğu da İMZALI cevaba girer. Yoksa `age: true` tek başına
+                        // "neye göre doğru?" sorusunu cevapsız bırakır: koşul tarayıcıdan gelip partner
+                        // sunucusundan geçtiği için ziyaretçi isteği "18+" yerine "1+" diye değiştirip
+                        // `age: true` alabilir. Partner bu alanı kendi sorduğu koşulla karşılaştırır.
+                        // Değer, CheckAgeConstraint'in yorumladığı biçimdir (kırpılmış). Yalnız string —
+                        // relay_metadata.results bool olmayanları zaten süzer, rıza makbuzuna girmez.
+                        validationsOutput["age_condition"] = rawValue.Trim();
                         //diag.Info($"Age: dob={dob:yyyy-MM-dd}, age={age}, constraint='{rawValue}', result={result}");
                     }
                     catch (Exception ex)

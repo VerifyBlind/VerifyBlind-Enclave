@@ -1891,6 +1891,89 @@ public class EnclaveServiceTests
         Assert.DoesNotContain("is_test", json);
     }
 
+    // ── Sorulan yaş koşulu imzalı cevapta (validations.age_condition) ─────────
+    //
+    // `age: true` tek başına "hangi koşula göre?" sorusunu cevapsız bırakıyordu: koşul tarayıcıdan
+    // gelip partner sunucusundan geçtiği için ziyaretçi "18+" yerine "1+" sorup `age: true`
+    // alabiliyordu. Enclave artık sorulan koşulu da İMZALAR; partner kendi koşuluyla karşılaştırır.
+
+    /// <summary>
+    /// Enclave'in imzaladığı partner payload'ını yakalar (SignDataWithEnclaveKey'e giden ilk JSON).
+    /// Payload partner anahtarıyla şifrelendiği için LoginAsync'in dönüşünden okunamaz.
+    /// </summary>
+    private async Task<System.Text.Json.JsonElement> SignedPartnerPayloadFor(object? validations)
+    {
+        var signed = new List<string>();
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>()))
+                    .Callback<string>(signed.Add)
+                    .Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            RealTckn, SomeFaceRef, faceProof: ValidFaceProof(), validations: validations);
+        await _service.LoginAsync(request, new DiagLog());
+
+        var payloadJson = signed.First(s => s.StartsWith("{") && s.Contains("\"nonce\""));
+        return System.Text.Json.JsonDocument.Parse(payloadJson).RootElement.Clone();
+    }
+
+    [Fact]
+    public async Task LoginAsync_AgeRequested_SignsRequestedConditionAsAgeCondition()
+    {
+        var payload = await SignedPartnerPayloadFor(
+            new Dictionary<string, object> { ["age"] = " 18+ " });
+
+        var v = payload.GetProperty("validations");
+        Assert.Equal(System.Text.Json.JsonValueKind.True, v.GetProperty("age").ValueKind);
+        Assert.Equal("18+", v.GetProperty("age_condition").GetString());
+    }
+
+    [Fact]
+    public async Task LoginAsync_AgeConditionDiffers_SignedValueReflectsWhatWasAsked()
+    {
+        // Saldırı senaryosu: "1+" sorulursa imzalı cevap bunu açıkça söyler — partner "18+" ile
+        // karşılaştırınca reddeder.
+        var payload = await SignedPartnerPayloadFor(
+            new Dictionary<string, object> { ["age"] = "1+" });
+
+        Assert.Equal("1+", payload.GetProperty("validations").GetProperty("age_condition").GetString());
+    }
+
+    [Fact]
+    public async Task LoginAsync_AgeNotRequested_NoAgeCondition()
+    {
+        var payload = await SignedPartnerPayloadFor(
+            new Dictionary<string, object> { ["user_id"] = true });
+
+        var v = payload.GetProperty("validations");
+        Assert.False(v.TryGetProperty("age", out _));
+        Assert.False(v.TryGetProperty("age_condition", out _));
+        Assert.True(v.TryGetProperty("user_id", out _));
+    }
+
+    [Fact]
+    public async Task LoginAsync_AgeCondition_NotInRelayResults()
+    {
+        // String alan rıza makbuzuna (relay_metadata.results: yalnız bool) sızmamalı.
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()))
+                   .Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            RealTckn, SomeFaceRef, faceProof: ValidFaceProof(),
+            validations: new Dictionary<string, object> { ["age"] = "18+" });
+        var json = await _service.LoginAsync(request, new DiagLog());
+
+        var meta = System.Text.Json.JsonDocument.Parse(json).RootElement.GetProperty("relay_metadata");
+        Assert.True(meta.GetProperty("results").TryGetProperty("age", out _));
+        Assert.False(meta.GetProperty("results").TryGetProperty("age_condition", out _));
+        Assert.DoesNotContain("age_condition",
+            meta.GetProperty("scopes").EnumerateArray().Select(e => e.GetString()));
+    }
+
     // ── Doğrulamanın TEK hareketi (2026-09-26) ────────────────────────────────
 
     /// <summary>Ölçücüsü taklit edilmiş servis — hareket kapısını yapı/kimlik sonucundan sınar.</summary>
