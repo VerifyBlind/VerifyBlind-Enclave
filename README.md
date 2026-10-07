@@ -95,7 +95,7 @@ Trust closes through two independent legs:
    builds the image **twice** (cache disabled) on every release and verifies it produces the same PCR0 —
    i.e. anyone building from this commit gets the same PCR0. An auditor can clone the repo at that commit
    and re-run the same workflow (or `nitro-cli build-enclave` in their own Nitro environment) and confirm
-   it reaches the release's `pcr0.txt`. That proves the published PCR0 really comes from this open source.
+   it reaches the release's `pcr0.txt`. That proves the published PCR0 really comes from this public source code.
 
 2. **The live enclave is cryptographically enforced (automatic).** On every handshake the mobile app
    fetches the AWS Nitro **attestation document** from the server, verifies the chain up to AWS's root
@@ -114,3 +114,11 @@ attestation guarantees the *live server* carries that fingerprint.
 - `Models/` — ONNX ML models (face alignment, face embedding, passive liveness); pinned by SHA256 in the Dockerfile
 - `Certificates/` — CSCA + CRL certificates for NFC
 - `Dockerfile.enclave` — the deterministic image recipe
+
+---
+
+## Lisans · License
+
+**PolyForm Strict 1.0.0** — kaynak kodu inceleme ve doğrulama için herkese açıktır; ticari kullanım ve değiştirilmiş kopyaların dağıtımı izin dışıdır. Ayrıntı: [LICENSE.md](LICENSE.md).
+
+The source code is public for review and verification; commercial use and distributing modified copies are not permitted. See [LICENSE.md](LICENSE.md).
