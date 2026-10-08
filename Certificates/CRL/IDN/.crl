@@ -29,9 +29,9 @@
 <meta name="twitter:image" content="https://www.imigrasi.go.id/images/thumbnail_1200x630_seo.jpg">
 <meta name="google-site-verification" content="9oGmMCllhGyHkLsou-mO9ce3Z0P-tW0KhmfMlBUNAZ4">
 <meta name="csrf-param" content="dirjen_imigrasi-FRONTEND-CSRF">
-<meta name="csrf-token" content="MuTwGQJ4lxe6rd3E2Bhq4hnLwuavGaj7jz6Rd6RVEK1FpbhjahG6JI7fr5vtQjDULof0s8FG25_XYfxC_C9A3g==">
+<meta name="csrf-token" content="OVluOzeixKxIYyTZJAl12Qpx7pFD_xLOmgtZ3cijP9NONjh9Bpab5i0Fe5JyRkfgeCeb6AiuU6_bPyu2i9J7pw==">
 
-<link href="/assets/2cfe3a08/fe/slider/keen-slider.min.css?v=1791042723" rel="stylesheet">
+<link href="/assets/c44bf04b/fe/slider/keen-slider.min.css?v=1791042725" rel="stylesheet">
 <link href="/assets/345aa491/themes/smoothness/jquery-ui.css?v=1757531572" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
@@ -49,7 +49,7 @@
 <link href="/assets/9d1253ef/css/hyperlink-popup.css?v=1791042723" rel="stylesheet">
 <link href="/assets/9d1253ef/css/ai-loading.css?v=1791042723" rel="stylesheet">
 <link href="/assets/9d1253ef/css/search-ai-ui2.css?v=1791042723" rel="stylesheet">
-<link href="/assets/2cfe3a08/frontend.css?v=1791042723" rel="stylesheet">
+<link href="/assets/c44bf04b/frontend.css?v=1791042725" rel="stylesheet">
 <style>
     @media (max-width: 1000px) {
         #search-ai-result{
@@ -1424,7 +1424,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                 <div class="bubble">
                     <div class="left">
                         <div class="logo">
-                            <img style="width: 24px;" src="/assets/2cfe3a08/logos/imtell-icon.svg" alt="">
+                            <img style="width: 24px;" src="/assets/c44bf04b/logos/imtell-icon.svg" alt="">
                         </div>
                         <div class="brand">Imtelligence</div>
                     </div>
@@ -2187,7 +2187,7 @@ DKI Jakarta, Indonesia				</p>
 	<script id="sessionFlashes" type="application/json">
 		{}	</script>
 
-	<script src="/assets/2cfe3a08/fe/slider/keen-slider.js?v=1791042723"></script>
+	<script src="/assets/c44bf04b/fe/slider/keen-slider.js?v=1791042725"></script>
 <script src="/assets/58a3f682/jquery.js?v=1757531562"></script>
 <script src="/assets/345aa491/jquery-ui.js?v=1757531580"></script>
 <script src="/assets/54f7976c/yii.js?v=1757532998"></script>
@@ -2206,7 +2206,7 @@ DKI Jakarta, Indonesia				</p>
 <script src="/assets/9d1253ef/js/marked.min.js?v=1791042723"></script>
 <script src="/assets/9d1253ef/js/search-ai-ui2.js?v=1791042723"></script>
 <script src="/assets/9d1253ef/js/sitebar-sticky.js?v=1791042723"></script>
-<script src="/assets/2cfe3a08/frontend.js?v=1791042723"></script>
+<script src="/assets/c44bf04b/frontend.js?v=1791042725"></script>
 <script>jQuery(function ($) {
     $("#keEvisa").click(function() {
         let posisiEvisa = $("#evisaForm").position();
