@@ -29,14 +29,14 @@
 <meta name="twitter:image" content="https://www.imigrasi.go.id/images/thumbnail_1200x630_seo.jpg">
 <meta name="google-site-verification" content="9oGmMCllhGyHkLsou-mO9ce3Z0P-tW0KhmfMlBUNAZ4">
 <meta name="csrf-param" content="dirjen_imigrasi-FRONTEND-CSRF">
-<meta name="csrf-token" content="NwPvtPpXGBtnu-ue3itMjFE1n2mVspEz2yylnVsn5GhwecLcgycrdz7NivaJWwbDJl7ZAtDG5kSydNOtL2rXHw==">
+<meta name="csrf-token" content="VxALr9LFNjlLBtG4zUtDCNLTmrZS9nLjKUN50pMk4VIUWGedhatjUyNTqYj7fC1k4pmjzwWcAJZtARWX4EOSIg==">
 
-<link href="/assets/9d69f7fe/fe/slider/keen-slider.min.css?v=1791606448" rel="stylesheet">
+<link href="/assets/afc28b9b/fe/slider/keen-slider.min.css?v=1791606528" rel="stylesheet">
 <link href="/assets/345aa491/themes/smoothness/jquery-ui.css?v=1757531572" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="/assets/2c859e19/css/flaticon.min.css?v=1791606448" rel="stylesheet">
+<link href="/assets/1e2ee27c/css/flaticon.min.css?v=1791606528" rel="stylesheet">
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/glightbox@3.2.0/dist/css/glightbox.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" rel="stylesheet">
@@ -44,12 +44,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bellerose" rel="stylesheet">
-<link href="/assets/2c859e19/main.css?v=1791606448" rel="stylesheet">
-<link href="/assets/2c859e19/css/styles.css?v=1791606448" rel="stylesheet">
-<link href="/assets/2c859e19/css/hyperlink-popup.css?v=1791606448" rel="stylesheet">
-<link href="/assets/2c859e19/css/ai-loading.css?v=1791606448" rel="stylesheet">
-<link href="/assets/2c859e19/css/search-ai-ui2.css?v=1791606448" rel="stylesheet">
-<link href="/assets/9d69f7fe/frontend.css?v=1791606448" rel="stylesheet">
+<link href="/assets/1e2ee27c/main.css?v=1791606528" rel="stylesheet">
+<link href="/assets/1e2ee27c/css/styles.css?v=1791606528" rel="stylesheet">
+<link href="/assets/1e2ee27c/css/hyperlink-popup.css?v=1791606528" rel="stylesheet">
+<link href="/assets/1e2ee27c/css/ai-loading.css?v=1791606528" rel="stylesheet">
+<link href="/assets/1e2ee27c/css/search-ai-ui2.css?v=1791606528" rel="stylesheet">
+<link href="/assets/afc28b9b/frontend.css?v=1791606528" rel="stylesheet">
 <style>
     @media (max-width: 1000px) {
         #search-ai-result{
@@ -706,7 +706,7 @@
 			<a href="https://www.imigrasi.go.id"><img alt=""></a>
 			
 									<div>
-						<img src="/assets/2c859e19/img/logo_header_2025.webp" style="height: 40px;">	
+						<img src="/assets/1e2ee27c/img/logo_header_2025.webp" style="height: 40px;">	
 					</div>
 					<div style="white-space: nowrap;">
 						<p class="m-0 user-select-none" style="font-size: 12px;">Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia</p><p class="m-0 user-select-none" style="font-size: 16px;">Direktorat Jenderal Imigrasi</p>					</div>
@@ -882,7 +882,7 @@
 	</div> -->
 	<div class="container pt-5 d-none d-print-block">
 		<div class="d-flex align-items-center justify-content-between">
-			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/2c859e19//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
+			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/1e2ee27c//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
 	</div>
 
 	
@@ -1424,7 +1424,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                 <div class="bubble">
                     <div class="left">
                         <div class="logo">
-                            <img style="width: 24px;" src="/assets/9d69f7fe/logos/imtell-icon.svg" alt="">
+                            <img style="width: 24px;" src="/assets/afc28b9b/logos/imtell-icon.svg" alt="">
                         </div>
                         <div class="brand">Imtelligence</div>
                     </div>
@@ -1727,6 +1727,57 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                             <div class="keen-slider__slide">
                             <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
                                 <div class="position-relative">
+                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Dukung MotoGP Mandalika 2026, Imigrasi Terbitkan 1.351 Visa bagi Pembalap dan Tim" data-src="/upload/2026/10/WhatsApp%20Image%202026-10-11%20at%2013.04.20.jpeg?width=400" style="height: 200px !important;">                                <div
+                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
+                                    Siaran Pers                                </div>
+                                </div>
+                                <div class="card-body m-0 mt-0">
+                                    <p class="text-muted mb-1" style="font-size: 12px;">
+                                        11 Okt 2026                                    </p>    
+                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Dukung MotoGP Mandalika 2026, Imigrasi Terbitkan 1.351 Visa bagi Pembalap dan Tim</h5>
+                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
+                                        LOMBOK TENGAH – Imigrasi Indonesia menerbitkan 1.351 visa untuk mendukung Pertamina Grand Prix of Indonesia (MotoGP) 2026. Acara tersebut berlangsung pada 9–11 Oktober 2026 di Pertamina Mandalika International Circuit, Lombok Tengah, Nusa Tenggara Barat (NTB).Direktur Jenderal Imigrasi, Hendarsam Marantoko, hadir di Sirkuit Mandalika untuk memastikan dukungan layanan keimigrasian berjalan optimal. Imigrasi mengerahkan 50 personel tambahan di bandara, kawasan sirkuit, dan sekitarnya guna memperkuat pelayanan serta pengamanan keimigrasian bagi pembalap, tim, dan wisatawan mancanegara.“Kami memastikan pelayanan visa dan proses keimigrasian berjalan baik agar mereka merasa aman, nyaman, dan mendapatkan pengalaman positif selama berada di Indonesia, ” ujar Hendarsam.Event&nbsp;MotoGP Mandalika 2026 juga menjadi daya tarik bagi wisatawan. InJourney Tourism Development Corporation (ITDC) menargetkan kehadiran 145.000 penonton domestik maupun mancanegara. Untuk mendukung mobilitas tersebut, InJourney Airports turut menyiapkan 66 penerbangan nonreguler dari dan menuju Lombok selama periode MotoGP.“Bukan hanya pembalap dan tim, kami juga menyambut wisatawan mancanegara yang datang menyaksikan MotoGP. Imigrasi merupakan salah satu wajah pertama Indonesia yang mereka temui. Kami ingin memastikan mereka mendapatkan pelayanan yang ramah dan profesional sehingga merasa aman dan nyaman sejak tiba di Indonesia, ” lanjutnya.Hendarsam menegaskan bahwa peran Imigrasi tidak terbatas pada pelayanan dokumen perjalanan dan pengawasan orang asing. Sesuai amanat Undang-Undang Nomor 6 Tahun 2011 tentang Keimigrasian, salah satu fungsi keimigrasian adalah sebagai fasilitator pembangunan kesejahteraan masyarakat. Fungsi tersebut diwujudkan melalui pelayanan yang mendukung mobilitas internasional dan pembangunan nasional, termasuk melalui dukungan terhadap MotoGP Mandalika 2026.InJourney menargetkan penyelenggaraan MotoGP tahun ini menghasilkan dampak ekonomi hingga hampir Rp5 triliun. Potensi tersebut menunjukkan bahwa ajang olahraga internasional tidak hanya menjadi panggung kompetisi dunia, tetapi juga mampu mendorong pariwisata dan aktivitas ekonomi masyarakat.“Di balik gemuruh mesin MotoGP, ada roda perekonomian masyarakat yang ikut bergerak. Melalui pelayanan keimigrasian yang optimal, kami ingin memastikan Indonesia tidak hanya sukses menjadi tuan rumah ajang olahraga dunia, tetapi juga mampu memanfaatkan momentum ini untuk membuka peluang ekonomi yang lebih luas bagi masyarakat, ” ujar Hendarsam.Hendarsam menegaskan bahwa Imigrasi akan terus memperkuat pelayanan dan pengawasan keimigrasian untuk mendukung mobilitas internasional, termasuk kegiatan olahraga, pariwisata, dan berbagai agenda internasional lainnya. Menurutnya, pengalaman keimigrasian yang profesional juga menjadi bagian dari upaya memperkuat citra Indonesia di mata dunia.“Melalui MotoGP Mandalika, kami ingin menunjukkan bahwa Imigrasi Indonesia siap mendukung penyelenggaraan kegiatan kelas dunia. Bukan hanya melalui penerbitan visa, tetapi juga dengan menghadirkan pelayanan yang memberikan kepastian, kenyamanan, dan rasa aman. Imigrasi harus menjadi bagian dari kemajuan Indonesia sekaligus memberikan manfaat nyata bagi masyarakat, ” pungkasnya.10 Oktober 2026Komunikasi PublikDirektorat Jenderal Imigrasi                                    </div>
+                                    <a href="/siaran_pers/dukung-motogp-mandalika-2026-imigrasi-terbitkan-1351-visa-bagi-pembalap-dan-tim" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                                            <div class="keen-slider__slide">
+                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
+                                <div class="position-relative">
+                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Ciduk PV, Buronan Korupsi asal Thailand Saat Perpanjang Izin Tinggal" data-src="/upload/2026/10/WhatsApp%20Image%202026-10-08%20at%2018.55.31.jpeg?width=400" style="height: 200px !important;">                                <div
+                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
+                                    Siaran Pers                                </div>
+                                </div>
+                                <div class="card-body m-0 mt-0">
+                                    <p class="text-muted mb-1" style="font-size: 12px;">
+                                        11 Okt 2026                                    </p>    
+                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Imigrasi Ciduk PV, Buronan Korupsi asal Thailand Saat Perpanjang Izin Tinggal</h5>
+                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
+                                        JAKARTA - Direktorat Jenderal Imigrasi mengamankan PV, pria berkewarganegaraan Thailand, yang menjadi buronan dugaan kasus penyuapan yang ditangani oleh&nbsp;National Anti-Corruption Commission&nbsp;(NACC) Thailand. PV diamankan saat memperpanjang izin tinggal di Kantor Imigrasi Jakarta Selatan, Jumat, 25 September 2026. Sebelumnya, paspor yang bersangkutan telah dicabut oleh Kementerian Luar Negeri Thailand sejak 15 Oktober 2025.Penangkapan bermula pada 16 September 2026, ketika Komisi Pemberantasan Korupsi (KPK) mengirimkan surat permohonan bantuan dari NACC Thailand kepada Direktorat Jenderal Imigrasi untuk pengamanan PV. Atas dasar itu, Imigrasi mencantumkan nama PV ke dalam sistem&nbsp;Subject of Interest&nbsp;(SOI) guna pemantauan mobilitas PV di Indonesia.Upaya tersebut membuahkan hasil ketika PV terdeteksi memperpanjang izin tinggalnya sebagai&nbsp;Project Manager&nbsp;di PT EIS pada (25/9/26).“Setelah kami menerima permohonan dari NACC Thailand, nama PV kami cantumkan ke dalam daftar Subject of Interest agar kami bisa memantau pergerakan yang bersangkutan. Terbukti petugas kami berhasil mengamankan PV saat yang bersangkutan datang ke Kantor Imigrasi Jakarta Selatan untuk mengurus izin tinggal, ” jelas Direktur Jenderal Imigrasi, Hendarsam Marantoko.PV kemudian dibawa ke Direktorat Jenderal Imigrasi untuk menjalani pemeriksaan lebih lanjut. Berdasarkan hasil pemeriksaan, PV terindikasi melanggar Pasal 119 ayat (1) Undang-Undang Nomor 6 Tahun 2011 tentang Keimigrasian, karena paspornya telah dicabut oleh Pemerintah Thailand.“ PV akan kami deportasi pada Kamis, 8 Oktober 2026 dan akan kami masukkan dalam daftar penangkalan agar tidak bisa kembali ke Indonesia, ” imbuh Hendarsam.Lebih lanjut Hendarsam menambahkan “Kami tidak akan membiarkan Indonesia menjadi destinasi pelarian," imbuhnya."Proses pengamanan hingga pendetensian berjalan dengan baik, lancar, dan tanpa kendala. Terhadap yang bersangkutan akan segera dilaksanakan Tindakan Administratif Keimigrasian berupa pendeportasian dengan penangkalan pada tanggal 8 Oktober 2026 melalui Bandara Internasional Soekarno-Hatta, " tutup Direktur Jenderal Imigrasi.8 Oktober 2026Komunikasi PublikDirektorat Jenderal Imigrasi                                    </div>
+                                    <a href="/siaran_pers/imigrasi-ciduk-pv-buronan-korupsi-asal-thailand-saat-perpanjang-izin-tinggal" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                                            <div class="keen-slider__slide">
+                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
+                                <div class="position-relative">
+                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="32 Kantor Imigrasi Berganti Nama, Optimalkan Layanan kepada Masyarakat" data-src="/upload/2026/10/WhatsApp%20Image%202026-10-05%20at%2016.45.22.jpeg?width=400" style="height: 200px !important;">                                <div
+                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
+                                    Siaran Pers                                </div>
+                                </div>
+                                <div class="card-body m-0 mt-0">
+                                    <p class="text-muted mb-1" style="font-size: 12px;">
+                                        11 Okt 2026                                    </p>    
+                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">32 Kantor Imigrasi Berganti Nama, Optimalkan Layanan kepada Masyarakat</h5>
+                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
+                                        JAKARTA — Direktorat Jenderal (Ditjen) Imigrasi melakukan penataan kelembagaan terhadap kantor imigrasi di berbagai wilayah Indonesia. Penataan tersebut mencakup perubahan nomenklatur atau nama pada 32 Kantor Imigrasi serta penyesuaian tipologi pada 14 Kantor Imigrasi.Perubahan nomenklatur tersebut telah mendapatkan persetujuan Menteri Pendayagunaan Aparatur Negara dan Reformasi Birokrasi (PANRB) melalui surat Nomor B/923/M.KT.01/2026 tanggal 30 Juni 2026. Selanjutnya, penataan Kantor Imigrasi ditetapkan melalui Keputusan Menteri Imigrasi dan Pemasyarakatan Nomor M.IP-30.OT.01.03 Tahun 2026 tentang Kantor Imigrasi di Lingkungan Kementerian Imigrasi dan Pemasyarakatan, yang mulai berlaku pada 5 Oktober 2026.Perubahan nomenklatur atau perubahan nama resmi Kantor Imigrasi dilakukan agar lebih sesuai dengan karakteristik dan cakupan wilayah layanan kantor yang bersangkutan. Sebagai contoh, Kantor Imigrasi Surabaya kini berganti nama menjadi Kantor Imigrasi Juanda, Kantor Imigrasi Medan menjadi Kantor Imigrasi Kualanamu, Kantor Imigrasi menjadi Kantor Imigrasi I Medan dan Kantor Imigrasi Tobelo menjadi Kantor Imigrasi Halmahera Utara.“Dengan penamaan yang lebih sesuai dengan kondisi dan cakupan tugas dan fungsi kantor imigrasi, pelaksanaan fungsi keimigrasian diharapkan dapat berlangsung lebih efektif dan terkoordinasi, ” jelas Direktur Jenderal (Dirjen) Imigrasi, Hendarsam Marantoko.Adapun tipologi Kantor Imigrasi secara sederhana adalah pengelompokan kantor berdasarkan karakteristik dan kebutuhan pelaksanaan tugasnya. Penyesuaian tipologi memungkinkan struktur dan kapasitas organisasi setiap kantor diselaraskan dengan kondisi wilayah, beban tugas, serta karakteristik pelayanan dan pengawasan keimigrasian yang dijalankan. Contohnya yakni perubahan dari Kantor Imigrasi Kelas I TPI Yogyakarta menjadi Kantor Imigrasi Kelas I Non TPI Yogyakarta. Perubahan tipologi tersebut dikarenakan tempat pemeriksaan imigrasi (TPI) atau perlintasan di Bandara Internasional Yogyakarta tak lagi di bawah kantor tersebut, melainkan dialihkan ke Kantor Imigrasi Kelas II TPI Kulonprogo.“Penataan kelembagaan ini merupakan bagian dari upaya pemerintah untuk membangun organisasi yang lebih efektif, sekaligus memastikan fungsi pelayanan dan pengawasan keimigrasian dapat dilaksanakan secara optimal, ” sambung Hendarsam. Ia memastikan bahwa penyesuaian nama, wilayah kerja, dan tipologi Kantor Imigrasi diarahkan untuk memperjelas cakupan tugas, memperkuat efektivitas organisasi, dan pada akhirnya memberikan pelayanan keimigrasian yang semakin mudah, pasti, dan sesuai dengan kebutuhan masyarakat.“Masyarakat yang akan mengurus paspor diimbau untuk memperhatikan nama Kantor Imigrasi terbaru ketika melakukan pendaftaran melalui aplikasi M-Paspor maupun pencarian di internet. Penyesuaian nama kantor pada sistem layanan dilakukan mengikuti nomenklatur yang telah ditetapkan, ” pungkas Dirjen Imigrasi.5 Oktober 2026Komunikasi PublikDirektorat Jenderal Imigrasi                                    </div>
+                                    <a href="/siaran_pers/32-kantor-imigrasi-berganti-nama-optimalkan-layanan-kepada-masyarakat" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                                            <div class="keen-slider__slide">
+                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
+                                <div class="position-relative">
                                 <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Ngurah Rai Deportasi 18 WNA dalam Sepekan, 10 Diantaranya Terlibat Prostitusi" data-src="/upload/2026/10/WhatsApp%20Image%202026-10-02%20at%2009.00.39.jpeg?width=400" style="height: 200px !important;">                                <div
                                     class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
                                     Siaran Pers                                </div>
@@ -1843,57 +1894,6 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                 </div>
                             </div>
                         </div>
-                                            <div class="keen-slider__slide">
-                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
-                                <div class="position-relative">
-                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Denpasar Buru Dua WNA yang Diduga Menjadi Pelatih Berkendara Sepeda Motor Secara Ilegal" data-src="/upload/2026/10/WhatsApp%20Image%202026-10-02%20at%2009.50.23.jpeg?width=400" style="height: 200px !important;">                                <div
-                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
-                                    Siaran Pers                                </div>
-                                </div>
-                                <div class="card-body m-0 mt-0">
-                                    <p class="text-muted mb-1" style="font-size: 12px;">
-                                        2 Okt 2026                                    </p>    
-                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Imigrasi Denpasar Buru Dua WNA yang Diduga Menjadi Pelatih Berkendara Sepeda Motor Secara Ilegal</h5>
-                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
-                                        DENPASAR – Kantor Imigrasi Denpasar memburu dua warga negara asing (WNA) yang diduga menjadi pelatih berkendara sepeda motor ilegal untuk sesama WNA di kawasan Serangan, Denpasar, Bali. Kepala Kantor Imigrasi Denpasar, R. Haryo Sakti menjelaskan, dalam patroli keimigrasian pada Jumat (25/9/2026), tim Intelijen dan Penindakan Keimigrasian (Inteldakim) melakukan pengejaran namun keduanya berhasil melarikan diri.“Setibanya di lokasi, tim mendapati dua WNA yang diduga pelatih ilegal tersebut melarikan diri meninggalkan lokasi. Tim sempat melakukan pengejaran akan tetapi mereka berhasil melarikan diri. Pada saat yang sama, tim berhasil melakukan pemeriksaan terhadap dua WNA lain yang diduga murid dari WNA yang kabur. Dari hasil pemeriksaan, diketahui dua peserta pelatihan berkendara tersebut yaitu RO (laki-laki) berusia 20 tahun dan IA (perempuan) 21 tahun, keduanya asal Belarus dan merupakan pemegang Izin Tinggal Terbatas (ITAS) Remote Worker,” jelas Sakti.Ia menambahkan, kedua WNA yang diduga murid pelatihan berkendara sepeda motor tersebut akan dipanggil ke kantor imigrasi untuk dimintai keterangan lebih lanjut guna menelusuri identitas terduga pelatih ilegal yang melarikan diri.Selain kawasan Serangan, kegiatan patroli keimigrasian tersebut juga menyasar Jl. Tukad Punggawa yang menjadi pusat aktivitas WNA. Patroli ini merupakan upaya rutin Imigrasi dalam mengawasi keberadaan dan kegiatan WNA agar tetap sesuai dengan izin tinggal yang dimiliki.Sakti menyampaikan bahwa patroli ini merupakan wujud kehadiran negara dalam menjaga ketertiban wilayah sekaligus melindungi kepentingan masyarakat. "Sejalan dengan semangat&nbsp;Imigrasi&nbsp;untuk&nbsp;Rakyat, kami hadir bukan hanya untukmenegakkan aturan, tetapi juga untuk memastikan masyarakat merasa aman dan nyaman atas keberadaan Orang Asing di sekitar mereka. Kami juga akan menelusuri identitas WNA yang melarikan diri dari petugas,” tegasnya.Sementara itu, Kepala Kantor Wilayah Imigrasi Bali, Ramdhani, menegaskan, “Kami mengapresiasi Kantor Imigrasi Denpasar yang bergerak cepat menindaklanjuti informasi yang ada. Setiap Orang Asing yang berada di Bali wajib menaati aturan dan melakukan kegiatan sesuai dengan izin tinggalnya. Kami akan terus memperkuat pengawasan secara terukur” ujar Ramdhani. Upaya tersebut sejalan dengan arahan Direktur Jenderal Imigrasi, Hendarsam Marantoko, bahwa pengawasan keimigrasian merupakan wujud nyata komitmen&nbsp;Imigrasi untuk Rakyat, yakni menghadirkan kepastian hukum, menjaga kedaulatan negara, serta menciptakan rasa aman bagi masyarakat melalui pengawasan orang asing yang profesional, adaptif, dan berintegritas.30 September 2026Humas Imigrasi Denpasar                                    </div>
-                                    <a href="/siaran_pers/imigrasi-denpasar-buru-dua-wna-yang-diduga-menjadi-pelatih-berkendara-sepeda-motor-secara-ilegal" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                                            <div class="keen-slider__slide">
-                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
-                                <div class="position-relative">
-                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Ngurah Rai Amankan 13 WNA dalam Operasi Gabungan Dugaan Prostitusi di Umalas, Seminyak, dan Canggu" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/2f5a48ec-dfeb-427f-92c6-f0692e438c1c.jpeg?width=400" style="height: 200px !important;">                                <div
-                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
-                                    Siaran Pers                                </div>
-                                </div>
-                                <div class="card-body m-0 mt-0">
-                                    <p class="text-muted mb-1" style="font-size: 12px;">
-                                        18 Sep 2026                                    </p>    
-                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Imigrasi Ngurah Rai Amankan 13 WNA dalam Operasi Gabungan Dugaan Prostitusi di Umalas, Seminyak, dan Canggu</h5>
-                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
-                                        BADUNG - Imigrasi Ngurah Rai Amankan 13 WNA dalam Operasi Gabungan Dugaan Prostitusi di Umalas, Seminyak, dan Canggu wilayah, yaitu Umalas, Seminyak, dan Canggu ini membidik Warga Negara Asing (WNA) yang diduga menyalahgunakan izin tinggal dengan berkegiatan sebagai pekerja seks komersial (PSK). Dalam operasi tersebut, Tim Gabungan berhasil mengamankan 13 (tiga belas) orang WNA yang kini menjalani pemeriksaan lebih lanjut di Kantor Imigrasi Ngurah Rai.Seluruh tim mulai bergerak ke lokasi sasaran masing-masing pada pukul 17.00 WITA. Di Canggu, tim mendapati seorang WNA perempuan asal Rusia berinisial IP di sebuah vila yang diduga menyalahgunakan izin tinggal untuk berkegiatan sebagai PSK dengan sistem pemesanan melalui aplikasi WhatsApp. Pendalaman lapangan kemudian mengarahkan tim ke sebuah apartemen, tempat seorang WNA laki-laki asal Ukraina berinisial OG diamankan karena diduga memfasilitasi kegiatan tersebut. Pemeriksaan sistem keimigrasian menunjukkan IP memegang izin tinggal Remote Worker yang masih berlaku hingga 8 November 2026, sementara ITAS Investor milik OG tercatat telah berakhir pada 14 Oktober 2025.Di Seminyak, tim menelusuri sebuah platform daring yang diduga digunakan sebagai media promosi layanan prostitusi sebelum melakukan pengawasan di sebuah vila di Jalan Bidadari. Di lokasi tersebut, tim mendapati tiga WNA perempuan asal Nigeria berinisial JFP, ECM, dan HOU. Ketiganya memegang izin tinggal kunjungan Program Magang yang telah habis masa berlakunya, dengan masa overstay masing-masing 58 hari, 94 hari, dan 134 hari.Sementara itu di Umalas, tim bergerak berdasarkan penelusuran melalui kanal Telegram dan melaksanakan pengawasan di sebuah vila. Tim mendapati empat WNA perempuan, terdiri dari tiga WN Rusia berinisial DK, AG, dan KS, serta satu WN Kazakhstan berinisial AS, yang masing-masing memegang izin tinggal kunjungan dengan masa berlaku berbeda-beda. Selanjutnya, di wilayah yang sama, tim kembali mendapati empat WNA perempuan asal Nigeria berinisial HBO, MOL, GO, dan TE yang diduga menyalahgunakan izin tinggal dengan modus serupa. Seluruh WNA yang diamankan dari ketiga wilayah tersebut kemudian dibawa ke Kantor Imigrasi Ngurah Rai untuk menjalani pemeriksaan lebih lanjut terhadap identitas, dokumen perjalanan, serta keterangan awal sebagai bahan pendalaman.Secara keseluruhan, dari 13 WNA yang diamankan, delapan di antaranya merupakan WNA perempuan dari operasi di Umalas (empat WN Nigeria, tiga WN Rusia, dan satu WN Kazakhstan). Tiga WNA perempuan lainnya berasal dari operasi di Seminyak yang seluruhnya merupakan WN Nigeria. Sementara dari operasi di Canggu, diamankan satu WNA perempuan asal Rusia dan satu WNA laki-laki asal Ukraina yang diduga berperan sebagai pihak yang memfasilitasi layanan prostitusi tersebut.Kepala Kantor Imigrasi Ngurah Rai, Muhamad Novyandri, menyampaikan bahwa operasi ini dilaksanakan berdasarkan informasi awal dari masyarakat yang kemudian ditindaklanjuti dengan pendalaman lapangan. Metode yang digunakan meliputi pengumpulan bahan keterangan, penyamaran petugas, serta verifikasi melalui platform daring. "Ke-13 WNA tersebut saat ini menjalani pemeriksaan lebih lanjut atas dugaan pelanggaran Pasal 75 Undang-Undang Nomor 6 Tahun 2011 tentang Keimigrasian serta potensi pelanggaran pidana lainnya. Mereka terancam sanksi tegas deportasi dan penangkalan selama 5 (lima) tahun, hingga proses hukum pidana sesuai peraturan yang berlaku, " tegas Novyandri.Kepala Kantor Wilayah Ditjenim Bali, Ramdhani, menegaskan bahwa penindakan ini merupakan bagian dari komitmen Imigrasi Bali untuk menjaga wilayah tetap kondusif, aman, serta menghormati hukum dan nilai sosial-budaya setempat. "Kami mendukung penuh pariwisata Bali, namun kami tidak memberi ruang bagi WNA yang menyalahgunakan izin tinggal, melanggar hukum, atau merusak citra pariwisata Bali, " ungkapnya.Menutup keterangannya, Kepala Kantor Wilayah Direktorat Jenderal Imigrasi Bali menegaskan bahwa pengawasan terhadap orang asing akan terus diperkuat sebagai bentuk kehadiran Imigrasi di tengah masyarakat. Hal ini sejalan dengan arahan Direktur Jenderal Imigrasi Hendarsam Marantoko bahwa Imigrasi harus hadir untuk rakyat melalui pelayanan yang berkualitas, pengawasan yang optimal, serta penegakan hukum yang berkeadilan. Apresiasi juga disampaikan kepada jajaran Kepolisian Daerah Bali dan masyarakat yang telah mendukung tugas keimigrasian melalui pemberian informasi dan kolaborasi di lapangan.18 September 2026Humas Kantor Imigrasi Ngurah Rai                                    </div>
-                                    <a href="/siaran_pers/imigrasi-ngurah-rai-amankan-13-wna-dalam-operasi-gabungan-dugaan-prostitusi-di-umalas-seminyak-dan-canggu" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                                            <div class="keen-slider__slide">
-                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
-                                <div class="position-relative">
-                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Menteri Imipas Penuhin Janji, 82 WNI dipulangkan dari Malaysia" data-src="/upload/2024/Berita%20Siaran%20Pers/september/IMI03534.JPG?width=400" style="height: 200px !important;">                                <div
-                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
-                                    Siaran Pers                                </div>
-                                </div>
-                                <div class="card-body m-0 mt-0">
-                                    <p class="text-muted mb-1" style="font-size: 12px;">
-                                        12 Sep 2026                                    </p>    
-                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Menteri Imipas Penuhin Janji, 82 WNI dipulangkan dari Malaysia</h5>
-                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
-                                        JAKARTA – Kementerian Imigrasi dan Pemasyarakatan (Kemenimipas) melalui Atase Imigrasi KBRI Kuala Lumpur bergerak cepat memulangkan 82 Warga Negara Indonesia (WNI) bermasalah dari Depot Tahanan Imigresen (DTI) Semenyih dan DTI Beranang, Malaysia, Jumat (11/9). Langkah ini merupakan tindak lanjut langsung atas kunjungan kerja Menteri Imigrasi dan Pemasyarakatan (Imipas), Agus Andrianto, bersama Direktur Jenderal Imigrasi, Hendarsam Marantoko ke DTI Semenyih pada 4 September 2026 lalu.Menteri Agus menegaskan bahwa kepulangan ini menjadi prioritas utama pemerintah demi memberikan kepastian hukum dan pelindungan kemanusiaan bagi WNI di luar negeri. Dalam kunjungan kerja ke Malaysia pekan lalu, pihaknya telah menyampaikan komitmen penyelesaian tersebut secara langsung."Kami melakukan pengecekan dengan Dirjen Imigrasi. Kerja sama kami cukup baik dengan imigrasi Malaysia. Nanti kita segera upayakan pemulangan. Kalau surat sudah lengkap paling lama 10 hari mereka bisa kembali ke Indonesia," ujar Menteri Agus.Realisasi pemulangan yang terlaksana tepat satu minggu setelah instruksi tersebut mencakup 51 WNI dari DTI Semenyih, yang terdiri dari 32 laki-laki, 14 perempuan, dan lima anak perempuan. Selain itu, turut dipulangkan 31 WNI dari DTI Beranang yang meliputi 22 laki-laki dan sembilan perempuan. Seluruh WNI yang dipulangkan tersebut dipastikan telah menyelesaikan proses hukum dan keimigrasian di Malaysia serta telah mengantongi dokumen perjalanan resmi.Proses pemberangkatan ke Tanah Air pada hari ini dilakukan secara bertahap dan terbagi ke dalam tiga kloter. Kloter pertama dengan tujuan Jakarta membawa 33 orang WNI menggunakan maskapai Citilink bernomor penerbangan QG-503 dan dijadwalkan tiba di Tanah Air pada pukul 21.40 WIB.Sementara itu, kloter kedua dan ketiga diberangkatkan dengan tujuan Medan. Kloter kedua membawa enam orang penumpang menggunakan maskapai Batik Air ID-7265, dan kloter ketiga membawa 43 orang penumpang menggunakan maskapai Air Asia QZ-127. Kedua penerbangan tujuan Medan tersebut dijadwalkan mendarat pada waktu yang bersamaan, yakni pukul 21.25 WIB.Demi memastikan proses berjalan aman dan tertib, masing-masing kloter didampingi langsung oleh petugas Fungsi Imigrasi dan Konsuler KBRI Kuala Lumpur. Guna mempermudah pengawasan selama perjalanan, para WNI diberikan seragam kaos berwarna biru dan difasilitasi pemberian makan setibanya di bandara sebelum lepas landas.Atase Imigrasi KBRI Kuala Lumpur terus berkoordinasi secara intensif dengan Jabatan Imigresen Malaysia (JIM), pihak maskapai penerbangan, dan instansi terkait di Jakarta maupun Medan guna memastikan seluruh tahapan dari pemberangkatan hingga debarkasi penerimaan WNI berjalan lancar tanpa hambatan.Para WNI pun tiba di Tanah Air dengan penuh sukacita dan rasa syukur. “Alhamdulillah, bahagia. Nggak menyangka kalau sudah bisa kembali ke Indonesia, padahal sudah lama di Malaysia. Terima kasih banyak kepada Bapak Menteri Agus Andrianto dan Bapak Dirjen Hendarsam,” ungkap salah satu WNI laki-laki asal Madura yang sudah hampir sembilan tahun berada di Malaysia. Dan ada pula seorang wanita yang sudah lama berada di dalam tahanan imigrasi di malaysia akhirnya bisa pulang kembali ke Indonesia. Terimakasih banyak kepada Bapak Menteri Imigrasi dan Pemasyarakatan dan Dirjen Imigrasi yang telah membantu saya agar bisa kembali ke Tanah Air dan dapat berkumpul bersama keluarga, sampai saya tidak bisa berkata apa-apa lagi, ujar Rita, yang akan pulang ke Pandeglang, Banten.Pemulangan WNI ini bukan sekadar pemenuhan prosedur administratif, melainkan manifestasi nyata kehadiran negara untuk melindungi segenap warganya tanpa memandang latar belakang permasalahan. Kemenimipas berkomitmen memastikan setiap warga negara yang tengah menghadapi kendala keimigrasian di luar negeri mendapatkan penyelesaian yang responsif dan menjunjung tinggi martabat kemanusiaan. Melalui momentum kepulangan ini, menjadi pesan kuat bagi seluruh masyarakat akan pentingnya menempuh jalur migrasi yang legal demi jaminan keselamatan dan pelindungan menyeluruh dari negara.                                    </div>
-                                    <a href="/siaran_pers/menteri-imipas-penuhin-janji-82-wni-dipulangkan-dari-malaysia" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
                                     </div>
             </div>
                     </div>
@@ -1954,7 +1954,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
     <div class="container-fluid px-0" data-aos="fade-up">
         <div class="row gy-4 align-items-center">
             <div class="col-lg-6 text-lg-end text-center">
-                <img class="img-fluid app_img" src="/assets/2c859e19//img/phone_mockup.png" alt="">            </div>
+                <img class="img-fluid app_img" src="/assets/1e2ee27c//img/phone_mockup.png" alt="">            </div>
             <div class="col-lg-6">
                 <div class="section-title mb-3">
                     <h1 class="fw-semibold text-start">
@@ -1967,8 +1967,8 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                         <h4 class="mb-lg-5 mb-4 text-center text-lg-start unduh_desc">
                             Ajukan permohonan paspor baru atau penggantian secara daring. Mudah dan nyaman.                        </h4>
                         <div class="d-flex gap-3 justify-content-lg-start justify-content-center">
-                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/2c859e19//img/pstore.png" alt=""></a>
-                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/2c859e19//img/appstore.png" alt=""></a>                        </div>
+                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/1e2ee27c//img/pstore.png" alt=""></a>
+                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/1e2ee27c//img/appstore.png" alt=""></a>                        </div>
                     </div>
                 </div>
             </div>
@@ -2080,7 +2080,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
 	<div class="container mb-md-5 mb-2 footer-top">
 		<div class="row justify-content-between g-4">
 			<div class="col-lg-5 col-md-12 mb-3 mb-md-0 footer-about">
-				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/2c859e19/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
+				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/1e2ee27c/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
 					Jl. H.R. Rasuna Said, Kav. X6, No. 8,
 Kuningan, Jakarta Selatan,
 DKI Jakarta, Indonesia				</p>
@@ -2187,7 +2187,7 @@ DKI Jakarta, Indonesia				</p>
 	<script id="sessionFlashes" type="application/json">
 		{}	</script>
 
-	<script src="/assets/9d69f7fe/fe/slider/keen-slider.js?v=1791606448"></script>
+	<script src="/assets/afc28b9b/fe/slider/keen-slider.js?v=1791606528"></script>
 <script src="/assets/58a3f682/jquery.js?v=1757531562"></script>
 <script src="/assets/345aa491/jquery-ui.js?v=1757531580"></script>
 <script src="/assets/54f7976c/yii.js?v=1757532998"></script>
@@ -2200,13 +2200,13 @@ DKI Jakarta, Indonesia				</p>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
-<script src="/assets/2c859e19/main.js?v=1791606448"></script>
-<script src="/assets/2c859e19/js/main.min.js?v=1791606448"></script>
-<script src="/assets/2c859e19/js/hyperlink-popup.js?v=1791606448"></script>
-<script src="/assets/2c859e19/js/marked.min.js?v=1791606448"></script>
-<script src="/assets/2c859e19/js/search-ai-ui2.js?v=1791606448"></script>
-<script src="/assets/2c859e19/js/sitebar-sticky.js?v=1791606448"></script>
-<script src="/assets/9d69f7fe/frontend.js?v=1791606448"></script>
+<script src="/assets/1e2ee27c/main.js?v=1791606528"></script>
+<script src="/assets/1e2ee27c/js/main.min.js?v=1791606528"></script>
+<script src="/assets/1e2ee27c/js/hyperlink-popup.js?v=1791606528"></script>
+<script src="/assets/1e2ee27c/js/marked.min.js?v=1791606528"></script>
+<script src="/assets/1e2ee27c/js/search-ai-ui2.js?v=1791606528"></script>
+<script src="/assets/1e2ee27c/js/sitebar-sticky.js?v=1791606528"></script>
+<script src="/assets/afc28b9b/frontend.js?v=1791606528"></script>
 <script>jQuery(function ($) {
     $("#keEvisa").click(function() {
         let posisiEvisa = $("#evisaForm").position();
