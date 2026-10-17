@@ -365,7 +365,7 @@
     </div>
     <div id="termsAndConditionsOuterBox">
       <form action="/verify" method="post">
-        <input type="hidden" name="csrf_token" value="j_DG1EtHnjQYqjzECTF2LqyZICtKb7FUz_jGyeHs64o=" />
+        <input type="hidden" name="csrf_token" value="HSBrLIJIm0PiOzUTDeFj2zIfoC_wxKWPhJQYkdyi85g=" />
         <div id="termsAndConditionsInnerBox">
           <div class="titleBanner">Terms &amp; Conditions</div>
           <div id="termsAndConditionsContent">
