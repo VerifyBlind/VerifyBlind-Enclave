@@ -1073,7 +1073,9 @@ string? partnerId = null;
                     }
                     catch (Exception ex)
                     {
-                        diag.Info($"Age ERROR: {ex.GetType().Name}: {ex.Message}: {ex.StackTrace}, dob={signedTicket.Payload.DogumTarihi:yyyy-MM-dd}");
+                        // Yalnız istisna TÜRÜ: diag satırları relay'e taşınır ve orada log'a yazılır.
+                        // Doğum tarihi (çipten okunan kişisel veri) ve serbest metin mesaj buraya girmez.
+                        diag.Info($"Age ERROR: {ex.GetType().Name}");
                         //validationsOutput["age"] = false;
                     }
                 }

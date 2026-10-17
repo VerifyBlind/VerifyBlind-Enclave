@@ -57,7 +57,8 @@ public static class MrzParser
         if (policyVerdict != DocumentPolicy.Verdict.Accepted)
             throw new Exception($"Bu belge desteklenmemektedir (politika: {policyVerdict}).");
 
-        Console.WriteLine($"[Enclave] DG1 Ayrıştırıldı: Ülke={issuingCountry}, Uyruk={nationality}, BelgeNo={EnclaveService.Mask(docNo)}, Cinsiyet={gender}");
+        // Cinsiyet BİLEREK yazılmaz: kişiye ait bir alandır ve teşhise bir şey katmaz.
+        Console.WriteLine($"[Enclave] DG1 Ayrıştırıldı: Ülke={issuingCountry}, Uyruk={nationality}, BelgeNo={EnclaveService.Mask(docNo)}");
 
         // Parse DOB (YYMMDD -> DateTime)
         var dobDate = ParseMrzDate(dob);
