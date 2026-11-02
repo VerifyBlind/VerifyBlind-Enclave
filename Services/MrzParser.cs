@@ -23,7 +23,8 @@ public static class MrzParser
         var dg1Bytes = Convert.FromBase64String(dg1Base64);
         var mrzString = ExtractMrzFromDG1(dg1Bytes);
 
-        Console.WriteLine($"[Enclave] MRZ ayrıştırıldı ({mrzString.Length} karakter): {EnclaveService.Mask(mrzString)}");
+        // Kimlik değerleri (MRZ, belge no, TCKN) maskeli hâlde bile yazılmaz; yalnız uzunluk ve ülke.
+        Console.WriteLine($"[Enclave] MRZ ayrıştırıldı ({mrzString.Length} karakter)");
 
         // Yalnızca TD1 (kimlik kartı, 3×30 = 90 karakter) desteklenir. TD3 (pasaport, 2×44 = 88)
         // DocumentPolicy tarafından zaten Step 5.5'te reddedilmiştir; buraya ulaşmaz.
@@ -58,7 +59,7 @@ public static class MrzParser
             throw new Exception($"Bu belge desteklenmemektedir (politika: {policyVerdict}).");
 
         // Cinsiyet BİLEREK yazılmaz: kişiye ait bir alandır ve teşhise bir şey katmaz.
-        Console.WriteLine($"[Enclave] DG1 Ayrıştırıldı: Ülke={issuingCountry}, Uyruk={nationality}, BelgeNo={EnclaveService.Mask(docNo)}");
+        Console.WriteLine($"[Enclave] DG1 Ayrıştırıldı: Ülke={issuingCountry}, Uyruk={nationality}");
 
         // Parse DOB (YYMMDD -> DateTime)
         var dobDate = ParseMrzDate(dob);
@@ -76,11 +77,11 @@ public static class MrzParser
         if (IdentityCodes.IsValidTckn(tcknCandidate))
         {
             primaryId = tcknCandidate;
-            Console.WriteLine($"[Enclave] TD1 İsteğe Bağlı Veriden TCKN çıkarıldı: {EnclaveService.Mask(primaryId)}");
+            Console.WriteLine("[Enclave] TD1 İsteğe Bağlı Veriden TCKN çıkarıldı");
         }
         else
         {
-            Console.WriteLine($"[Enclave] UYARI: TC kimlik kartında İsteğe Bağlı Veri alanı geçerli bir TCKN içermiyor: '{EnclaveService.Mask(optionalData)}'");
+            Console.WriteLine($"[Enclave] UYARI: TC kimlik kartında İsteğe Bağlı Veri alanı geçerli bir TCKN içermiyor ({optionalData.Length} karakter)");
         }
 
         return new TicketPayload

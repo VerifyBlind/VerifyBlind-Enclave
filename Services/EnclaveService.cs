@@ -425,12 +425,10 @@ public class EnclaveService
         {
             diag.Begin("DG1 Parse");
             ticketPayload = MrzParser.ParseDG1ToTicket(payload.DG1, payload.UserPubKey, request.CountryIsoCode);
-            Console.WriteLine("==");
-            Console.WriteLine($"[Enclave] GERÇEK VERİ ÇIKARILDI ✓");
-            Console.WriteLine($"[Enclave] TCKN: {Mask(ticketPayload.TCKN)}");
-            Console.WriteLine($"[Enclave] Ad/Soyad: {Mask(ticketPayload.Ad)} {Mask(ticketPayload.Soyad)}");
-            Console.WriteLine("==");
-            diag.Ok("DG1 Parse", $"Country={ticketPayload.CountryIsoCode}, TCKN={Mask(ticketPayload.TCKN)}");
+            // Kimlik değerleri (TCKN, ad, soyad) maskeli hâlde bile yazılmaz: diag satırları relay
+            // loguna düşer, aydınlatma metni ise bu verilerin relay ile paylaşılmadığını söyler.
+            Console.WriteLine("[Enclave] GERÇEK VERİ ÇIKARILDI ✓");
+            diag.Ok("DG1 Parse", $"Country={ticketPayload.CountryIsoCode}");
         }
         catch (Exception ex)
         {
@@ -863,7 +861,7 @@ string? partnerId = null;
 
         // 4. Verify Ticket Signature + 5. Compute UserId — paralel (bağımsız KMS çağrıları)
         diag.Ok("---------------------------------------------------");
-        diag.Ok($"[Enclave] TCKN için giriş işlemi: {(string.IsNullOrEmpty(signedTicket.Payload.TCKN) ? "(Boş)" : Mask(signedTicket.Payload.TCKN))}");
+        diag.Ok($"[Enclave] Giriş işlemi: TCKN {(string.IsNullOrEmpty(signedTicket.Payload.TCKN) ? "yok" : "var")}");
         diag.Info($"Partner: {partnerId}");
 
         string userId;
@@ -2329,13 +2327,6 @@ string? partnerId = null;
         }
 
         throw new Exception($"Invalid Age Constraint Format: '{constraint}'");
-    }
-
-    internal static string Mask(string value)
-    {
-        if (string.IsNullOrEmpty(value)) return value;
-        if (value.Length <= 4) return "**" + value.Length + "**"; // Too short to mask first/last 2
-        return value.Substring(0, 2) + new string('*', value.Length - 4) + value.Substring(value.Length - 2);
     }
 
     /// <summary>

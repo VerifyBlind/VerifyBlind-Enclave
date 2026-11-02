@@ -513,33 +513,6 @@ public class EnclaveServiceTests
         Assert.Contains("Invalid Age Constraint", ex.Message);
     }
 
-    // ── Mask ──────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public void Mask_NullOrEmpty_ReturnsValue()
-    {
-        Assert.Equal("", EnclaveService.Mask(""));
-        Assert.Null(EnclaveService.Mask(null!));
-    }
-
-    [Fact]
-    public void Mask_ShortString_ReturnsStarNotation()
-    {
-        // Length 3 ≤ 4 → "**3**"
-        var result = EnclaveService.Mask("ABC");
-        Assert.StartsWith("**", result);
-    }
-
-    [Fact]
-    public void Mask_NormalString_MasksMiddle()
-    {
-        // "ABCDEF" → "AB**EF"
-        var result = EnclaveService.Mask("ABCDEF");
-        Assert.StartsWith("AB", result);
-        Assert.EndsWith("EF", result);
-        Assert.Contains("**", result);
-    }
-
     // ── SearchHashInSOD ───────────────────────────────────────────────────────
 
     [Fact]
@@ -613,6 +586,30 @@ public class EnclaveServiceTests
         Assert.Equal("pubkey", ticket.UserPubKey);
         Assert.Equal("TUR", ticket.CountryIsoCode);
         Assert.Equal("I", ticket.DocumentType); // "I<" → filler '<' temizlenir
+    }
+
+    [Fact]
+    public void ParseDG1ToTicket_DoesNotWriteIdentityValuesToConsole()
+    {
+        // Kimlik değerleri konsola maskeli hâlde bile yazılmaz (aydınlatma metni: relay ile
+        // paylaşılmaz). Eski çıktı "12*******01" gibi ilk ve son iki haneyi açık bırakıyordu.
+        var original = Console.Out;
+        using var captured = new StringWriter();
+        Console.SetOut(captured);
+        try
+        {
+            MrzParser.ParseDG1ToTicket(BuildDG1Base64(FakeTurkishTD1Mrz), "pubkey", "TUR");
+        }
+        finally
+        {
+            Console.SetOut(original);
+        }
+
+        var output = captured.ToString();
+        Assert.DoesNotContain("123456789", output);   // belge no ve TCKN'nin ortak öneki
+        Assert.DoesNotContain("AHMET", output);
+        Assert.DoesNotContain("YILMAZ", output);
+        Assert.DoesNotMatch(@"\d{2}\*+\d{2}", output); // maskeli hane kalıbı
     }
 
     [Fact]
@@ -1220,25 +1217,6 @@ public class EnclaveServiceTests
 
     [Fact] public void CheckAgeConstraint_MalformedRange_Throws()
         => Assert.Throws<Exception>(() => _service.CheckAgeConstraint(20, "18-25-30"));
-
-    // ── Mask (additional) ─────────────────────────────────────────────────────
-
-    [Fact]
-    public void Mask_ExactlyFourChars_ReturnsStarNotation()
-        => Assert.Equal("**4**", EnclaveService.Mask("ABCD"));
-
-    [Fact]
-    public void Mask_FiveChars_KeepsFirstTwoAndLastTwo()
-        => Assert.Equal("AB*DE", EnclaveService.Mask("ABCDE"));
-
-    [Fact]
-    public void Mask_TcknLengthValue_OnlyExposesFourDigits()
-    {
-        // An 11-digit TCKN must never have its middle digits exposed in logs.
-        var masked = EnclaveService.Mask("12345678901");
-        Assert.Equal("12*******01", masked);
-        Assert.DoesNotContain("345678", masked);
-    }
 
     // ── ExtractMrzFromDG1 / GetIssuingCountryFromDG1 (additional) ──────────────
 
