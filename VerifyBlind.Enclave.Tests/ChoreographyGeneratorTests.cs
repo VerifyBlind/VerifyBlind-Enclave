@@ -120,6 +120,36 @@ public class ChoreographyGeneratorTests
     }
 
     [Fact]
+    public void UcHareketliGirisKurallariTutar()
+    {
+        var allowed = new[] { LivenessEvent.Smile, LivenessEvent.MouthOpen, LivenessEvent.DoubleBlink };
+        foreach (var nonce in Nonces(3000))
+        {
+            var c = ChoreographyGenerator.ForLoginV3(nonce);
+            Assert.Equal(ChoreographyGenerator.LoginVersion3, c.Version);
+            Assert.Equal(ChoreographyGenerator.LoginEventCountV3, c.Events.Count);
+            Assert.All(c.Events, e => Assert.Contains(e, allowed));
+            for (int i = 1; i < c.Events.Count; i++)
+                Assert.NotEqual(c.Events[i - 1], c.Events[i]);
+            Assert.Equal(ChoreographyGenerator.Describe(c),
+                ChoreographyGenerator.Describe(ChoreographyGenerator.ForLoginV3(nonce)));
+        }
+    }
+
+    /// <summary>
+    /// Android ve iOS aynı diziyi kendisi türetiyor. Bu vektörler iki istemcinin testlerinde de
+    /// aynen durur; değişirse üç yer birlikte değişir.
+    /// </summary>
+    [Theory]
+    [InlineData("7c9e6679-7425-40de-944b-e07fc1f90ae7", "smile,mouth_open,smile")]
+    [InlineData("vector-0", "smile,mouth_open,smile")]
+    [InlineData("A1b2-C3d4", "double_blink,smile,double_blink")]
+    public void UcHareketliGirisTuretmesiSabittir(string nonce, string expected)
+    {
+        Assert.Equal(expected, ChoreographyGenerator.Describe(ChoreographyGenerator.ForLoginV3(nonce)));
+    }
+
+    [Fact]
     public void GirisVeKayitAyriAlanlardanTuretilir()
     {
         // Aynı nonce iki akışta bağımsız çekilişe gider: kayıt dizisinin ilk hareketi giriş

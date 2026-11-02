@@ -56,6 +56,17 @@ namespace VerifyBlind.Enclave.Services.Liveness
         /// </summary>
         private const string LoginDomain = "vb-choreo-login-v2|";
 
+        /// <summary>
+        /// Üç hareketli girişin sürümü (2026-11-02, kullanıcı kararı). Kart ekleme yüzsüz olunca kişi
+        /// yalnız QR'da kanıtlanıyor; tek hareket buna yetmez. Sürüm 2 yalnız eski uygulamalar için
+        /// yaşıyor. Yeni alan ayrımı, aynı nonce'tan sürüm 2 hareketinin ilk adım olarak çıkmasını önler.
+        /// </summary>
+        public const int LoginVersion3 = 3;
+
+        public const int LoginEventCountV3 = 3;
+
+        private const string LoginDomainV3 = "vb-choreo-login-v3|";
+
         public const int EventCount = 5;
 
         private static readonly LivenessEvent[] Events =
@@ -99,6 +110,28 @@ namespace VerifyBlind.Enclave.Services.Liveness
                 Version = Version,
                 Events = { LoginEvents[draw.Next(LoginEvents.Length)] },
             };
+        }
+
+        /// <summary>
+        /// Üç hareketli doğrulama dizisi. İlk hareket üçünden biri, sonrakiler bir öncekinden FARKLI
+        /// ikisinden biri: 3 × 2 × 2 = 12 dizi. Türetmeyi istemciler de yapar (bkz. <see cref="LoginDomain"/>).
+        /// </summary>
+        public static Choreography ForLoginV3(string nonce)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(nonce);
+            var draw = new DeterministicDraw(
+                SHA256.HashData(Encoding.UTF8.GetBytes(LoginDomainV3 + nonce)));
+
+            var choreography = new Choreography { Version = LoginVersion3 };
+            var previous = LivenessEvent.None;
+            for (int i = 0; i < LoginEventCountV3; i++)
+            {
+                var pool = Array.FindAll(LoginEvents, e => e != previous);
+                var pick = pool[draw.Next(pool.Length)];
+                choreography.Events.Add(pick);
+                previous = pick;
+            }
+            return choreography;
         }
 
         /// <summary>Teşhis için kısa biçim: <c>blink,mouth_open,smile</c>.</summary>

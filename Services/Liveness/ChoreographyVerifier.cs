@@ -128,7 +128,8 @@ namespace VerifyBlind.Enclave.Services.Liveness
         /// <summary>Yapı kuralları; bozuksa sabit kümeden bir sebep, sağlamsa null.</summary>
         internal static string? ValidateStructure(ChoreographyProof proof, Choreography demanded)
         {
-            if (proof.Version != ChoreographyGenerator.Version) return "version";
+            // Sürüm istenen diziden okunur: kart ekleme 2, üç hareketli giriş 3 ister.
+            if (proof.Version != demanded.Version) return "version";
             if (proof.Steps.Count != demanded.Events.Count) return "steps";
 
             for (int i = 0; i < demanded.Events.Count; i++)

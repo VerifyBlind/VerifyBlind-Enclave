@@ -15,5 +15,11 @@ public sealed class LoginFaceMismatchException : Exception
 {
     public string ErrorCode => EnclaveErrorCodes.LoginFaceMismatch;
 
-    public LoginFaceMismatchException(string message) : base(message) { }
+    /// <summary>Yüz eşik altında kaldıysa skor. Yalnız ölçüm alanına gider, mesaja YAZILMAZ.</summary>
+    public float? MatchScore { get; }
+
+    public LoginFaceMismatchException(string message, float? matchScore = null) : base(message)
+    {
+        MatchScore = matchScore;
+    }
 }

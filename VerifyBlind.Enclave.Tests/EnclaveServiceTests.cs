@@ -1693,7 +1693,7 @@ public class EnclaveServiceTests
     /// </summary>
     private LoginRequest BuildLoginRequestReachingFaceGate(
         string tckn, string faceRefB64, LoginFaceProof? faceProof = null,
-        object? validations = null, bool partnerIsTest = false)
+        object? validations = null, bool partnerIsTest = false, int? loginMoves = null)
     {
         var (_, reqPublicKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
         var (userPrivKey, userPubKey) = VerifyBlind.Core.Crypto.CryptoUtils.GenerateRsaKeyPair();
@@ -1713,6 +1713,7 @@ public class EnclaveServiceTests
                     TCKN             = tckn,
                     UserPubKey       = userPubKey,
                     FaceRefJpegB64   = faceRefB64,
+                    LoginMoves       = loginMoves,
                     // Kayıt anında üretilip bilete gömülür; login bunları YENİDEN hesaplamaz.
                     // Diag satırları ilk 8 karakteri kestiği için boş bırakılamaz.
                     PersonId         = new string('a', 64),
@@ -1769,6 +1770,153 @@ public class EnclaveServiceTests
         AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
     };
 
+    // ── Yüzsüz kart ekleme + üç hareket (2026-11-02) ─────────────────────────
+
+    private static LoginFaceProof ThreeMoveFaceProof() => new()
+    {
+        UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
+        AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
+        ChoreographyProof = new ChoreographyProof
+        {
+            Version = ChoreographyGenerator.LoginVersion3,
+            Steps =
+            {
+                new ChoreographyProofStep { Neutral = { "bg==" }, Event = { "ZQ==" } },
+                new ChoreographyProofStep { Neutral = { "bg==" }, Event = { "ZQ==" } },
+                new ChoreographyProofStep { Neutral = { "bg==" }, Event = { "ZQ==" } },
+            },
+        },
+    };
+
+    [Fact]
+    public void EvaluateFaceGates_CardOnly_SkipsEveryFaceCheck()
+    {
+        var measuredCalled = false;
+        var (score, candidates, sequence) = _service.EvaluateFaceGates(
+            new SecurePayload { CardOnly = true }, new DiagLog(), _ => measuredCalled = true);
+
+        Assert.Equal(0f, score);
+        Assert.Empty(candidates);
+        Assert.Null(sequence);
+        Assert.False(measuredCalled);
+        _biometrics.Verify(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>()), Times.Never);
+    }
+
+    /// <summary>Bayrak yoksa kanıtsız kayıt reddi AYNEN sürer: eski yol gevşemedi.</summary>
+    [Fact]
+    public void EvaluateFaceGates_WithoutCardOnly_NoProof_StillRejected()
+    {
+        var ex = Assert.Throws<RegistrationException>(() => _service.EvaluateFaceGates(
+            new SecurePayload(), new DiagLog(), _ => { }));
+        Assert.Equal(VerifyBlind.Core.EnclaveErrorCodes.ChoreographyInvalid, ex.ErrorCode);
+    }
+
+    /// <summary>🔴 Yüzsüz bilet tek hareketle açılamaz: eski sürüm kanıt getiren istek reddedilir.</summary>
+    [Fact]
+    public async Task LoginAsync_CardOnlyTicket_OldProofVersion_Rejected()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+
+        var request = BuildLoginRequestReachingFaceGate(
+            RealTckn, SomeFaceRef, faceProof: ValidFaceProof(), loginMoves: 3);
+
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_LOGIN_FACE_MISMATCH", ex.ErrorCode);
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(null)]
+    public async Task LoginAsync_ThreeMoveProof_DemandsThreeEvents(int? loginMoves)
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            RealTckn, SomeFaceRef, faceProof: ThreeMoveFaceProof(), loginMoves: loginMoves);
+
+        await _service.LoginAsync(request, new DiagLog());
+
+        _choreography.Verify(c => c.Measure(
+            It.IsAny<ChoreographyProof>(),
+            It.Is<Choreography>(d => d.Version == ChoreographyGenerator.LoginVersion3 && d.Events.Count == 3),
+            It.IsAny<byte[]>()), Times.Once);
+    }
+
+    /// <summary>Eski uygulama, eski bilet: tek hareket çalışmaya devam eder.</summary>
+    [Fact]
+    public async Task LoginAsync_LegacyTicket_OldProofVersion_StillPasses()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+
+        await _service.LoginAsync(request, new DiagLog());
+
+        _choreography.Verify(c => c.Measure(
+            It.IsAny<ChoreographyProof>(),
+            It.Is<Choreography>(d => d.Version == ChoreographyGenerator.Version && d.Events.Count == 1),
+            It.IsAny<byte[]>()), Times.Once);
+    }
+
+    // ── Ölçümler (2026-11-02) ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task LoginAsync_FaceBelowThreshold_CarriesScoreOutsideMessage()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.10f);
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal(0.10f, ex.MatchScore);
+        Assert.DoesNotContain("0,1", ex.Message);
+        Assert.DoesNotContain("0.1", ex.Message);
+    }
+
+    [Fact]
+    public async Task LoginAsync_MoveFrames_ReportLowestLivenessWithoutDeciding()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+        // İlk çağrı aynı karenin kapısı (0.9 geçer); hareket karesi düşük olsa da giriş geçer.
+        _antiSpoof.SetupSequence(a => a.Predict(It.IsAny<byte[]>()))
+                  .Returns(new[] { 0.05f, 0.90f, 0.05f })
+                  .Returns(new[] { 0.80f, 0.10f, 0.10f });
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+
+        var json = await _service.LoginAsync(request, new DiagLog());
+
+        var moves = RelayMetadata(json).GetProperty("login_face").GetProperty("choreography");
+        Assert.Equal(0.1, moves.GetProperty("p_live_min").GetDouble(), 3);
+    }
+
+    /// <summary>Ölçüm kapı değildir: patlarsa alan boş kalır, giriş bozulmaz.</summary>
+    [Fact]
+    public async Task LoginAsync_MoveFrameLivenessFails_LoginStillPasses()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+        _antiSpoof.SetupSequence(a => a.Predict(It.IsAny<byte[]>()))
+                  .Returns(new[] { 0.05f, 0.90f, 0.05f })
+                  .Throws(new InvalidOperationException("kare çözülemedi"));
+
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+
+        var json = await _service.LoginAsync(request, new DiagLog());
+
+        var moves = RelayMetadata(json).GetProperty("login_face").GetProperty("choreography");
+        Assert.False(moves.TryGetProperty("p_live_min", out var v) && v.ValueKind == System.Text.Json.JsonValueKind.Number);
+    }
+
     // ── Demo bileti işaretlemesi (güvenlik denetimi #6) ───────────────────────
 
     /// <summary>
@@ -1792,25 +1940,46 @@ public class EnclaveServiceTests
         Assert.Contains("is_test", json);
     }
 
+    private static System.Text.Json.JsonElement RelayMetadata(string loginJson) =>
+        System.Text.Json.JsonDocument.Parse(loginJson).RootElement.GetProperty("relay_metadata").Clone();
+
     /// <summary>
-    /// Demo kart test olmayan (gerçek) bir partnerde REDDEDİLİR — `TEST_`/is_test işaretini
-    /// okumayan bir partnerde demo kartla doğrulanan biri gerçek "doğrulandı" sonucu almasın.
-    /// Red, kimlik kodu türetilmeden ve yüz kapısına gelinmeden olur.
+    /// Demo kart gerçek partnerde de geçer ama yaş cevabı DÖNMEZ. Yalnız yaş soran partnerde cevap
+    /// boş kalsa bile is_test işareti gider: SDK ve eklenti sonucu buna bakarak reddeder.
     /// </summary>
     [Fact]
-    public async Task LoginAsync_DemoTicket_NonTestPartner_Rejected()
+    public async Task LoginAsync_DemoTicket_NonTestPartner_PassesWithoutAgeAnswer()
     {
-        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>()))
-               .Throws(new InvalidOperationException("kms-reached"));
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
 
         var request = BuildLoginRequestReachingFaceGate(
             EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
             validations: new Dictionary<string, object> { ["age"] = "18+" }, partnerIsTest: false);
 
-        var ex = await Assert.ThrowsAsync<DemoCardNotAllowedException>(
-            () => _service.LoginAsync(request, new DiagLog()));
-        Assert.Equal("ERR_DEMO_CARD_TEST_ONLY", ex.ErrorCode);
-        _idHmac.Verify(h => h.ComputeHmac(It.IsAny<string>()), Times.Never);
+        var meta = RelayMetadata(await _service.LoginAsync(request, new DiagLog()));
+
+        Assert.True(meta.GetProperty("is_demo").GetBoolean());
+        var results = meta.GetProperty("results");
+        Assert.False(results.TryGetProperty("age", out _));
+        Assert.True(results.GetProperty("is_test").GetBoolean());
+    }
+
+    /// <summary>Test partneri (demo uygulamaları, test sitesi) yaş cevabını almaya devam eder.</summary>
+    [Fact]
+    public async Task LoginAsync_DemoTicket_TestPartner_KeepsAgeAnswer()
+    {
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+
+        var request = BuildLoginRequestReachingFaceGate(
+            EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
+            validations: new Dictionary<string, object> { ["age"] = "18+" }, partnerIsTest: true);
+
+        var results = RelayMetadata(await _service.LoginAsync(request, new DiagLog())).GetProperty("results");
+
+        Assert.True(results.TryGetProperty("age", out _));
+        Assert.True(results.GetProperty("is_test").GetBoolean());
     }
 
     /// <summary>Kural yalnız demo bileti içindir: gerçek bilet test olmayan partnerde geçer.</summary>

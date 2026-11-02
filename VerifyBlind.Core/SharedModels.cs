@@ -150,6 +150,12 @@ public class SecurePayload
     /// p_live'da yapılan hatanın aynısı olurdu.</para>
     /// </summary>
     public RegistrationCandidate? SmileFrame { get; set; }
+
+    /// <summary>
+    /// Yüzsüz kart ekleme: yalnız MRZ + NFC. Yüz kapıları atlanır, bilete
+    /// <see cref="TicketPayload.LoginMoves"/> mühürlenir. Yazılmazsa false: eski uygulamalar aynı kalır.
+    /// </summary>
+    public bool CardOnly { get; set; }
 }
 
 // Registration Request (Phone -> Relay -> Enclave)
@@ -318,6 +324,13 @@ public class TicketPayload
     /// olmadan kullanılabilsin. Demo register'da boş kalır (gerçek DG2 yok).
     /// </summary>
     public string FaceRefJpegB64 { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Yüzsüz eklenen kartta 3: bu bilet yalnız üç hareketli kanıtla açılır. Null iken JSON'a yazılmaz,
+    /// bu yüzden eski biletlerin MAC'i değişmez (2026-11-02). EN SONDA kalır.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? LoginMoves { get; set; }
 }
 
 public class SignedTicket

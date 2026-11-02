@@ -256,7 +256,8 @@ public class EnclaveController : ControllerBase
             // Canlı yüz kapısı reddetti (eşleşmedi / face_proof yok / referanssız gerçek bilet).
             diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
             Console.WriteLine($"[Enclave Controller] LOGIN FACE MISMATCH: {ex.Message}");
-            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
+            // Skor yanıta taşınır: yüz reddi yalnız buradan ölçülebilir (yanlış-red oranı). PII yok.
+            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, match_score = ex.MatchScore, enclave_diag = diag.Entries });
         }
         catch (VerifyBlind.Enclave.Services.RegistrationException ex)
         {
@@ -299,13 +300,6 @@ public class EnclaveController : ControllerBase
             // Kart geçerlilik tarihi geçmiş → makine-okur kod (ERR_CARD_EXPIRED); relay resx ile lokalize eder.
             diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
             Console.WriteLine($"[Enclave Controller] LOGIN CARD EXPIRED: {ex.Message}");
-            return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
-        }
-        catch (VerifyBlind.Enclave.Services.DemoCardNotAllowedException ex)
-        {
-            // Demo kart test olmayan bir partnere denendi → ERR_DEMO_CARD_TEST_ONLY; relay resx ile lokalize eder.
-            diag.Info($"Toplam Enclave süresi: {diag.TotalMs}ms");
-            Console.WriteLine($"[Enclave Controller] LOGIN DEMO CARD REJECTED: {ex.Message}");
             return StatusCode(400, new { error = ex.Message, error_code = ex.ErrorCode, enclave_diag = diag.Entries });
         }
         catch (Exception ex)

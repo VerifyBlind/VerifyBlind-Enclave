@@ -96,6 +96,18 @@ public class TicketMacServiceTests
         Assert.Equal(goldenJson, JsonSerializer.Serialize(GoldenPayload()));
     }
 
+    /// <summary>Alan yalnız doluyken JSON'a girer ve EN SONDA durur; yoksa eski biletlerin MAC'i bozulurdu.</summary>
+    [Fact]
+    public void TicketPayload_LoginMoves_AppendsOnlyWhenSet()
+    {
+        var plain = JsonSerializer.Serialize(GoldenPayload());
+        Assert.DoesNotContain("LoginMoves", plain);
+
+        var withMoves = GoldenPayload();
+        withMoves.LoginMoves = 3;
+        Assert.Equal(plain.TrimEnd('}') + ",\"LoginMoves\":3}", JsonSerializer.Serialize(withMoves));
+    }
+
     [Fact]
     public async Task ComputeMac_GoldenVector_IsStableUnderDevSecret()
     {

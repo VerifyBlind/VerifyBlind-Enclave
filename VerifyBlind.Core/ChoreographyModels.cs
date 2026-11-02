@@ -167,6 +167,13 @@ public class ChoreographyOutcome
     [JsonPropertyName("identity_min")]
     public double? IdentityMin { get; set; }
 
+    /// <summary>
+    /// Hareket karelerindeki en düşük P(live). YALNIZ ÖLÇÜM, karara girmez: kareler 2,7× kırpma değil,
+    /// bu yüzden sayı 0,55 eşiğiyle kıyaslanmaz. Soru, gerçek yüzle ekranın burada ayrılıp ayrılmadığı.
+    /// </summary>
+    [JsonPropertyName("p_live_min")]
+    public double? PLiveMin { get; set; }
+
     [JsonPropertyName("events")]
     public List<EventMeasurement>? Events { get; set; }
 

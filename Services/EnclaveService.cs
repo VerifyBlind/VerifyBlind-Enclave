@@ -365,59 +365,8 @@ public class EnclaveService
             throw new RegistrationException(RegistrationStep.DocumentPolicy, VerifyBlind.Core.EnclaveErrorCodes.Dg1Parse, ex.Message);
         }
 
-        // --- Step 6a: OLAY DİZİSİ — yapı + her karede kimlik ---
-        // Belge kontrolleri geçtikten SONRA ölçülür: geçersiz belge için YuNet/ArcFace çıkarımı
-        // yakmayalım. Adaylardan ÖNCE: hareketi başka bir yüzün yaptığı diziyi aday
-        // değerlendirmesine sokmanın anlamı yok. Ölçüm red yolunda da relay'e ulaşır.
-        diag.Begin("Choreography");
-        PlanarityOutcome sequence;
-        if (payload.ChoreographyProof is { } choreographyProof)
-        {
-            // Dizi nonce'tan yeniden türetilir — istemcinin "ne istendi" beyanı yok, olamaz.
-            // Nonce bu noktada imzası ve tazeliğiyle doğrulanmış (3. adım).
-            var demanded = ChoreographyGenerator.FromNonce(payload.Nonce);
-            var measured = _choreography.Measure(choreographyProof, demanded, TryExtractIdPhoto(payload));
-            sequence = new PlanarityOutcome
-            {
-                Status = measured.Status == ChoreographyVerifier.StatusInvalid
-                    ? PlanarityStatuses.Unmeasured : PlanarityStatuses.Measured,
-                ElapsedMs = choreographyProof.ElapsedMs,
-                Choreography = measured,
-            };
-            // Enclave'in Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
-            diag.Ok("Choreography", DescribeChoreography(measured));
-        }
-        else
-        {
-            // Kanıt yok: eski istemci ya da kanıt göndermeyen değiştirilmiş bir istemci. 2026-09-30'dan
-            // beri KOŞULSUZ reddedilir (aşağıdaki kapı). Bunu gevşeten bir ayar ya da bayrak YOK.
-            sequence = new PlanarityOutcome { Status = PlanarityStatuses.NoProof };
-            diag.Fail("Choreography", "kanıt yok — hareket kanıtı zorunlu");
-        }
-        onPlanarityMeasured(sequence);
-
-        if (ChoreographyGate(sequence) is { } rejection)
-        {
-            diag.Fail("Choreography", rejection.TechnicalDetail ?? rejection.ErrorCode);
-            Console.WriteLine(
-                $"[Enclave] [{RegistrationStep.BiometricVerification}] {rejection.ErrorCode}: " +
-                $"durum={sequence.Status} kimlik-min={sequence.Choreography?.IdentityMin?.ToString("F3") ?? "-"}");
-            throw rejection;
-        }
-
-        // --- Step 6+7: Biyometrik eşleşme + pasif canlılık (aday aday, TAM KAPI) ---
-        // Adaylar sırayla TAM kapıdan geçirilir ve ilk GEÇEN kazanır. Enclave streaming'de neyi
-        // onayladığını BİLMEZ ve önbelleğe GÜVENMEZ (K4) — burada her şey baştan hesaplanır.
-        var (faceScore, candidateOutcomes) = EvaluateCandidates(payload, diag);
-
-        // --- Step 7b: GÜLÜMSEME KARESİ — ÖLÇÜM, KAPI DEĞİL ---
-        // Jestin onaylandığı andaki kareyi de aynı kapıdan geçirip sonucu kaydediyoruz.
-        // Amaç: kimliği HAREKETE bağlamak. Bugün benzerlik istemcinin "en iyi" saydığı
-        // kareden ölçülüyor ve o kareyi kimin ürettiği kanıtlanmıyor.
-        //
-        // ⚠️ Sonucu karara KATMIYORUZ: gülümserken benzerlik kaçınılmaz olarak düşer ve ne
-        // kadar düştüğünü bilmiyoruz. Önce dağılımı görüp sonra kapı yapacağız.
-        AppendSmileFrameMeasurement(payload, candidateOutcomes, diag);
+        // --- Step 6+7: Yüz kapıları (yüzsüz kart eklemede atlanır) ---
+        var (faceScore, candidateOutcomes, sequence) = EvaluateFaceGates(payload, diag, onPlanarityMeasured);
 
         // --- Step 8: DG1 Parsing ---
         TicketPayload ticketPayload;
@@ -514,6 +463,7 @@ public class EnclaveService
             diag.Begin("Ticket Sign");
             // İmzalama zamanı — MAC bunu kapsar (kurcalanamaz). Login'de iptal kurallarına karşı kontrol edilir.
             ticketPayload.SignedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            if (payload.CardOnly) ticketPayload.LoginMoves = ChoreographyGenerator.LoginEventCountV3;
             // Referans yüz fotosu — self-custody ticket'a gömülür; MAC kapsar. Relay'e/partnere gitmez.
             // İleride enclave-içi yüz karşılaştırma için referans (step-up + biyometrik karşılaştırma).
             // SOD-doğrulanmış HAM DG2'den çıkarılır (telefonun DG2_Photo alanına GÜVENİLMEZ) → gelecekteki
@@ -566,6 +516,81 @@ public class EnclaveService
             Console.WriteLine($"[Enclave] [{RegistrationStep.ResponseEncryption}] adımında başarısız: {ex}");
             throw new RegistrationException(RegistrationStep.ResponseEncryption, "ERR_RESPONSE_ENCRYPTION", ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Kayıt akışının yüz kapıları: olay dizisi, biyometrik eşleşme, canlılık, gülümseme ölçümü.
+    ///
+    /// <para><b>Yüzsüz kart ekleme</b> (<see cref="SecurePayload.CardOnly"/>, 2026-11-02 kullanıcı kararı):
+    /// bilet artık "bu kart gerçek" der, "telefonu tutan kişi kart sahibi" demez. Kişi her QR'da
+    /// çip fotoğrafı + canlılık + üç hareketle kanıtlanır; bu yüzden bilete <see cref="TicketPayload.LoginMoves"/>
+    /// mühürlenir. Bayrağı değiştirilmiş istemci de kazanç sağlamaz: yüz kapısını yalnız QR'a erteler.</para>
+    /// </summary>
+    internal (float faceScore, List<CandidateOutcome> candidates, PlanarityOutcome? sequence) EvaluateFaceGates(
+        SecurePayload payload, DiagLog diag, Action<PlanarityOutcome> onPlanarityMeasured)
+    {
+        if (payload.CardOnly)
+        {
+            // Ölçüm satırı yazılmaz: yüz görülmedi, sıfırlar gerçek dağılıma karışmasın.
+            diag.Ok("Choreography", "atlandı (yüzsüz kart ekleme)");
+            return (0f, new List<CandidateOutcome>(), null);
+        }
+
+        // --- Step 6a: OLAY DİZİSİ — yapı + her karede kimlik ---
+        // Belge kontrolleri geçtikten SONRA ölçülür: geçersiz belge için YuNet/ArcFace çıkarımı
+        // yakmayalım. Adaylardan ÖNCE: hareketi başka bir yüzün yaptığı diziyi aday
+        // değerlendirmesine sokmanın anlamı yok. Ölçüm red yolunda da relay'e ulaşır.
+        diag.Begin("Choreography");
+        PlanarityOutcome sequence;
+        if (payload.ChoreographyProof is { } choreographyProof)
+        {
+            // Dizi nonce'tan yeniden türetilir — istemcinin "ne istendi" beyanı yok, olamaz.
+            // Nonce bu noktada imzası ve tazeliğiyle doğrulanmış (3. adım).
+            var demanded = ChoreographyGenerator.FromNonce(payload.Nonce);
+            var measured = _choreography.Measure(choreographyProof, demanded, TryExtractIdPhoto(payload));
+            sequence = new PlanarityOutcome
+            {
+                Status = measured.Status == ChoreographyVerifier.StatusInvalid
+                    ? PlanarityStatuses.Unmeasured : PlanarityStatuses.Measured,
+                ElapsedMs = choreographyProof.ElapsedMs,
+                Choreography = measured,
+            };
+            // Enclave'in Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
+            diag.Ok("Choreography", DescribeChoreography(measured));
+        }
+        else
+        {
+            // Kanıt yok: eski istemci ya da kanıt göndermeyen değiştirilmiş bir istemci. 2026-09-30'dan
+            // beri KOŞULSUZ reddedilir (aşağıdaki kapı). Bunu gevşeten bir ayar ya da bayrak YOK.
+            sequence = new PlanarityOutcome { Status = PlanarityStatuses.NoProof };
+            diag.Fail("Choreography", "kanıt yok — hareket kanıtı zorunlu");
+        }
+        onPlanarityMeasured(sequence);
+
+        if (ChoreographyGate(sequence) is { } rejection)
+        {
+            diag.Fail("Choreography", rejection.TechnicalDetail ?? rejection.ErrorCode);
+            Console.WriteLine(
+                $"[Enclave] [{RegistrationStep.BiometricVerification}] {rejection.ErrorCode}: " +
+                $"durum={sequence.Status} kimlik-min={sequence.Choreography?.IdentityMin?.ToString("F3") ?? "-"}");
+            throw rejection;
+        }
+
+        // --- Step 6+7: Biyometrik eşleşme + pasif canlılık (aday aday, TAM KAPI) ---
+        // Adaylar sırayla TAM kapıdan geçirilir ve ilk GEÇEN kazanır. Enclave streaming'de neyi
+        // onayladığını BİLMEZ ve önbelleğe GÜVENMEZ (K4) — burada her şey baştan hesaplanır.
+        var (faceScore, candidateOutcomes) = EvaluateCandidates(payload, diag);
+
+        // --- Step 7b: GÜLÜMSEME KARESİ — ÖLÇÜM, KAPI DEĞİL ---
+        // Jestin onaylandığı andaki kareyi de aynı kapıdan geçirip sonucu kaydediyoruz.
+        // Amaç: kimliği HAREKETE bağlamak. Bugün benzerlik istemcinin "en iyi" saydığı
+        // kareden ölçülüyor ve o kareyi kimin ürettiği kanıtlanmıyor.
+        //
+        // ⚠️ Sonucu karara KATMIYORUZ: gülümserken benzerlik kaçınılmaz olarak düşer ve ne
+        // kadar düştüğünü bilmiyoruz. Önce dağılımı görüp sonra kapı yapacağız.
+        AppendSmileFrameMeasurement(payload, candidateOutcomes, diag);
+
+        return (faceScore, candidateOutcomes, sequence);
     }
 
     /// <summary>
@@ -962,21 +987,11 @@ string? partnerId = null;
         }
         diag.Ok("Revocation Check");
 
-        // Demo kart yalnız TEST partnerlerinde geçer (demo uygulamaları, test.verifyblind.com).
-        //
-        // Demo kart gerçek bir kişiyi kanıtlamaz. Sonucu `TEST_` önekiyle ve is_test ile işaretlemek
-        // dikkatli partneri korur; bu işaretleri okumayan bir partnerde ise demo kartla doğrulanan
-        // biri gerçek "doğrulandı" rozeti alırdı. Demo düğmesi artık gizli bir dokunuşla her
-        // sürümde açılabildiği için bu kapı sürüm ayarına değil partnerin kendisine bağlanır.
-        //
-        // "Demo mu" kararı MAC ile mühürlü payload'dan okunur (istemci beyanı değil). "Partner test mi"
-        // bilgisini relay veritabanından verir; iptal kuralları gibi. Alan yoksa false → red.
-        if (signedTicket.Payload.TCKN == DemoTckn && !request.PartnerIsTest)
-        {
-            diag.Fail("Demo Partner Check", "demo bileti test olmayan bir partnere");
-            throw new DemoCardNotAllowedException(
-                "Demo kart yalnızca test ortamlarında kullanılabilir. Bu site için kendi kimliğinizi ekleyin.");
-        }
+        // Demo kart her partnerde geçer (2026-11-02, kullanıcı kararı): kişi akışı gerçek sitede de
+        // deneyebilsin. Gerçek partnere yaş cevabı DÖNMEZ ve sonuç is_test + TEST_ ile işaretlenir;
+        // SDK'lar ve eklenti böyle bir sonucu test modu dışında reddeder. "Demo mu" kararı MAC ile
+        // mühürlü payload'dan, "partner test mi" bilgisi relay veritabanından gelir (alan yoksa false).
+        var isDemoTicket = signedTicket.Payload.TCKN == DemoTckn;
 
         // 5.5 CANLI YÜZ KAPISI — giriş anında kişinin kendisi orada mı?
         //
@@ -1051,6 +1066,13 @@ string? partnerId = null;
 
                 if (kvp.Key == "age")
                 {
+                    if (isDemoTicket && !request.PartnerIsTest)
+                    {
+                        // Demo kart gerçek bir doğum tarihi taşımaz; gerçek sitede "yaş uygun" denmez.
+                        diag.Info("Demo bileti, gerçek partner → yaş cevabı verilmedi");
+                        continue;
+                    }
+
                     try
                     {
                         var dob = signedTicket.Payload.DogumTarihi;
@@ -1086,8 +1108,7 @@ string? partnerId = null;
                     {
                         // Demo kart (sabit TCKN) ile giriş → partner'ın test verisini gerçek doğrulamalardan
                         // ayırt edebilmesi için üç kimlik kodunun başına "TEST_" öneki eklenir (ilk 5 karakter TEST_).
-                        bool isDemo = signedTicket.Payload.TCKN == DemoTckn;
-                        string Mark(string code) => isDemo && !string.IsNullOrEmpty(code) ? "TEST_" + code : code;
+                        string Mark(string code) => isDemoTicket && !string.IsNullOrEmpty(code) ? "TEST_" + code : code;
 
                         // Tek "user_id" isteği = üç partner-scoped kimlik kodu birden (AYRI string alanlar).
                         // Amaç: ulusal-no şema değişimi (kaldırma/ekleme) ve kart yenileme boyunca partner'ın
@@ -1130,7 +1151,8 @@ string? partnerId = null;
         // `TEST_` öneki KALDIRILMADI, bilinçli: yeni alanı okumayan dikkatsiz bir partner için
         // önek pasif koruma sağlar — `TEST_` önekli bir user_id gerçek bir user_id ile ASLA
         // çakışmaz. İkisi farklı işi yapar: önek dikkatsizi korur, is_test yaş sorusunu işaretler.
-        if (signedTicket.Payload.TCKN == DemoTckn && validationsOutput.Count > 0)
+        // Koşulda alan sayısı YOK: yalnız yaş soran gerçek partnerde cevap boş kalır, işaret yine gider.
+        if (isDemoTicket)
         {
             validationsOutput["is_test"] = true;
             diag.Info("Demo bileti → validations.is_test=true");
@@ -1205,6 +1227,9 @@ string? partnerId = null;
             // Operasyonel sinyal (DB'ye YAZILMAZ, yalnız relay log/Sentry): partner'ın istediği
             // ama türetilemeyen kimlik kodlarının ADLARI. Boş dizi = her şey yolunda.
             identity_codes_missing = missingIdentityCodes,
+
+            // Demo doğrulaması fatura ve kotaya girmez; relay şifreli cevabı göremediği için buradan öğrenir.
+            is_demo = isDemoTicket,
 
             // Giriş yüz kapısının ÖLÇÜMÜ (skaler, PII'sız) — verification_frame_metrics'e yazılır.
             // Kayıt akışı bu veriyi zaten üretiyordu; giriş akışı üretmiyordu ve bu yüzden
@@ -1502,7 +1527,7 @@ string? partnerId = null;
             // Skor mesaja YAZILMAZ: bu metin relay üzerinden Sentry'ye ve verification_logs'a gider.
             Console.WriteLine($"[Enclave] Giriş yüz eşleşmesi BAŞARISIZ: {score:0.00} < {BiometricThreshold:0.00}");
             throw new LoginFaceMismatchException(
-                "Yüzünüz bu kimliği ekleyen kişiyle eşleşmedi. Doğrulamayı yalnız kimliğin sahibi tamamlayabilir.");
+                "Yüzünüz bu kimliği ekleyen kişiyle eşleşmedi. Doğrulamayı yalnız kimliğin sahibi tamamlayabilir.", score);
         }
 
         // Pasif canlılık — AYNI karenin kırpmasıyla, kayıt yolundaki fail-closed davranışın AYNISI
@@ -1510,7 +1535,7 @@ string? partnerId = null;
         // payload=null: giriş yolunda SecurePayload yoktur, crop doğrudan verilir.
         var spoof = EnforceAntiSpoof(null, diag, proof.AntiSpoofCrop, "Login");
 
-        var choreography = EnforceLoginChoreography(proof, nonce, refBytes, diag);
+        var choreography = EnforceLoginChoreography(ticket, proof, nonce, refBytes, diag);
 
         // Buraya ulaşmak "geçti" demektir (bütün kapılar fail-closed). Skorlar relay'e taşınır
         // ve ölçüm tablosuna yazılır — eşiği veriyle ayarlayabilmek için.
@@ -1532,7 +1557,7 @@ string? partnerId = null;
     /// ölçülemediyse de reddedilir (ana benzerlik aynı modelle az önce ölçüldü; burada ölçülememesi
     /// beklenmez).</para>
     /// </summary>
-    private ChoreographyOutcome EnforceLoginChoreography(LoginFaceProof proof, string nonce, byte[] refBytes, DiagLog diag)
+    private ChoreographyOutcome EnforceLoginChoreography(TicketPayload ticket, LoginFaceProof proof, string nonce, byte[] refBytes, DiagLog diag)
     {
         if (proof.ChoreographyProof is not { } cp)
         {
@@ -1542,7 +1567,17 @@ string? partnerId = null;
         }
 
         diag.Begin("Login Choreography");
-        var demanded = ChoreographyGenerator.ForLogin(nonce);
+        // Yüzsüz eklenen kart yalnız üç hareketle açılır. Sürüm 2 kanıtı eski uygulamalar içindir;
+        // yüzsüz bileti tek hareketle kullanmaya bu kapı izin vermez. Bilet MAC ile mühürlü.
+        if (ticket.LoginMoves >= ChoreographyGenerator.LoginEventCountV3 && cp.Version != ChoreographyGenerator.LoginVersion3)
+        {
+            diag.Fail("Login Choreography", $"yüzsüz bilet eski sürüm kanıt getirdi (v{cp.Version})");
+            throw new LoginFaceMismatchException("Doğrulama için uygulamayı güncelleyin ve tekrar deneyin.");
+        }
+
+        var demanded = cp.Version == ChoreographyGenerator.LoginVersion3
+            ? ChoreographyGenerator.ForLoginV3(nonce)
+            : ChoreographyGenerator.ForLogin(nonce);
         var measured = _choreography.Measure(cp, demanded, refBytes);
         // Enclave'in Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
         diag.Ok("Login Choreography", DescribeChoreography(measured));
@@ -1562,9 +1597,31 @@ string? partnerId = null;
             // Skor mesaja YAZILMAZ (relay → Sentry/verification_logs); diag satırında var.
             diag.Fail("Login Choreography", "hareket karelerinden birinde yüz eşleşmedi");
             throw new LoginFaceMismatchException(
-                "Yüzünüz bu kimliği ekleyen kişiyle eşleşmedi. Doğrulamayı yalnız kimliğin sahibi tamamlayabilir.");
+                "Yüzünüz bu kimliği ekleyen kişiyle eşleşmedi. Doğrulamayı yalnız kimliğin sahibi tamamlayabilir.",
+                (float)identityMin);
         }
+
+        measured.PLiveMin = MeasureMoveLiveness(cp);
         return measured;
+    }
+
+    /// <summary>Hareket karelerinin en düşük P(live) değeri; ölçülemezse null. Kapı DEĞİLDİR.</summary>
+    private double? MeasureMoveLiveness(ChoreographyProof proof)
+    {
+        try
+        {
+            var lowest = proof.Steps
+                .SelectMany(step => step.Event)
+                .Select(frame => _antiSpoof.Predict(Convert.FromBase64String(frame))[1])
+                .DefaultIfEmpty(float.NaN)
+                .Min();
+            return float.IsNaN(lowest) ? null : Math.Round(lowest, 4);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Enclave] Hareket karesi canlılık ölçümü yapılamadı: {ex.GetType().Name}");
+            return null;
+        }
     }
 
     // --- ACTIVE AUTHENTICATION (Chip Clone Protection) ---
