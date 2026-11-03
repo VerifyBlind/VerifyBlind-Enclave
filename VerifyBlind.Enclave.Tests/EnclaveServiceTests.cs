@@ -1751,8 +1751,11 @@ public class EnclaveServiceTests
         };
     }
 
-    /// <summary>Geçerli bir face_proof — selfie + AYNI karenin anti-spoof kırpması (K6) + tek hareketin kanıtı.</summary>
-    private static LoginFaceProof ValidFaceProof() => new()
+    /// <summary>Geçerli bir face_proof — selfie + AYNI karenin anti-spoof kırpması (K6) + üç hareketin kanıtı.</summary>
+    private static LoginFaceProof ValidFaceProof() => ThreeMoveFaceProof();
+
+    /// <summary>Eski uygulamanın tek hareketli (sürüm 2) kanıtı.</summary>
+    private static LoginFaceProof OldOneMoveFaceProof() => new()
     {
         UserSelfie    = Convert.ToBase64String(Dg2TestFixtures.ValidJpeg),
         AntiSpoofCrop = Convert.ToBase64String(new byte[] { 1, 2, 3, 4 }),
@@ -1811,20 +1814,6 @@ public class EnclaveServiceTests
         Assert.Equal(VerifyBlind.Core.EnclaveErrorCodes.ChoreographyInvalid, ex.ErrorCode);
     }
 
-    /// <summary>🔴 Yüzsüz bilet tek hareketle açılamaz: eski sürüm kanıt getiren istek reddedilir.</summary>
-    [Fact]
-    public async Task LoginAsync_CardOnlyTicket_OldProofVersion_Rejected()
-    {
-        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
-
-        var request = BuildLoginRequestReachingFaceGate(
-            RealTckn, SomeFaceRef, faceProof: ValidFaceProof(), loginMoves: 3);
-
-        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
-            () => _service.LoginAsync(request, new DiagLog()));
-        Assert.Equal("ERR_LOGIN_FACE_MISMATCH", ex.ErrorCode);
-    }
-
     [Theory]
     [InlineData(3)]
     [InlineData(null)]
@@ -1845,22 +1834,23 @@ public class EnclaveServiceTests
             It.IsAny<byte[]>()), Times.Once);
     }
 
-    /// <summary>Eski uygulama, eski bilet: tek hareket çalışmaya devam eder.</summary>
-    [Fact]
-    public async Task LoginAsync_LegacyTicket_OldProofVersion_StillPasses()
+    /// <summary>🔴 Tek hareketli sürüm 2 kanıtı hiçbir bilette açılmaz (2026-11-04): eski yolla eklenmiş
+    /// kart da yeni uygulamada üç hareket ister.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData(3)]
+    public async Task LoginAsync_OldProofVersion_RejectedForEveryTicket(int? loginMoves)
     {
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
-        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
-        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
 
-        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+        var request = BuildLoginRequestReachingFaceGate(
+            RealTckn, SomeFaceRef, faceProof: OldOneMoveFaceProof(), loginMoves: loginMoves);
 
-        await _service.LoginAsync(request, new DiagLog());
-
+        var ex = await Assert.ThrowsAsync<LoginFaceMismatchException>(
+            () => _service.LoginAsync(request, new DiagLog()));
+        Assert.Equal("ERR_LOGIN_FACE_MISMATCH", ex.ErrorCode);
         _choreography.Verify(c => c.Measure(
-            It.IsAny<ChoreographyProof>(),
-            It.Is<Choreography>(d => d.Version == ChoreographyGenerator.Version && d.Events.Count == 1),
-            It.IsAny<byte[]>()), Times.Once);
+            It.IsAny<ChoreographyProof>(), It.IsAny<Choreography>(), It.IsAny<byte[]>()), Times.Never);
     }
 
     // ── Ölçümler (2026-11-02) ────────────────────────────────────────────────
@@ -1885,10 +1875,12 @@ public class EnclaveServiceTests
         _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
         _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
         _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
-        // İlk çağrı aynı karenin kapısı (0.9 geçer); hareket karesi düşük olsa da giriş geçer.
+        // İlk çağrı aynı karenin kapısı (0.9 geçer); üç hareket karesinden biri düşük olsa da giriş geçer.
         _antiSpoof.SetupSequence(a => a.Predict(It.IsAny<byte[]>()))
                   .Returns(new[] { 0.05f, 0.90f, 0.05f })
-                  .Returns(new[] { 0.80f, 0.10f, 0.10f });
+                  .Returns(new[] { 0.40f, 0.50f, 0.10f })
+                  .Returns(new[] { 0.80f, 0.10f, 0.10f })
+                  .Returns(new[] { 0.20f, 0.70f, 0.10f });
 
         var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
 
@@ -2149,7 +2141,7 @@ public class EnclaveServiceTests
 
         // Kapı geçildi (akış KMS'e ulaştı) ve hareket QR nonce'undan türetildi — istemci beyanı değil.
         Assert.Equal("kms-reached", ex.Message);
-        var expected = ChoreographyGenerator.ForLogin("face-gate-nonce-1").Events;
+        var expected = ChoreographyGenerator.ForLoginV3("face-gate-nonce-1").Events;
         verifier.Verify(v => v.Measure(It.IsAny<ChoreographyProof>(),
             It.Is<Choreography>(c => c.Events.SequenceEqual(expected)),
             It.Is<byte[]?>(b => b != null && Encoding.UTF8.GetString(b!) == "face-ref")), Times.Once);

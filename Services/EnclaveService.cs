@@ -1567,17 +1567,15 @@ string? partnerId = null;
         }
 
         diag.Begin("Login Choreography");
-        // Yüzsüz eklenen kart yalnız üç hareketle açılır. Sürüm 2 kanıtı eski uygulamalar içindir;
-        // yüzsüz bileti tek hareketle kullanmaya bu kapı izin vermez. Bilet MAC ile mühürlü.
-        if (ticket.LoginMoves >= ChoreographyGenerator.LoginEventCountV3 && cp.Version != ChoreographyGenerator.LoginVersion3)
+        // Her bilet üç hareketle açılır (2026-11-04). Tek hareketli sürüm 2 kanıtı eski uygulamalarındı;
+        // asgari sürüm yükseltildi, eski yolla eklenmiş kartları da yeni uygulama üç hareketle açar.
+        if (cp.Version != ChoreographyGenerator.LoginVersion3)
         {
-            diag.Fail("Login Choreography", $"yüzsüz bilet eski sürüm kanıt getirdi (v{cp.Version})");
+            diag.Fail("Login Choreography", $"eski sürüm kanıt (v{cp.Version})");
             throw new LoginFaceMismatchException("Doğrulama için uygulamayı güncelleyin ve tekrar deneyin.");
         }
 
-        var demanded = cp.Version == ChoreographyGenerator.LoginVersion3
-            ? ChoreographyGenerator.ForLoginV3(nonce)
-            : ChoreographyGenerator.ForLogin(nonce);
+        var demanded = ChoreographyGenerator.ForLoginV3(nonce);
         var measured = _choreography.Measure(cp, demanded, refBytes);
         // Enclave'in Console çıktısı üretimde hiçbir yere ulaşmıyor; dışarı çıkan tek kanal bu.
         diag.Ok("Login Choreography", DescribeChoreography(measured));

@@ -29,9 +29,9 @@ namespace VerifyBlind.Enclave.Services.Liveness
     ///     Tekrar serbest, yalnız aynı hareket ART ARDA gelmez: 4 × 3⁴ = 324 dizi. Sahada algılama
     ///     yüksek, yanlış hareketin bedeli ~1 sn; eski jest akışı da beşti. Art arda tekrar yok,
     ///     çünkü aynı komut hemen yeniden gelince kullanıcı ilkinin kabul edilmediğini sanıyor.</item>
-    ///   <item><b>Doğrulama (giriş): TEK hareket</b> (<see cref="ForLogin"/>) — gülümseme, ağız açma
-    ///     ya da çift kırpma. Düz kırpma dışarıda: her videoda kendiliğinden var, tek hareketlik
-    ///     dizide videoyu zorlayan tek engel o olurdu.</item>
+    ///   <item><b>Doğrulama (giriş): ÜÇ hareket</b> (<see cref="ForLoginV3"/>, 2026-11-02) — gülümseme,
+    ///     ağız açma ya da çift kırpma. Düz kırpma dışarıda: her videoda kendiliğinden var. Tek
+    ///     hareketli giriş (sürüm 2) 2026-11-04'te kaldırıldı.</item>
     /// </list>
     ///
     /// <para>Sürüm 1 (uzak/orta/yakın duraklar) kaldırıldı; türetme alanı sürümle değişir ki
@@ -45,26 +45,24 @@ namespace VerifyBlind.Enclave.Services.Liveness
         private const string Domain = "vb-choreo-v2|";
 
         /// <summary>
-        /// Girişin alan ayrımı — aynı nonce'tan kayıt dizisiyle ilişkili bir değer çıkmasın.
-        ///
-        /// <para>⚠️ Giriş hareketini İSTEMCİ de aynı kuralla türetiyor (Android ve iOS
-        /// <c>LoginEvent</c>): login-handshake QR okunmadan, nonce bilinmeden hazırlanıyor;
-        /// sunucunun hareketi söyleyeceği bir tur yok. Türetme değişirse üç yer birlikte değişir;
-        /// <c>ChoreographyGeneratorTests.GirisTuretmesiSabittir</c>'deki vektörler iki istemcinin
-        /// testlerinde de aynen duruyor. Karar yine enclave'de: istemci yanlış türetirse kanıt
-        /// istenen hareketle uyuşmaz ve giriş reddedilir.</para>
-        /// </summary>
-        private const string LoginDomain = "vb-choreo-login-v2|";
-
-        /// <summary>
         /// Üç hareketli girişin sürümü (2026-11-02, kullanıcı kararı). Kart ekleme yüzsüz olunca kişi
-        /// yalnız QR'da kanıtlanıyor; tek hareket buna yetmez. Sürüm 2 yalnız eski uygulamalar için
-        /// yaşıyor. Yeni alan ayrımı, aynı nonce'tan sürüm 2 hareketinin ilk adım olarak çıkmasını önler.
+        /// yalnız QR'da kanıtlanıyor; tek hareket buna yetmez. 2026-11-04'ten beri girişte kabul edilen
+        /// TEK sürüm: eski yolla eklenmiş kartlar da üç hareketle açılır.
         /// </summary>
         public const int LoginVersion3 = 3;
 
         public const int LoginEventCountV3 = 3;
 
+        /// <summary>
+        /// Girişin alan ayrımı — aynı nonce'tan kayıt dizisiyle ilişkili bir değer çıkmasın.
+        ///
+        /// <para>⚠️ Giriş hareketlerini İSTEMCİ de aynı kuralla türetiyor (Android ve iOS
+        /// <c>LoginEvent.forNonceV3</c>): login-handshake QR okunmadan, nonce bilinmeden hazırlanıyor;
+        /// sunucunun hareketi söyleyeceği bir tur yok. Türetme değişirse üç yer birlikte değişir;
+        /// <c>ChoreographyGeneratorTests.UcHareketliGirisTuretmesiSabittir</c>'deki vektörler iki
+        /// istemcinin testlerinde de aynen duruyor. Karar yine enclave'de: istemci yanlış türetirse
+        /// kanıt istenen hareketlerle uyuşmaz ve giriş reddedilir.</para>
+        /// </summary>
         private const string LoginDomainV3 = "vb-choreo-login-v3|";
 
         public const int EventCount = 5;
@@ -97,24 +95,10 @@ namespace VerifyBlind.Enclave.Services.Liveness
         }
 
         /// <summary>
-        /// Doğrulama (giriş) hareketi: TEK hareket, QR isteğinin nonce'undan. Enclave girişte
-        /// zarfın içindeki nonce'un QR'dakiyle aynı olduğunu zaten doğruluyor.
-        /// </summary>
-        public static Choreography ForLogin(string nonce)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(nonce);
-            var draw = new DeterministicDraw(
-                SHA256.HashData(Encoding.UTF8.GetBytes(LoginDomain + nonce)));
-            return new Choreography
-            {
-                Version = Version,
-                Events = { LoginEvents[draw.Next(LoginEvents.Length)] },
-            };
-        }
-
-        /// <summary>
-        /// Üç hareketli doğrulama dizisi. İlk hareket üçünden biri, sonrakiler bir öncekinden FARKLI
-        /// ikisinden biri: 3 × 2 × 2 = 12 dizi. Türetmeyi istemciler de yapar (bkz. <see cref="LoginDomain"/>).
+        /// Doğrulama (giriş) dizisi, QR isteğinin nonce'undan. İlk hareket üçünden biri, sonrakiler bir
+        /// öncekinden FARKLI ikisinden biri: 3 × 2 × 2 = 12 dizi. Türetmeyi istemciler de yapar (bkz.
+        /// <see cref="LoginDomainV3"/>). Enclave girişte zarfın içindeki nonce'un QR'dakiyle aynı
+        /// olduğunu zaten doğruluyor.
         /// </summary>
         public static Choreography ForLoginV3(string nonce)
         {
