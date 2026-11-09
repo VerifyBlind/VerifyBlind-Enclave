@@ -234,6 +234,10 @@ public class RegistrationRequest
     [JsonPropertyName("identity_hmac_secret_wrapped")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? IdentityHmacSecretWrapped { get; set; }
+
+    /// <summary>Relay set eder: yük testi trafiği tekil sayıma girmez. Gizli değildir.</summary>
+    [JsonPropertyName("skip_count")]
+    public bool SkipCount { get; set; }
 }
 
 // PIN -> person_id türetme (Phone -> Relay -> Enclave). TCKN'siz kimliklerin bulut yedek
@@ -440,6 +444,10 @@ public class LoginRequest
     [JsonPropertyName("revocation_rules")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? RevocationRules { get; set; }
+
+    /// <summary>Relay set eder: yük testi trafiği tekil sayıma girmez. Gizli değildir.</summary>
+    [JsonPropertyName("skip_count")]
+    public bool SkipCount { get; set; }
 
     // ⚠️ CANLI YÜZ KARESİ BURADA DEĞİL: face_proof, EncrSignedTicket zarfının İÇİNDE taşınır
     // ({signed_ticket, nonce, pk_hash, face_proof} — enclave public key ile şifreli). Gövdeye düz
