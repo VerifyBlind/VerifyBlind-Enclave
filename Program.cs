@@ -55,6 +55,8 @@ builder.Services.AddSingleton<VerifyBlind.Enclave.Services.ITicketMacService, Ve
 // enclave'e geliyor (ticket-MAC ile AYNI CMK, FARKLI EncryptionContext) ve HMAC burada hesaplanıyor.
 // Singleton — secret boot başına 1 kez yüklenir.
 builder.Services.AddSingleton<VerifyBlind.Enclave.Services.IIdentityHmacService, VerifyBlind.Enclave.Services.IdentityHmacService>();
+// Tekil sayım deposu (spec 2026-11-09) — istekler ARASINDA yaşar, singleton olmalı.
+builder.Services.AddSingleton<VerifyBlind.Enclave.Services.UniqueCount.UniqueCountStore>();
 // Canlı benzerlik akışı — akış başına DG2 gömme vektörü (RAM, TTL'li). Singleton olmalı:
 // önbellek istekler ARASINDA yaşar (prepare bir istekte, kareler başka isteklerde gelir).
 builder.Services.AddSingleton<VerifyBlind.Enclave.Services.FlowEmbeddingCache>();

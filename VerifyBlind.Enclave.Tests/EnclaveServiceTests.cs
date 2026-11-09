@@ -5,6 +5,7 @@ using VerifyBlind.Enclave.Services;
 using Moq;
 using Xunit;
 using VerifyBlind.Enclave.Services.Liveness;
+using VerifyBlind.Enclave.Services.UniqueCount;
 
 namespace VerifyBlind.Enclave.Tests;
 
@@ -2375,5 +2376,68 @@ public class EnclaveServiceTests
         Assert.Contains(diag.Entries, e => e.Contains("Biometric Login") && e.Contains("Score=80%"));
         Assert.Contains(diag.Entries, e => e.Contains("AntiSpoof Login") && e.Contains("P(live)=100%"));
     }
-}
 
+    // ── Tekil sayım kancası (spec 2026-11-09) ────────────────────────────────
+
+    private DateTime _countNow = new(2026, 11, 10, 9, 0, 0, DateTimeKind.Utc);
+
+    private (EnclaveService Service, UniqueCountStore Store) ServiceWithCountStore()
+    {
+        var store = new UniqueCountStore(_idHmac.Object, () => _countNow);
+        store.Load(Array.Empty<CountStoreBlob>());
+        var svc = new EnclaveService(_enclaveKeys.Object, _biometrics.Object, _ticketMac.Object, _idHmac.Object,
+            _antiSpoof.Object, new FlowEmbeddingCache(), _choreography.Object, store);
+        return (svc, store);
+    }
+
+    private void SetupRealLogin()
+    {
+        _biometrics.Setup(b => b.VerifyFaceParallel(It.IsAny<byte[]>(), It.IsAny<byte[]>())).Returns(0.80f);
+        _enclaveKeys.Setup(k => k.SignDataWithEnclaveKey(It.IsAny<string>())).Returns("enclave-sig");
+        _idHmac.Setup(h => h.ComputeHmac(It.IsAny<string>())).Returns("aGFzaGhhc2hoYXNoaGFzaGhhc2hoYXNoaGE=");
+    }
+
+    [Fact]
+    public async Task LoginAsync_RealTicket_IsCountedForPartner()
+    {
+        SetupRealLogin();
+        var (svc, store) = ServiceWithCountStore();
+        var day = store.Today();
+
+        await svc.LoginAsync(BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof()), new DiagLog());
+
+        _countNow = _countNow.AddDays(1);
+        Assert.Equal(1, store.Query(VerifyBlind.Core.Models.CountFamilies.PersonLogin, null, day, day));
+        Assert.Equal(1, store.Query(VerifyBlind.Core.Models.CountFamilies.PartnerPerson, "partner-1", day, day));
+    }
+
+    [Fact]
+    public async Task LoginAsync_SkipCount_IsNotCounted()
+    {
+        SetupRealLogin();
+        var (svc, store) = ServiceWithCountStore();
+        var day = store.Today();
+        var request = BuildLoginRequestReachingFaceGate(RealTckn, SomeFaceRef, faceProof: ValidFaceProof());
+        request.SkipCount = true;
+
+        await svc.LoginAsync(request, new DiagLog());
+
+        _countNow = _countNow.AddDays(1);
+        Assert.Equal(0, store.Query(VerifyBlind.Core.Models.CountFamilies.PersonLogin, null, day, day));
+    }
+
+    [Fact]
+    public async Task LoginAsync_DemoTicket_IsNotCounted()
+    {
+        SetupRealLogin();
+        var (svc, store) = ServiceWithCountStore();
+        var day = store.Today();
+
+        await svc.LoginAsync(BuildLoginRequestReachingFaceGate(
+            EnclaveService.DemoTckn, faceRefB64: "", faceProof: null,
+            validations: new Dictionary<string, object> { ["age"] = "18+" }, partnerIsTest: true), new DiagLog());
+
+        _countNow = _countNow.AddDays(1);
+        Assert.Equal(0, store.Query(VerifyBlind.Core.Models.CountFamilies.PersonLogin, null, day, day));
+    }
+}

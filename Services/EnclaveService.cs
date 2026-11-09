@@ -5,6 +5,7 @@ using System.Text;
 using System.Linq;
 using System.Collections.Concurrent; 
 using VerifyBlind.Enclave.Services.Liveness;
+using VerifyBlind.Enclave.Services.UniqueCount;
 
 namespace VerifyBlind.Enclave.Services;
 
@@ -27,6 +28,9 @@ public class EnclaveService
     /// <summary>Olay dizisi kanıtının ölçücüsü — yapı, her karede kimlik, olay özellikleri.</summary>
     private readonly IChoreographyVerifier _choreography;
 
+    /// <summary>Tekil sayım deposu (spec 2026-11-09). Testlerde null olabilir → sayım atlanır.</summary>
+    private readonly UniqueCountStore? _countStore;
+
     /// <summary>
     /// ArcFace (w600k_r50) kosinüs eşiği — YuNet 5-nokta hizalı boru hattı için kalibre edildi.
     /// Gerekçe ve kalibrasyon notları için bkz. <see cref="VerifyBiometricMatchParallel"/>.
@@ -38,8 +42,10 @@ public class EnclaveService
 
     public EnclaveService(IEnclaveKeyService enclaveKeys, IBiometricService biometricService,
         ITicketMacService ticketMac, IIdentityHmacService idHmac, IAntiSpoofService antiSpoof,
-        FlowEmbeddingCache flowEmbeddings, IChoreographyVerifier? choreography = null)
+        FlowEmbeddingCache flowEmbeddings, IChoreographyVerifier? choreography = null,
+        UniqueCountStore? countStore = null)
     {
+        _countStore = countStore;
         _enclaveKeys = enclaveKeys;
         _biometricService = biometricService;
         _ticketMac = ticketMac;
@@ -409,6 +415,7 @@ public class EnclaveService
         await _idHmac.EnsureSecretLoadedAsync(request.IdentityHmacSecretWrapped);
 
         string personId, cardId;
+        string countSodHashHex = "";
         try
         {
             diag.Begin("ID Generation");
@@ -416,6 +423,7 @@ public class EnclaveService
             var sodHashHex = Convert.ToHexString(
                 System.Security.Cryptography.SHA256.HashData(Convert.FromBase64String(payload.SOD))
             ).ToLowerInvariant();
+            countSodHashHex = sodHashHex;
 
             // HMAC artık enclave İÇİNDE hesaplanıyor (IdentityHmacService) — eskiden KMS GenerateMac
             // çağrısıydı ve ~60ms ağ gecikmesi taşıdığı için iki çağrı paralelleştiriliyordu.
@@ -507,6 +515,13 @@ public class EnclaveService
                 blob = aesBlob
             };
             
+            // Tekil sayım (spec 2026-11-09): kart + (geçerli TCKN varsa) kişi. Hata kaydı ASLA bozmaz.
+            if (_countStore != null && !request.SkipCount)
+            {
+                try { _countStore.RecordRegister(ticketPayload.TCKN, countSodHashHex); }
+                catch (Exception ex) { Console.WriteLine($"[Enclave] Tekil sayım atlandı: {ex.GetType().Name}"); }
+            }
+
             diag.Ok("Response Encrypt");
             return (JsonSerializer.Serialize(hybridResponse), faceScore, cardId, candidateOutcomes, sequence);
         }
@@ -1252,6 +1267,14 @@ string? partnerId = null;
                 choreography = loginFace.Choreography
             }
         };
+
+        // Tekil sayım (spec 2026-11-09): kodlar enclave'den çıkmaz; hata doğrulamayı ASLA bozmaz.
+        // Demo bileti ve yük testi (relay skip_count) sayılmaz; TCKN'siz bilet derivesCodes=false'tur.
+        if (_countStore != null && derivesCodes && !isDemoTicket && !request.SkipCount && !string.IsNullOrEmpty(partnerId))
+        {
+            try { _countStore.RecordLogin(signedTicket.Payload.TCKN, partnerId); }
+            catch (Exception ex) { Console.WriteLine($"[Enclave] Tekil sayım atlandı: {ex.GetType().Name}"); }
+        }
 
         // e. Final response: encrypted_response (partner) + relay_metadata (Relay) + nationality (nonce_ledger)
         var nationality = signedTicket.Payload.Uyruk; // ISO 3166-1 alpha-3 (e.g. "TUR")
