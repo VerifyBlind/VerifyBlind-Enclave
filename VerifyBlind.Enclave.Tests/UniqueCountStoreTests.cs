@@ -147,9 +147,10 @@ public class UniqueCountStoreTests
     public async Task Save_AlwaysReturnsCurrentMonth_AndIncrementsVersion()
     {
         var store = await NewStoreAsync();
-        var v1 = store.Save().Blobs.Single();
-        var v2 = store.Save().Blobs.Single();
-        Assert.Equal("2026-11", v1.Month);
+        var first = store.Save().Blobs;
+        var v1 = first.Single(b => b.Month == "2026-11");
+        var v2 = store.Save().Blobs.Single(b => b.Month == "2026-11");
+        Assert.Equal(new[] { "2026-10", "2026-11" }, first.Select(b => b.Month).ToList());
         Assert.Equal(1, v1.Version);
         Assert.Equal(2, v2.Version);
     }
@@ -160,12 +161,12 @@ public class UniqueCountStoreTests
         var hmac = await UniqueCountCodesTests.DevHmacAsync();
         var a = new UniqueCountStore(hmac, () => _now);
         a.Load(Array.Empty<CountStoreBlob>());
-        CountStoreBlob blob = a.Save().Blobs.Single();
-        for (var i = 0; i < 4; i++) blob = a.Save().Blobs.Single();   // sürüm 5
+        CountStoreBlob blob = a.Save().Blobs.Single(x => x.Month == "2026-11");
+        for (var i = 0; i < 4; i++) blob = a.Save().Blobs.Single(x => x.Month == "2026-11");   // sürüm 5
 
         var b = new UniqueCountStore(hmac, () => _now);
         b.Load(new[] { blob });
-        Assert.Equal(6, b.Save().Blobs.Single().Version);
+        Assert.Equal(6, b.Save().Blobs.Single(x => x.Month == "2026-11").Version);
     }
 
     [Fact]
@@ -195,7 +196,7 @@ public class UniqueCountStoreTests
         var hmac = await UniqueCountCodesTests.DevHmacAsync();
         var a = new UniqueCountStore(hmac, () => _now);
         a.Load(Array.Empty<CountStoreBlob>());
-        var blob = a.Save().Blobs.Single();
+        var blob = a.Save().Blobs.Single(x => x.Month == "2026-11");
         var bytes = Convert.FromBase64String(blob.Blob);
         bytes[40] ^= 0x01;
 

@@ -23,6 +23,7 @@ public class CountStoreController : ControllerBase
     }
 
     [HttpPost("load")]
+    [DisableRequestSizeLimit]
     public async Task<IActionResult> Load([FromBody] CountStoreLoadRequest request)
     {
         await _hmac.EnsureSecretLoadedAsync(request.IdentityHmacSecretWrapped);

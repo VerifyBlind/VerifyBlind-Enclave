@@ -8,6 +8,10 @@ namespace VerifyBlind.Enclave.Tests;
 
 public class CountStoreControllerTests
 {
+    [Fact]
+    public void Load_DisablesRequestSizeLimit() =>
+        Assert.NotNull(Attribute.GetCustomAttribute(typeof(CountStoreController).GetMethod(nameof(CountStoreController.Load))!, typeof(Microsoft.AspNetCore.Mvc.DisableRequestSizeLimitAttribute)));
+
     private static async Task<(CountStoreController Controller, UniqueCountStore Store)> BuildAsync()
     {
         var hmac = await UniqueCountCodesTests.DevHmacAsync();

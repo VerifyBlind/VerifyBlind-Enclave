@@ -113,7 +113,7 @@ public sealed class UniqueCountStore
 
             TrimExpired();
             var key = BlobKey();
-            var months = new SortedSet<string>(_dirtyMonths, StringComparer.Ordinal) { MonthKey(Today()) };
+            var months = new SortedSet<string>(_dirtyMonths, StringComparer.Ordinal) { MonthKey(Today()), MonthKey(Today().AddMonths(-1)) };
             var response = new CountStoreSaveResponse { Status = CountStoreSaveResponse.StatusOk };
             foreach (var month in months)
             {
