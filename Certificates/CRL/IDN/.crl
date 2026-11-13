@@ -29,14 +29,14 @@
 <meta name="twitter:image" content="https://www.imigrasi.go.id/images/thumbnail_1200x630_seo.jpg">
 <meta name="google-site-verification" content="9oGmMCllhGyHkLsou-mO9ce3Z0P-tW0KhmfMlBUNAZ4">
 <meta name="csrf-param" content="dirjen_imigrasi-FRONTEND-CSRF">
-<meta name="csrf-token" content="GxKWstycpidY_XWhprYKQuvEBqwKWxeAxwW0kbSkb6ljdsPms-7LSQjIGJDP_Xgoqqhw40cJJfqyY8bS48gM4A==">
+<meta name="csrf-token" content="WJyXRe2kBHM07SiBxp8o0lrX0I_KDtod-ZpXF9WCX0gH9NAGo8lXNgLbZu_26U2qIKTmvr4_s1uX7wFQ48cNew==">
 
-<link href="/assets/f379fab/fe/slider/keen-slider.min.css?v=1793598531" rel="stylesheet">
+<link href="/assets/d1252376/fe/slider/keen-slider.min.css?v=1794550782" rel="stylesheet">
 <link href="/assets/345aa491/themes/smoothness/jquery-ui.css?v=1757531572" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;display=swap" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.2/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-<link href="/assets/bedbf64c/css/flaticon.min.css?v=1793598531" rel="stylesheet">
+<link href="/assets/f92b2c90/css/flaticon.min.css?v=1794550781" rel="stylesheet">
 <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/glightbox@3.2.0/dist/css/glightbox.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" rel="stylesheet">
@@ -44,12 +44,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.min.css" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/bellerose" rel="stylesheet">
-<link href="/assets/bedbf64c/main.css?v=1793598531" rel="stylesheet">
-<link href="/assets/bedbf64c/css/styles.css?v=1793598531" rel="stylesheet">
-<link href="/assets/bedbf64c/css/hyperlink-popup.css?v=1793598531" rel="stylesheet">
-<link href="/assets/bedbf64c/css/ai-loading.css?v=1793598531" rel="stylesheet">
-<link href="/assets/bedbf64c/css/search-ai-ui2.css?v=1793598531" rel="stylesheet">
-<link href="/assets/f379fab/frontend.css?v=1793598531" rel="stylesheet">
+<link href="/assets/f92b2c90/main.css?v=1794550781" rel="stylesheet">
+<link href="/assets/f92b2c90/css/styles.css?v=1794550781" rel="stylesheet">
+<link href="/assets/f92b2c90/css/hyperlink-popup.css?v=1794550781" rel="stylesheet">
+<link href="/assets/f92b2c90/css/ai-loading.css?v=1794550781" rel="stylesheet">
+<link href="/assets/f92b2c90/css/search-ai-ui2.css?v=1794550781" rel="stylesheet">
+<link href="/assets/d1252376/frontend.css?v=1794550782" rel="stylesheet">
 <style>
     @media (max-width: 1000px) {
         #search-ai-result{
@@ -706,7 +706,7 @@
 			<a href="https://www.imigrasi.go.id"><img alt=""></a>
 			
 									<div>
-						<img src="/assets/bedbf64c/img/logo_header_2025.webp" style="height: 40px;">	
+						<img src="/assets/f92b2c90/img/logo_header_2025.webp" style="height: 40px;">	
 					</div>
 					<div style="white-space: nowrap;">
 						<p class="m-0 user-select-none" style="font-size: 12px;">Kementerian Imigrasi dan Pemasyarakatan Republik Indonesia</p><p class="m-0 user-select-none" style="font-size: 16px;">Direktorat Jenderal Imigrasi</p>					</div>
@@ -882,7 +882,7 @@
 	</div> -->
 	<div class="container pt-5 d-none d-print-block">
 		<div class="d-flex align-items-center justify-content-between">
-			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/bedbf64c//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
+			<a class="logo d-flex align-items-center" href="//" data-pjax="0"><img src="/assets/f92b2c90//img/logo.svg" alt="Direktorat Jenderal Imigrasi"></a>		</div>
 	</div>
 
 	
@@ -1424,7 +1424,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                 <div class="bubble">
                     <div class="left">
                         <div class="logo">
-                            <img style="width: 24px;" src="/assets/f379fab/logos/imtell-icon.svg" alt="">
+                            <img style="width: 24px;" src="/assets/d1252376/logos/imtell-icon.svg" alt="">
                         </div>
                         <div class="brand">Imtelligence</div>
                     </div>
@@ -1727,6 +1727,40 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                             <div class="keen-slider__slide">
                             <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
                                 <div class="position-relative">
+                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Lewat EAZY Pas Lintas Batas, Imigrasi Datangi Warga hingga Pelosok Perbatasan Negeri" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/IMG_7565.jpeg?width=400" style="height: 200px !important;">                                <div
+                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
+                                    Berita                                </div>
+                                </div>
+                                <div class="card-body m-0 mt-0">
+                                    <p class="text-muted mb-1" style="font-size: 12px;">
+                                        13 Nov 2026                                    </p>    
+                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Lewat EAZY Pas Lintas Batas, Imigrasi Datangi Warga hingga Pelosok Perbatasan Negeri</h5>
+                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
+                                        JAKARTA, 13 November 2026 – Jarak yang jauh, kondisi geografis yang sulit, hingga keterbatasan biaya tak seharusnya menjadi penghalang bagi masyarakat perbatasan untuk memperoleh dokumen perjalanan resmi. Direktorat Jenderal Imigrasi memperkuat layanan EAZY Pas Lintas Batas, inovasi pelayanan jemput bola yang memungkinkan petugas imigrasi mendatangi langsung masyarakat untuk memberikan pelayanan Pas Lintas Batas (PLB) secara gratis.Penguatan layanan ini tertuang dalam Pedoman Pelaksanaan Pelayanan Pas Lintas Batas bagi Warga Negara Indonesia di Wilayah Perbatasan Nomor IMI-212.GR.02.01 Tahun 2026, yang ditetapkan Direktur Jenderal Imigrasi Hendarsam Marantoko pada 4 November 2026.Indonesia memiliki perbatasan darat dengan tiga negara, yakni Malaysia, Papua Nugini, dan Timor-Leste, serta perbatasan laut dengan sepuluh negara tetangga. Luasnya wilayah perbatasan menghadirkan tantangan pelayanan, terutama bagi masyarakat yang memenuhi persyaratan tetapi belum memiliki Pas Lintas Batas. Keterbatasan ekonomi, biaya transportasi, kondisi alam, jarak tempuh, hingga minimnya akses informasi dan pemahaman administrasi menjadi sejumlah hambatan yang dihadapi masyarakat.Padahal, Pas Lintas Batas merupakan Surat Perjalanan Laksana Paspor bagi WNI yang berdomisili di wilayah perbatasan untuk melakukan perjalanan antarnegara sesuai perjanjian lintas batas yang berlaku. Dokumen ini penting untuk mendukung mobilitas masyarakat secara legal, aman, dan tertib, sekaligus mengurangi risiko perlintasan melalui jalur tidak resmi.Lebih dari sekadar kemudahan administrasi, EAZY Pas Lintas Batas juga menjadi bentuk perlindungan bagi WNI di wilayah perbatasan. Kepemilikan dokumen perjalanan yang sah memberikan kepastian hukum dan rasa aman bagi masyarakat saat melintasi batas negara, sehingga tidak perlu khawatir menghadapi pemeriksaan keimigrasian akibat ketiadaan dokumen perjalanan yang dipersyaratkan, sepanjang perlintasan dilakukan sesuai ketentuan yang berlaku.Direktur Visa dan Dokumen Perjalanan, Johannes Fanny C.A., menjelaskan bahwa EAZY Pas Lintas Batas menjadi solusi konkret untuk mendekatkan pelayanan sekaligus memberikan perlindungan kepada masyarakat perbatasan."Selama ini, sebagian masyarakat harus menempuh perjalanan jauh dan mengeluarkan biaya transportasi yang tidak sedikit untuk mengurus Pas Lintas Batas. Melalui EAZY Pas Lintas Batas, kami membalik pendekatan tersebut. Bukan lagi masyarakat yang harus datang jauh-jauh ke kantor imigrasi, melainkan petugas imigrasi yang mendatangi masyarakat," ujar Johannes.Pelayanan Pas Lintas Batas tidak dipungut biaya atau gratis (Rp0), dengan masa berlaku dokumen paling lama tiga tahun. Penerbitannya diselesaikan maksimal empat hari kerja sejak permohonan diterima secara lengkap dan benar.Berdasarkan pedoman, layanan EAZY Pas Lintas Batas dapat diajukan oleh kepala desa atau sebutan lain di wilayah perbatasan kepada kepala kantor imigrasi setempat dengan minimal 10 pemohon. Jadwal pelayanan ditentukan kantor imigrasi, baik pada hari kerja pukul 08.00–16.00 waktu setempat maupun di luar jam atau hari kerja. Kepala kantor imigrasi dapat menolak permohonan layanan berdasarkan alasan atau pertimbangan yang dapat dipertanggungjawabkan.Petugas imigrasi kemudian mendatangi lokasi pemohon untuk melaksanakan pemeriksaan persyaratan, pengambilan atau pemindaian foto, dan wawancara. Penginputan data serta pencetakan dokumen tetap dilakukan di kantor imigrasi. Setelah selesai, dokumen dapat diantarkan ke kantor desa atau diambil oleh perwakilan desa yang ditunjuk dengan surat kuasa atau surat perintah kepala desa.Koordinator Fungsi Analisis dan Strategi Kebijakan, Nanang Mustofa, menegaskan bahwa penguatan layanan ini merupakan langkah menghadirkan pelayanan publik yang lebih inklusif, berkeadilan, dan berorientasi pada perlindungan masyarakat."EAZY Pas Lintas Batas bukan sekadar mempermudah pengurusan dokumen, tetapi juga memastikan masyarakat perbatasan memiliki dokumen perjalanan yang sah agar dapat melintas dengan lebih aman dan tertib. Inilah esensi pelayanan yang berpihak kepada masyarakat, sekaligus memberikan perlindungan hukum bagi WNI di wilayah perbatasan," jelas Nanang.Johannes menambahkan bahwa penguatan EAZY Pas Lintas Batas merupakan bagian dari komitmen Direktur Jenderal Imigrasi Hendarsam Marantoko dalam mewujudkan semangat Imigrasi untuk Rakyat, melalui pelayanan yang efektif, mudah dijangkau, dan memberikan rasa aman kepada masyarakat."Semangat layanan ini kami wujudkan melalui prinsip EAZY: Efektif, Aman, Zero Cost, dan Yakin Terlindungi. Kami ingin memastikan bahwa jarak bukan lagi penghalang bagi masyarakat untuk memperoleh pelayanan dan perlindungan keimigrasian. Inilah bentuk nyata komitmen Bapak Dirjen Imigrasi Hendarsam Marantoko dalam menghadirkan Imigrasi untuk Rakyat, hingga ke pelosok perbatasan negeri," pungkas Johannes.                                    </div>
+                                    <a href="/berita/lewat-eazy-pas-lintas-batas-imigrasi-datangi-warga-hingga-pelosok-perbatasan-negeri" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                                            <div class="keen-slider__slide">
+                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
+                                <div class="position-relative">
+                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Nekat Jadi PSK, Enam Perempuan Asal Vietnam Diamankan Imigrasi" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/2.png?width=400" style="height: 200px !important;">                                <div
+                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
+                                    Berita                                </div>
+                                </div>
+                                <div class="card-body m-0 mt-0">
+                                    <p class="text-muted mb-1" style="font-size: 12px;">
+                                        13 Nov 2026                                    </p>    
+                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Nekat Jadi PSK, Enam Perempuan Asal Vietnam Diamankan Imigrasi</h5>
+                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
+                                        SEMARANG – Kantor Wilayah Direktorat Jenderal Imigrasi Jawa Tengah mengamankan tujuh warga negara (WN) Vietnam yang diduga bekerja sebagai pekerja seks komersial (PSK) di Kota Semarang pada Jumat (6/11/2026). Ketujuh warga negara asing (WNA) tersebut terjaring dalam operasi mandiri yang digelar serentak di dua lokasi sejak pukul 15.00 WIB.Kepala Kantor Wilayah Direktorat Jenderal Imigrasi Jawa Tengah, Haryono Agus Setiawan mengatakan, operasi ini merupakan tindak lanjut dari laporan masyarakat terkait dugaan penyalahgunaan izin tinggal oleh sejumlah WNA di wilayah Semarang.&nbsp;"Kami menerima informasi dari masyarakat mengenai dugaan keterlibatan WNA dalam aktivitas penyalahgunaan izin tinggal, sehingga tim langsung bergerak melakukan operasi serentak di dua titik yang telah dipetakan, menyasar salah satu hotel dan sebuah rumah di Kota Semarang, " ujar Haryono saat dikonfirmasi, Kamis (12/11/2026).Dari tujuh WN Vietnam yang diamankan, enam orang adalah perempuan dan satu orang laki-laki. Sebanyak lima orang ditemukan di salah satu hotel di Kota Semarang, sementara dua orang lainnya diamankan di sebuah rumah di kawasan perumahan wilayah Kecamatan Semarang Utara.Selain mengamankan ketujuh WNA tersebut, petugas turut menyita sejumlah barang bukti di lokasi penggerebekan. Barang bukti tersebut meliputi uang tunai, alat kontrasepsi, telepon genggam, serta kunci kamar hotel.Berdasarkan pemeriksaan awal, petugas mendapati adanya perbedaan jenis izin tinggal yang digunakan para WNA tersebut. Enam WN Vietnam masuk ke Indonesia menggunakan fasilitas Bebas Visa Kunjungan (BVK), sedangkan satu orang yang diamankan di kawasan perumahan memegang Izin Tinggal Kunjungan (ITK) Bisnis (Indeks C2).Ketujuh WNA tersebut diduga melanggar aturan keimigrasian karena menyalahgunakan izin tinggal kunjungan untuk bekerja sebagai PSK.Saat ini, para WNA asal Vietnam tersebut masih menjalani pemeriksaan lanjutan oleh penyidik keimigrasian. Haryono menegaskan bahwa pihaknya akan menjatuhkan sanksi sesuai dengan ketentuan yang berlaku."Deportasi dan penangkalan agar tidak bisa masuk lagi ke Indonesia, " imbuh Haryono.Pihak imigrasi memastikan pengawasan terhadap keberadaan dan aktivitas orang asing di Jawa Tengah akan terus digiatkan dengan mengoptimalkan peran serta warga sekitar."Partisipasi masyarakat menjadi unsur penting dalam mendukung deteksi dini terhadap potensi pelanggaran keimigrasian, karena pengawasan orang asing bukan hanya tugas petugas imigrasi saja, melainkan tanggung jawab kita bersama, tentunya sejalan dengan semangat Imigrasi untuk Rakyat sesuai amanat Dirjen Imigrasi, " tutup Haryono.12 November 2026Komunikasi PublikDirektorat Jenderal Imigrasi                                    </div>
+                                    <a href="/berita/nekat-jadi-psk-enam-perempuan-asal-vietnam-diamankan-imigrasi" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                                            <div class="keen-slider__slide">
+                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
+                                <div class="position-relative">
                                 <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Tingkatkan Deteksi Dini, Imigrasi Jalin Kolaborasi dengan DJP dan Bea Cukai" data-src="/upload/2026/Foto%20Berita%20Artikel%20Siaran%20Pers/Tingkatkan%20Deteksi%20Dini%2C%20Imigrasi%20Jalin%20Kolaborasi%20dengan%20DJP%20dan%20Bea%20Cukai.jpeg?width=400" style="height: 200px !important;">                                <div
                                     class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
                                     Berita                                </div>
@@ -1860,40 +1894,6 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                                 </div>
                             </div>
                         </div>
-                                            <div class="keen-slider__slide">
-                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
-                                <div class="position-relative">
-                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Imigrasi Serahkan Pria Tiongkok Pemburu Penyu kepada Polda Papua Barat Daya untuk Diproses Hukum" data-src="/upload/2026/10/WhatsApp%20Image%202026-10-02%20at%2008.49.58.jpeg?width=400" style="height: 200px !important;">                                <div
-                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
-                                    Siaran Pers                                </div>
-                                </div>
-                                <div class="card-body m-0 mt-0">
-                                    <p class="text-muted mb-1" style="font-size: 12px;">
-                                        2 Okt 2026                                    </p>    
-                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Imigrasi Serahkan Pria Tiongkok Pemburu Penyu kepada Polda Papua Barat Daya untuk Diproses Hukum</h5>
-                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
-                                        SORONG — Kantor Imigrasi Sorong menyerahkan WS, pria asal Tiongkok, beserta sejumlah barang bukti kepada Kepolisian Daerah (Polda) Papua Barat Daya pada Selasa (22/9) untuk diproses secara hukum. WS adalah instruktur selam tersertifikasi, yang sebelumnya diamankan petugas Imigrasi Makassar di Bandara Internasional Hasanuddin saat akan menuju Kuala Lumpur karena diduga melakukan perburuan penyu secara ilegal di Piaynemo, Kabupaten Raja Ampat, Papua Barat.Langkah ini merupakan kelanjutan dari proses sebelumnya, di mana setelah diamankan oleh Imigrasi Makassar, WS diserahkan kepada Kantor Imigrasi Sorong untuk penanganan lebih lanjut. Setelah melalui koordinasi intensif dengan aparat penegak hukum terkait, kasus ini kemudian dilimpahkan ke Polda Papua Barat Daya untuk proses pemeriksaan lanjutan.“Karena ada indikasi melakukan perburuan satwa yang dilindungi, kami serahkan WS kepada pihak Polda untuk proses hukum lebih lanjut,” jelas Kepala Kantor Wilayah Ditjen Imigrasi Papua, Asrul.Proses penyerahan WS tersebut turut dihadiri unsur Kantor Imigrasi Sorong, Kantor Wilayah Direktorat Jenderal Imigrasi Papua Barat, Polda Papua Barat Daya, serta petugas Bareskrim Polri. Keterlibatan berbagai unsur ini mencerminkan komitmen bersama dalam memastikan seluruh proses penanganan berjalan proporsional, akuntabel, dan mendukung ketertiban umum.“Tanah Papua adalah bagian sah dari kedaulatan Republik Indonesia yang harus dijaga kehormatan dan keutuhannya. Siapa pun, terutama pihak asing, tidak akan kami biarkan berbuat atau bertindak semena-mena di wilayah hukum Indonesia,” imbuh Asrul.Lebih lanjut, Asrul menambahkan bahwa Kantor Wilayah Direktorat Jenderal Imigrasi Papua akan terus memperkuat koordinasi dan sinergi dengan aparat penegak hukum serta pemangku kepentingan terkait. Hal ini sejalan dengan arahan Direktur Jenderal Imigrasi, Hendarsam Marantoko, bahwa jajaran Imigrasi harus terus menghadirkan pelayanan dan penegakan hukum yang profesional, humanis, serta bermanfaat bagi masyarakat melalui semangat “Imigrasi untuk Rakyat.” “Kami akan terus memperkuat sinergi dengan seluruh pemangku kepentingan guna memastikan penegakan hukum yang efektif sekaligus menjaga keamanan dan ketertiban di wilayah kerja kami,” tutup Asrul.23 September 2026Komunikasi PublikDirektorat Jenderal Imigrasi                                    </div>
-                                    <a href="/siaran_pers/imigrasi-serahkan-pria-tiongkok-pemburu-penyu-kepada-polda-papua-barat-daya-untuk-diproses-hukum" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
-                                            <div class="keen-slider__slide">
-                            <div class="card ms-3 mt-3 keen-item" onmouseover="keenMouseIn(this)" onmouseleave="keenMouseOut(this)" style="width: 90%;">
-                                <div class="position-relative">
-                                <img class="h-100 object-fit-cover w-100 mb-3 lazy-img" alt="Cegah Perdagangan Orang, PIMPASA Imigrasi Yogyakarta Gunakan Strategi Ketahanan Pangan dan Wayang Kulit " data-src="/upload/2026/10/WhatsApp%20Image%202026-10-02%20at%2009.02.37%20%281%29.jpeg?width=400" style="height: 200px !important;">                                <div
-                                    class="badge bg-biru-muda rounded-0 small position-absolute top-0 start-0 m-2 text-uppercase">
-                                    Siaran Pers                                </div>
-                                </div>
-                                <div class="card-body m-0 mt-0">
-                                    <p class="text-muted mb-1" style="font-size: 12px;">
-                                        2 Okt 2026                                    </p>    
-                                                                        <h5 class="card-title p-0 mb-3 line-clamp-2" style="font-size: 14px !important;">Cegah Perdagangan Orang, PIMPASA Imigrasi Yogyakarta Gunakan Strategi Ketahanan Pangan dan Wayang Kulit </h5>
-                                    <div class="p-0 m-0 mb-3 line-clamp-6" style="font-size: 12px !important;line-height: 1.25rem; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); text-align: justify;">
-                                        YOGYAKARTA —&nbsp; Imigrasi Yogyakarta optimalkan ketahanan pangan dan pendekatan kultural untuk memperkuat pencegahan Tindak Pidana Perdagangan Orang (TPPO) dan Tindak Pidana Perdagangan Manusia (TPPM) di tingkat akar rumput melalui sinergi peran Petugas Imigrasi Pembina Desa (PIMPASA), pendekatan budaya berbasis wayang kulit, serta penguatan ekonomi kerakyatan lewat program ketahanan pangan di Kabupaten Gunungkidul.Direktur Jenderal Imigrasi Hendarsam Marantoko,&nbsp; yang hadir di momen Panen Raya Jagung Selasa, (29/9) di Tahunan - Bulurejo, Kapanewon Semin, mengungkapkan bahwa tindak pidana perdagangan orang dan migrasi nonprosedural kerap berakar dari kerentanan ekonomi di perdesaan. Keterbatasan lapangan pekerjaan dan rendahnya tingkat kesejahteraan, membuat masyarakat di daerah pedalaman rentan tergiur oleh janji pekerjaan bergaji tinggi di luar negeri melalui jalur ilegal."Kami coba mencegah migrasi nonprosedural dengan menyasar dari sisi ketahanan pangan. Mengapa, karena kerentanan ekonomi dan kesulitan pangan&nbsp; membuat masyarakat di daerah rentan tergiur oleh iming-iming janji pekerjaan bergaji tinggi di luar negeri melalui jalur ilegal,” ujar Hendarsam&nbsp;Upaya tersebut ditopang oleh program ketahanan pangan melalui penanaman jagung seluas 2,5 hektare di lima kelurahan. Melalui kolaborasi bersama kelompok tani dan penyuluh pertanian, program ini berfungsi sebagai instrumen penguatan ekonomi akar rumput agar masyarakat memiliki sumber penghidupan alternatif yang berkelanjutan.Kepala Kantor Wilayah Direktorat Jenderal Imigrasi Daerah Istimewa Yogyakarta, Yuni Santi Nurani, menjelaskan bahwa selain optimalisasi ketahanan pangan, Imigrasi juga menggunakan pendekatan kultural untuk edukasi mengenai migrasi aman dan risiko keberangkatan nonprosedural.&nbsp;“Kami adakan pertunjukan wayang kulit yang menjangkau warga umum hingga generasi muda di SMK Muhammadiyah Semin dan SMAN 1 Semin, bekerja sama dengan Dinas Kebudayaan Daerah Istimewa Yogyakarta,” jelas Yuni.Desa Binaan Imigrasi di wilayah kerja Kanwil Ditjen Imigrasi Yogyakarta menjadi ruang kolaborasi di mana masyarakat bisa mendapatkan akses informasi keimigrasian dan migrasi aman secara lebih dekat melalui PIMPASA sekaligus memperoleh manfaat yang lebih luas melalui kegiatan sosial dan pemberdayaan masyarakat.Saat ini, di wilayah kerja Kantor Imigrasi Yogyakarta terdapat 15 desa binaan imigrasi yang didampingi oleh 8 PIMPASA, yang tersebar di wilayah Kabupaten Sleman, Kabupaten Gunungkidul, dan Kota Yogyakarta. Kehadiran PIMPASA menjadi bagian penting dalam membangun komunikasi langsung dengan masyarakat sekaligus memperkuat penyebarluasan informasi mengenai keimigrasian, migrasi aman, serta pencegahan TPPO dan keberangkatan pekerja migran secara nonprosedural.&nbsp;“Kami harapkan melalui panen raya serta edukasi melalui pertunjukkan wayang ini, imigrasi bisa hadir lebih dekat, memberikan edukasi, mencegah kerentanan, serta memberdayakan masyarakat tentunya sejalan dengan semangat Imigrasi untuk Rakyat,” tutup Hendarsam.&nbsp; 29 September 2026Komunikasi Publik&nbsp;Direktorat Jenderal Imigrasi                                    </div>
-                                    <a href="/siaran_pers/cegah-perdagangan-orang-pimpasa-imigrasi-yogyakarta-gunakan-strategi-ketahanan-pangan-dan-wayang-kulit" class="btn" style="background-color: var(--color-biru-tua); color: white; font-size: 14px !important;">Baca Selengkapnya <i class="bi bi-arrow-right"></i></a>
-                                </div>
-                            </div>
-                        </div>
                                     </div>
             </div>
                     </div>
@@ -1954,7 +1954,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
     <div class="container-fluid px-0" data-aos="fade-up">
         <div class="row gy-4 align-items-center">
             <div class="col-lg-6 text-lg-end text-center">
-                <img class="img-fluid app_img" src="/assets/bedbf64c//img/phone_mockup.png" alt="">            </div>
+                <img class="img-fluid app_img" src="/assets/f92b2c90//img/phone_mockup.png" alt="">            </div>
             <div class="col-lg-6">
                 <div class="section-title mb-3">
                     <h1 class="fw-semibold text-start">
@@ -1967,8 +1967,8 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
                         <h4 class="mb-lg-5 mb-4 text-center text-lg-start unduh_desc">
                             Ajukan permohonan paspor baru atau penggantian secara daring. Mudah dan nyaman.                        </h4>
                         <div class="d-flex gap-3 justify-content-lg-start justify-content-center">
-                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/bedbf64c//img/pstore.png" alt=""></a>
-                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/bedbf64c//img/appstore.png" alt=""></a>                        </div>
+                                                        <a class="" href="https://play.google.com/store/apps/details?id=id.go.imigrasi.paspor_online" target="_blank"><img class="app_download img-fluid" src="/assets/f92b2c90//img/pstore.png" alt=""></a>
+                                                        <a class="" href="https://apps.apple.com/id/app/m-paspor/id1576336459" target="_blank"><img class="app_download img-fluid" src="/assets/f92b2c90//img/appstore.png" alt=""></a>                        </div>
                     </div>
                 </div>
             </div>
@@ -2080,7 +2080,7 @@ Disclaimer : Harap dicatat bahwa Imtelligence adalah model bahasa kecerdasan bua
 	<div class="container mb-md-5 mb-2 footer-top">
 		<div class="row justify-content-between g-4">
 			<div class="col-lg-5 col-md-12 mb-3 mb-md-0 footer-about">
-				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/bedbf64c/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
+				<a class="mb-3 footer_logo" href="//" data-pjax="0"><img class="img-fluid mb-3" src="/assets/f92b2c90/img/logo_footer_2025.webp" alt="Direktorat Jenderal Imigrasi"></a>				<p class="text-white">
 					Jl. H.R. Rasuna Said, Kav. X6, No. 8,
 Kuningan, Jakarta Selatan,
 DKI Jakarta, Indonesia				</p>
@@ -2187,7 +2187,7 @@ DKI Jakarta, Indonesia				</p>
 	<script id="sessionFlashes" type="application/json">
 		{}	</script>
 
-	<script src="/assets/f379fab/fe/slider/keen-slider.js?v=1793598531"></script>
+	<script src="/assets/d1252376/fe/slider/keen-slider.js?v=1794550782"></script>
 <script src="/assets/58a3f682/jquery.js?v=1757531562"></script>
 <script src="/assets/345aa491/jquery-ui.js?v=1757531580"></script>
 <script src="/assets/54f7976c/yii.js?v=1757532998"></script>
@@ -2200,13 +2200,13 @@ DKI Jakarta, Indonesia				</p>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.27/dist/sweetalert2.all.min.js"></script>
-<script src="/assets/bedbf64c/main.js?v=1793598531"></script>
-<script src="/assets/bedbf64c/js/main.min.js?v=1793598531"></script>
-<script src="/assets/bedbf64c/js/hyperlink-popup.js?v=1793598531"></script>
-<script src="/assets/bedbf64c/js/marked.min.js?v=1793598531"></script>
-<script src="/assets/bedbf64c/js/search-ai-ui2.js?v=1793598531"></script>
-<script src="/assets/bedbf64c/js/sitebar-sticky.js?v=1793598531"></script>
-<script src="/assets/f379fab/frontend.js?v=1793598531"></script>
+<script src="/assets/f92b2c90/main.js?v=1794550781"></script>
+<script src="/assets/f92b2c90/js/main.min.js?v=1794550781"></script>
+<script src="/assets/f92b2c90/js/hyperlink-popup.js?v=1794550781"></script>
+<script src="/assets/f92b2c90/js/marked.min.js?v=1794550781"></script>
+<script src="/assets/f92b2c90/js/search-ai-ui2.js?v=1794550781"></script>
+<script src="/assets/f92b2c90/js/sitebar-sticky.js?v=1794550781"></script>
+<script src="/assets/d1252376/frontend.js?v=1794550782"></script>
 <script>jQuery(function ($) {
     $("#keEvisa").click(function() {
         let posisiEvisa = $("#evisaForm").position();
